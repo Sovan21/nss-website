@@ -21,6 +21,7 @@ const localIps = Object.values(interfaces)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {},
   /* config options here */
   allowedDevOrigins: [...localIps, '127.0.0.1', 'localhost', '*.trycloudflare.com'],
 };
