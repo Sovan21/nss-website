@@ -1,0 +1,23 @@
+{
+  "name": "NSS Unit - BB College",
+  "short_name": "NSS BB College",
+  "description": "Official NSS Unit Website for Banwarilal Bhalotia College",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf9f6",
+  "theme_color": "#faf9f6",
+  "icons": [
+    {
+      "src": "/nss-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/nss-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
