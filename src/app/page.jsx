@@ -28,12 +28,8 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true; 
     
-    // Clean up aborted OAuth state
-    if (window.location.hash && (
-      window.location.hash.includes('error') ||
-      window.location.hash.includes('access_token') ||
-      window.location.hash.includes('token_type')
-    )) {
+    // Clean up aborted OAuth error state (let Supabase process successful access_token first)
+    if (window.location.hash && window.location.hash.includes('error')) {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
     if (sessionStorage.getItem('nss_oauth_pending')) {
