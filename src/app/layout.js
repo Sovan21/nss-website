@@ -20,7 +20,6 @@ export const metadata = {
     apple: '/nss-logo.png',
   },
   manifest: '/manifest.json',
-  themeColor: '#faf9f6',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -28,13 +27,18 @@ export const metadata = {
   },
 };
 
+export const viewport = {
+  themeColor: '#faf9f6',
+};
+
 export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

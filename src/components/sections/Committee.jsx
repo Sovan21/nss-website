@@ -11,7 +11,7 @@ const CommitteeCard = ({ member, onImageClick }) => {
   const hasLongAbout = member.about && member.about.length > charLimit;
 
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-[0_10px_40px_rgb(37,99,235,0.05)] border border-blue-50/60 overflow-hidden flex flex-col hover:shadow-[0_20px_50px_rgb(37,99,235,0.1)] hover:-translate-y-2 transition-all duration-500 p-6 md:p-8 text-center group h-fit relative z-10">
+    <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(37,99,235,0.05)] border border-blue-50/60 overflow-hidden flex flex-col hover:shadow-[0_20px_50px_rgb(37,99,235,0.1)] hover:-translate-y-2 transition-all duration-500 p-6 md:p-8 text-center group h-fit relative z-10">
       <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-blue-50/50 via-slate-50/30 to-white -z-10 group-hover:from-blue-100/40 transition-colors duration-500"></div>
       
       <div className="relative w-20 h-20 md:w-28 md:h-28 mx-auto mb-4 rounded-full overflow-hidden border-[4px] border-white shadow-xl shrink-0 bg-slate-50 flex items-center justify-center group-hover:scale-105 transition-all duration-500">
@@ -55,12 +55,18 @@ const CommitteeCard = ({ member, onImageClick }) => {
   );
 };
 
-export default function CommitteePage() {
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function CommitteePage({ prefetchedMembers }) {
+  const [members, setMembers] = useState(prefetchedMembers || []);
+  const [loading, setLoading] = useState(!prefetchedMembers);
   const [zoomedImage, setZoomedImage] = useState(null);
 
   useEffect(() => {
+    // If data was already provided by the parent, skip fetching
+    if (prefetchedMembers) {
+      setMembers(prefetchedMembers);
+      setLoading(false);
+      return;
+    }
     const fetchCommittee = async () => {
       try {
         const { data } = await supabase.from("committee").select("*").order("id", { ascending: true });
@@ -72,7 +78,7 @@ export default function CommitteePage() {
       }
     };
     fetchCommittee();
-  }, []);
+  }, [prefetchedMembers]);
 
   useEffect(() => {
     if (zoomedImage) document.body.style.overflow = "hidden";
@@ -99,7 +105,7 @@ export default function CommitteePage() {
         </div>
 
         {members.length === 0 ? (
-          <div className="bg-white p-16 rounded-[2.5rem] text-center border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+          <div className="bg-white p-16 rounded-3xl md:rounded-[2.5rem] text-center border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
             <Icons.Users className="w-12 h-12 text-slate-200 mx-auto mb-4" />
             <p className="text-slate-400 font-bold tracking-tight">Committee details will be updated soon.</p>
           </div>

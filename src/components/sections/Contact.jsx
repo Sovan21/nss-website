@@ -1,29 +1,8 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import React from "react";
 import { Icons } from "@/components/Icons";
-import LoadingScreen from "@/components/layout/LoadingScreen";
 
-export default function ContactPage() {
-  const [siteData, setSiteData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSiteData = async () => {
-      try {
-        const { data } = await supabase.from("site_content").select("*").limit(1).single();
-        if (data) setSiteData(data);
-      } catch (err) {
-        console.error("Error fetching contact data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSiteData();
-  }, []);
-
-  if (loading) return <LoadingScreen />;
-
+export default function ContactPage({ siteData }) {
   const finalData = siteData || {
     contact_email: "",
     contact_phone: "",
@@ -48,7 +27,7 @@ export default function ContactPage() {
  
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {/* Address */}
-          <a href="https://www.google.com/maps/place/B.B.College/@23.6808679,86.9980219,16.17z/data=!4m6!3m5!1s0x39f71ee555555555:0xed1b371b2dd1ddfb!8m2!3d23.680962!4d86.9975621!16s%2Fm%2F0j25rl7?entry=ttu&g_ep=EgoyMDI2MDUwNi4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer" className="bg-white p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <a href="https://www.google.com/maps/place/B.B.College/@23.6808679,86.9980219,16.17z/data=!4m6!3m5!1s0x39f71ee555555555:0xed1b371b2dd1ddfb!8m2!3d23.680962!4d86.9975621!16s%2Fm%2F0j25rl7?entry=ttu&g_ep=EgoyMDI2MDUwNi4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer" className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.MapPin className="w-7 h-7" />
             </div>
@@ -59,7 +38,7 @@ export default function ContactPage() {
           </a>
  
           {/* Email */}
-          <a href={`mailto:${finalData.contact_email || "bbcollege1944@gmail.com"}`} className="bg-white p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <a href={`mailto:${finalData.contact_email || "bbcollege1944@gmail.com"}`} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Mail className="w-7 h-7" />
             </div>
@@ -70,7 +49,7 @@ export default function ContactPage() {
           </a>
  
           {/* Phone */}
-          <a href={`tel:${finalData.contact_phone || ""}`} className="bg-white p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <a href={`tel:${finalData.contact_phone || ""}`} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Phone className="w-7 h-7" />
             </div>
@@ -81,7 +60,7 @@ export default function ContactPage() {
           </a>
  
           {/* WhatsApp */}
-          <a href={`https://wa.me/${(finalData.contact_whatsapp || "").replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="bg-white p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <a href={`https://wa.me/${(finalData.contact_whatsapp || "").replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-[#25D366] text-white rounded-2xl flex items-center justify-center shadow-xl shadow-green-500/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Whatsapp className="w-7 h-7" />
             </div>

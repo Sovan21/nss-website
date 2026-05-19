@@ -5,12 +5,18 @@ import { supabase } from "@/lib/supabase";
 import { Icons } from "@/components/Icons";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 
-export default function ActivitiesPage() {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function ActivitiesPage({ prefetchedEvents }) {
+  const [events, setEvents] = useState(prefetchedEvents || []);
+  const [loading, setLoading] = useState(!prefetchedEvents);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
+    // If data was already provided by the parent, skip fetching
+    if (prefetchedEvents) {
+      setEvents(prefetchedEvents);
+      setLoading(false);
+      return;
+    }
     const fetchEvents = async () => {
       try {
         const { data } = await supabase.from("events").select("*").order("start_date", { ascending: false });
@@ -22,7 +28,7 @@ export default function ActivitiesPage() {
       }
     };
     fetchEvents();
-  }, []);
+  }, [prefetchedEvents]);
 
   useEffect(() => {
     if (selectedEvent) document.body.style.overflow = "hidden";
@@ -64,7 +70,7 @@ export default function ActivitiesPage() {
         </div>
 
         {events.length === 0 ? (
-          <div className="bg-white p-16 rounded-[2.5rem] text-center border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+          <div className="bg-white p-16 rounded-3xl md:rounded-[2.5rem] text-center border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100 text-slate-300">
               <Icons.Calendar className="w-8 h-8" />
             </div>
@@ -80,7 +86,7 @@ export default function ActivitiesPage() {
               return (
                 <div
                   key={evt.id}
-                  className={`group bg-slate-900 rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(37,99,235,0.15)] overflow-hidden border border-white/10 transition-all duration-700 hover:-translate-y-2 flex flex-col cursor-pointer relative h-[220px] md:h-[320px] ${isLarge ? 'md:col-span-2' : 'md:col-span-1'}`}
+                  className={`group bg-slate-900 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(37,99,235,0.15)] overflow-hidden border border-white/10 transition-all duration-700 hover:-translate-y-2 flex flex-col cursor-pointer relative h-[220px] md:h-[320px] ${isLarge ? 'md:col-span-2' : 'md:col-span-1'}`}
                   onClick={() => setSelectedEvent(evt)}
                 >
                   <div className="absolute inset-0 overflow-hidden">
