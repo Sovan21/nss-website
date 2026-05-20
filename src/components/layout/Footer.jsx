@@ -78,12 +78,12 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
                 </a>
               </li>
               <li>
-                <a href={`tel:${finalData.contact_phone || ""}`} className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300">
+                <span onClick={() => { if (finalData.contact_phone) window.location.href = `tel:${finalData.contact_phone}`; }} className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300 cursor-pointer">
                   <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors duration-300">
                     <Icons.Phone className="w-4 h-4 text-slate-300 group-hover:text-blue-400" />
                   </div>
                   <span className="text-[14px] leading-tight pt-1.5">Reach Us by Phone</span>
-                </a>
+                </span>
               </li>
               <li>
                 <a href="https://www.google.com/maps/place/B.B.College/@23.6809444,86.9976048,16.95z/data=!4m6!3m5!1s0x39f71ee555555555:0xed1b371b2dd1ddfb!8m2!3d23.680962!4d86.9975621!16s%2Fm%2F0j25rl7?entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer" className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300">
@@ -106,16 +106,17 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
                 { name: 'Instagram', icon: 'instagram', url: finalData.social_instagram || '#', color: 'text-[#E1306C]' },
                 { name: 'Facebook', icon: 'facebook', url: finalData.social_facebook || '#', color: 'text-[#1877F2]' },
                 { name: 'LinkedIn', icon: 'linkedin', url: '#', color: 'text-[#0A66C2]' },
-                { name: 'WhatsApp', icon: 'whatsapp', url: finalData.contact_whatsapp ? `https://wa.me/${(finalData.contact_whatsapp || "").replace(/[^0-9]/g, '')}` : '#', color: 'text-[#25D366]' },
+                { name: 'WhatsApp', icon: 'whatsapp', url: '#', color: 'text-[#25D366]', isWhatsApp: true },
                 { name: 'YouTube', icon: 'youtube', url: finalData.social_youtube || '#', color: 'text-[#FF0000]' },
               ].map((social) => (
                 <a 
                   key={social.name}
-                  href={social.url} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                  href={social.isWhatsApp ? undefined : social.url}
+                  onClick={social.isWhatsApp ? (e) => { e.preventDefault(); if (finalData.contact_whatsapp) window.open(`https://wa.me/${finalData.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank'); } : undefined}
+                  target={social.isWhatsApp ? undefined : "_blank"}
+                  rel={social.isWhatsApp ? undefined : "noreferrer"}
                   aria-label={social.name}
-                  className="relative flex items-center h-9 rounded-full bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 hover:shadow-[0_4px_15px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 transition-all duration-300 group"
+                  className="relative flex items-center h-9 rounded-full bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 hover:shadow-[0_4px_15px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer"
                 >
                   <div className="flex items-center justify-center w-9 h-9 shrink-0">
                     <img 

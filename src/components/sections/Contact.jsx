@@ -49,7 +49,7 @@ export default function ContactPage({ siteData }) {
           </a>
  
           {/* Phone */}
-          <a href={`tel:${finalData.contact_phone || ""}`} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <div onClick={() => { if (finalData.contact_phone) window.location.href = `tel:${finalData.contact_phone}`; }} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Phone className="w-7 h-7" />
             </div>
@@ -57,10 +57,10 @@ export default function ContactPage({ siteData }) {
             <span className="text-emerald-600 text-xs md:text-sm font-black group-hover:underline decoration-2 underline-offset-4">
               Tap to Connect
             </span>
-          </a>
+          </div>
  
           {/* WhatsApp */}
-          <a href={`https://wa.me/${(finalData.contact_whatsapp || "").replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <div onClick={() => { if (finalData.contact_whatsapp) window.open(`https://wa.me/${finalData.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank'); }} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-[#25D366] text-white rounded-2xl flex items-center justify-center shadow-xl shadow-green-500/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Whatsapp className="w-7 h-7" />
             </div>
@@ -68,7 +68,7 @@ export default function ContactPage({ siteData }) {
             <span className="text-green-600 text-xs md:text-sm font-black group-hover:underline decoration-2 underline-offset-4">
               Send a Message
             </span>
-          </a>
+          </div>
         </div>
       </div>
     </section>
