@@ -49,12 +49,12 @@ export const ProfileCardContent = ({ user, onClose, onEditClick, onLogout }) => 
         {user.bio && (<div><p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-3 border-b border-blue-100 pb-1.5">About Me</p><p className="text-[13px] text-slate-700 font-medium italic leading-relaxed bg-white/60 p-3.5 rounded-xl border border-blue-100 px-3 mx-1">"{user.bio}"</p></div>)}
       </div>
     </div>
-    <div className="p-3 md:p-4 bg-white/50 border-t border-blue-100 flex flex-col sm:flex-row gap-2.5 shrink-0">
-      <button onClick={onEditClick} className="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition shadow-sm text-sm border border-blue-700 hover:scale-[1.02] active:scale-[0.98] cursor-pointer">
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg> Update Profile
+    <div className="p-3 md:p-4 bg-white/50 border-t border-blue-100 flex flex-row gap-2 shrink-0">
+      <button onClick={onEditClick} className="flex-1 bg-blue-600 text-white font-bold py-2 md:py-2.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-blue-700 transition shadow-sm text-xs md:text-sm border border-blue-700 hover:scale-[1.02] active:scale-[0.98] cursor-pointer">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg> Edit Profile
       </button>
-      <button onClick={onLogout} className="flex-1 bg-red-50 text-red-600 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-red-100 transition shadow-sm text-sm border border-red-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer">
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg> Logout
+      <button onClick={onLogout} className="flex-1 bg-red-50 text-red-600 font-bold py-2 md:py-2.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-red-100 transition shadow-sm text-xs md:text-sm border border-red-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg> Logout
       </button>
     </div>
   </div>
