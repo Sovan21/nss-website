@@ -55,7 +55,7 @@ export default function ContactPage({ siteData }) {
             </div>
             <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">Call Us</h4>
             <span className="text-emerald-600 text-xs md:text-sm font-black group-hover:underline decoration-2 underline-offset-4">
-              {finalData.contact_phone || "Contact via Office"}
+              Tap to Connect
             </span>
           </a>
  
@@ -66,7 +66,7 @@ export default function ContactPage({ siteData }) {
             </div>
             <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">WhatsApp</h4>
             <span className="text-green-600 text-xs md:text-sm font-black group-hover:underline decoration-2 underline-offset-4">
-              {finalData.contact_whatsapp || "Message anytime"}
+              Send a Message
             </span>
           </a>
         </div>

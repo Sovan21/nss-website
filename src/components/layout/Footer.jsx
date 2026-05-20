@@ -82,7 +82,7 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
                   <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors duration-300">
                     <Icons.Phone className="w-4 h-4 text-slate-300 group-hover:text-blue-400" />
                   </div>
-                  <span className="text-[14px] leading-tight pt-1.5">{finalData.contact_phone || "Contact via College"}</span>
+                  <span className="text-[14px] leading-tight pt-1.5">Reach Us by Phone</span>
                 </a>
               </li>
               <li>
