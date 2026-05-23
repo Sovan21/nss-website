@@ -18,6 +18,11 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
           {/* Column 1: Branding & Intro (takes up more space) */}
           <div className="lg:col-span-3 flex flex-col items-center sm:items-start text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mb-5">
+              {/* College Logo */}
+              <a href="https://bbcollege.ac.in" target="_blank" rel="noreferrer" className="block h-16 bg-white flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.1)] ring-2 ring-white/20 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 overflow-hidden shrink-0 cursor-pointer rounded-sm py-0.5 px-0">
+                <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="h-full w-auto object-contain" />
+              </a>
+
               {/* NSS Logo - Perfect Circle Link */}
               <a href="https://nss.gov.in" target="_blank" rel="noreferrer" className="block w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.1)] ring-2 ring-white/20 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 overflow-hidden shrink-0 cursor-pointer">
                 <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain p-0.5 bg-white" />

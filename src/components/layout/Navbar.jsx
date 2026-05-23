@@ -103,14 +103,20 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         <nav className="pointer-events-auto max-w-5xl mx-auto bg-white/92 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/90 rounded-full transition-all duration-300 overflow-hidden">
           <div className="px-4 md:px-6">
             <div className="flex justify-between items-center h-14 md:h-18 gap-2 w-full">
-              <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 cursor-pointer select-none"
+              <div className="flex items-center gap-2.5 md:gap-3 flex-1 min-w-0 cursor-pointer select-none group"
                 onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}>
-                <div className="flex items-center justify-center shrink-0">
-                  <img src="/nss-logo.png" alt="NSS Logo" className="w-9 h-9 md:w-12 md:h-12 object-contain shrink-0" />
+                {/* Unified Logo Badge */}
+                <div className="flex items-center gap-1.5 shrink-0 bg-white rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-all duration-300">
+                  <div className="w-10 h-10 md:w-12 md:h-12 overflow-hidden shrink-0">
+                    <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden shrink-0">
+                    <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain" />
+                  </div>
                 </div>
                 <div className="flex flex-col justify-center flex-1 min-w-0">
-                  <h1 className="text-xs md:text-base font-black text-slate-900 leading-tight truncate tracking-tight">NSS UNIT</h1>
-                  <p className="text-[8px] md:text-[10px] font-bold text-blue-600 truncate uppercase tracking-wider md:tracking-widest">B.B. College</p>
+                  <h1 className="text-xs md:text-base font-black text-slate-800 leading-tight truncate tracking-tight">NSS UNIT</h1>
+                  <p className="text-[8px] md:text-[10px] font-bold text-blue-600/80 truncate uppercase tracking-wider md:tracking-widest">B.B. College, Asansol</p>
                 </div>
               </div>
 
