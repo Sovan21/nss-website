@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Icons } from "../Icons";
 import UserAvatar, { getInitials } from "../UserAvatar";
-import { ProfileCardContent, EditProfileModal } from "../ProfileModals";
+import { ProfileCardContent } from "../ProfileModals";
 
 export const NAV_ITEMS = [
   { key: 'home', label: 'Home', icon: Icons.Home },
@@ -17,7 +17,6 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [showMobileProfile, setShowMobileProfile] = useState(false);
   const [showDesktopProfile, setShowDesktopProfile] = useState(false);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showAdminWarning, setShowAdminWarning] = useState(false);
 
   useEffect(() => {
@@ -61,7 +60,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   }, []);
 
   useEffect(() => {
-    const isAnyModalOpen = isMobileMenuOpen || showMobileProfile || isEditingProfile || showDesktopProfile || showAdminWarning;
+    const isAnyModalOpen = isMobileMenuOpen || showMobileProfile || showDesktopProfile || showAdminWarning;
     const navbar = document.getElementById('fixed-navbar');
     if (isAnyModalOpen) { 
       const sw = window.innerWidth - document.documentElement.clientWidth; 
@@ -79,18 +78,21 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
       document.body.style.overflow = 'unset'; 
       if (navbar) navbar.style.paddingRight = '0px';
     };
-  }, [isMobileMenuOpen, showMobileProfile, isEditingProfile, showDesktopProfile, showAdminWarning]);
+  }, [isMobileMenuOpen, showMobileProfile, showDesktopProfile, showAdminWarning]);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeAllMenus = () => { setIsMobileMenuOpen(false); setShowMobileProfile(false); setShowDesktopProfile(false); };
   
   const handleNavClick = (key) => {
-    onTabChange(key);
+    if (activeTab === key) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      onTabChange(key);
+    }
     closeAllMenus();
   };
 
   const handleLogout = async () => { await supabase.auth.signOut(); localStorage.removeItem('nss_user'); setCurrentUser(null); closeAllMenus(); window.dispatchEvent(new Event('nss_user_logged_out')); };
-  const openEditModal = () => { closeAllMenus(); setIsEditingProfile(true); };
 
   let adminPressTimer;
   const handlePressStart = () => { adminPressTimer = setTimeout(() => { setShowAdminWarning(true); }, 6000); };
@@ -103,20 +105,23 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         <nav className="pointer-events-auto max-w-5xl mx-auto bg-white/92 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/90 rounded-full transition-all duration-300 overflow-hidden">
           <div className="px-4 md:px-6">
             <div className="flex justify-between items-center h-14 md:h-18 gap-2 w-full">
-              <div className="flex items-center gap-2.5 md:gap-3 flex-1 min-w-0 cursor-pointer select-none group"
-                onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}>
+              <div className="flex items-center gap-2.5 md:gap-3 flex-1 min-w-0 cursor-pointer select-none group active:scale-95 transition-transform"
+                onClick={() => handleNavClick('home')}
+                onContextMenu={(e) => e.preventDefault()}
+                onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}
+                style={{ WebkitTouchCallout: 'none' }}>
                 {/* Unified Logo Badge */}
-                <div className="flex items-center gap-1.5 shrink-0 bg-white rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-all duration-300">
+                <div className="flex items-center gap-1.5 shrink-0 bg-white rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-all duration-300 pointer-events-none">
                   <div className="w-10 h-10 md:w-12 md:h-12 overflow-hidden shrink-0">
-                    <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-full h-full object-contain" />
+                    <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-full h-full object-contain select-none" draggable="false" />
                   </div>
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden shrink-0">
-                    <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain" />
+                    <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain select-none" draggable="false" />
                   </div>
                 </div>
-                <div className="flex flex-col justify-center flex-1 min-w-0">
-                  <h1 className="text-xs md:text-base font-black text-slate-800 leading-tight truncate tracking-tight">NSS UNIT</h1>
-                  <p className="text-[8px] md:text-[10px] font-bold text-blue-600/80 truncate uppercase tracking-wider md:tracking-widest">B.B. College, Asansol</p>
+                <div className="flex flex-col justify-center flex-1 min-w-0 pointer-events-none">
+                  <h1 className="text-[11px] sm:text-xs md:text-sm font-black text-slate-800 leading-tight truncate tracking-tight uppercase">National Service Scheme</h1>
+                  <p className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-blue-600/80 truncate uppercase tracking-wider md:tracking-widest"><span className="md:hidden">B.B. College, Asansol</span><span className="hidden md:inline">Banwarilal Bhalotia College, Asansol</span></p>
                 </div>
               </div>
 
@@ -204,7 +209,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:hidden">
           <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={closeAllMenus}></div>
           <div className="relative z-10 w-full max-w-sm bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[88dvh] md:max-h-[90vh] animate-fade-in-up border border-blue-100">
-            <ProfileCardContent user={currentUser} onClose={closeAllMenus} onEditClick={openEditModal} onLogout={handleLogout} />
+            <ProfileCardContent user={currentUser} onClose={closeAllMenus} onLogout={handleLogout} />
           </div>
         </div>
       )}
@@ -215,16 +220,13 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
           <div className="absolute inset-0 pointer-events-auto" onClick={() => setShowDesktopProfile(false)}></div>
           <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative">
             <div className="absolute right-4 sm:right-6 lg:right-8 top-[72px] w-[380px] bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-3xl overflow-hidden flex flex-col overscroll-contain animate-fade-in-up pointer-events-auto border border-blue-100">
-              <ProfileCardContent user={currentUser} onClose={() => setShowDesktopProfile(false)} onEditClick={openEditModal} onLogout={handleLogout} />
+              <ProfileCardContent user={currentUser} onClose={() => setShowDesktopProfile(false)} onLogout={handleLogout} />
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Profile Modal */}
-      {isEditingProfile && currentUser && (
-        <EditProfileModal currentUser={currentUser} onClose={() => setIsEditingProfile(false)} setCurrentUser={setCurrentUser} />
-      )}
+
 
       {/* Admin Confirmation Modal */}
       {showAdminWarning && (

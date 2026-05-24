@@ -9,6 +9,20 @@ export default function ContactPage({ siteData }) {
     contact_whatsapp: "",
   };
 
+  const phoneParts = finalData.contact_phone ? finalData.contact_phone.split(',') : [];
+  const phone1 = phoneParts[0]?.trim() || '';
+  const phone2 = phoneParts[1]?.trim() || '';
+
+  const handleEmailClick = (e, email) => {
+    e.preventDefault();
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = `mailto:${email}`;
+    } else {
+      window.open(`https://mail.google.com/mail/?extsrc=mailto&url=mailto:${email}`, '_blank');
+    }
+  };
+
   return (
     <section className="pt-28 pb-12 md:pt-36 md:pb-20 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] flex-grow flex items-center justify-center relative overflow-hidden">
       <div className="absolute top-0 left-0 w-72 h-72 bg-blue-500/5 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
@@ -38,29 +52,43 @@ export default function ContactPage({ siteData }) {
           </a>
  
           {/* Email */}
-          <a href={`mailto:${finalData.contact_email || "bbcollege1944@gmail.com"}`} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <div onClick={(e) => handleEmailClick(e, finalData.contact_email || "bbcollege1944@gmail.com")} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Mail className="w-7 h-7" />
             </div>
             <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">Email Us</h4>
-            <span className="text-blue-600 text-xs md:text-sm font-black break-all group-hover:underline decoration-2 underline-offset-4">
+            <span className="text-blue-600 text-[13px] md:text-sm font-black break-words group-hover:underline decoration-2 underline-offset-4">
               {finalData.contact_email || "bbcollege1944@gmail.com"}
             </span>
-          </a>
+          </div>
  
           {/* Phone */}
-          <div onClick={() => { if (finalData.contact_phone) window.location.href = `tel:${finalData.contact_phone}`; }} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group">
             <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Phone className="w-7 h-7" />
             </div>
             <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">Call Us</h4>
-            <span className="text-emerald-600 text-xs md:text-sm font-black group-hover:underline decoration-2 underline-offset-4">
-              Tap to Connect
-            </span>
+            <div className="flex flex-col gap-1.5 w-full">
+              {phone1 ? (
+                <a href={`tel:${phone1}`} className="text-emerald-600 text-[13px] md:text-[13px] font-black hover:underline decoration-2 underline-offset-4 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors inline-block w-full whitespace-nowrap overflow-hidden text-ellipsis">
+                  {phone1}
+                </a>
+              ) : null}
+              {phone2 ? (
+                <a href={`tel:${phone2}`} className="text-emerald-600 text-[13px] md:text-[13px] font-black hover:underline decoration-2 underline-offset-4 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors inline-block w-full whitespace-nowrap overflow-hidden text-ellipsis">
+                  {phone2}
+                </a>
+              ) : null}
+              {!phone1 && !phone2 && (
+                <span className="text-emerald-600 text-xs md:text-sm font-black">
+                  Unavailable
+                </span>
+              )}
+            </div>
           </div>
  
           {/* WhatsApp */}
-          <div onClick={() => { if (finalData.contact_whatsapp) window.open(`https://wa.me/${finalData.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank'); }} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <div onClick={() => { if (finalData.contact_whatsapp) window.open(finalData.contact_whatsapp, '_blank'); }} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-[#25D366] text-white rounded-2xl flex items-center justify-center shadow-xl shadow-green-500/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Whatsapp className="w-7 h-7" />
             </div>

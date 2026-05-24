@@ -519,6 +519,19 @@ const VolunteersManager = ({ setIsDirty }) => {
 };
 
 // ============================================================================
+// UTILITY 5: COMMITTEE DESIGNATION ENCODER
+// ============================================================================
+export const decodeDesignation = (raw) => {
+ if (!raw) return { category: 'Teacher', designation: '' };
+ if (raw.includes('::')) {
+ const [cat, des] = raw.split('::');
+ return { category: cat, designation: des };
+ }
+ return { category: 'Teacher', designation: raw };
+};
+export const encodeDesignation = (category, designation) => `${category}::${designation}`;
+
+// ============================================================================
 // SECTION 2: COMMITTEE MANAGER
 // ============================================================================
 const CommitteeManager = ({ setIsDirty }) => {
@@ -526,12 +539,12 @@ const CommitteeManager = ({ setIsDirty }) => {
  const [members, setMembers] = useState([]);
  const [loading, setLoading] = useState(true);
  const [showAddForm, setShowAddForm] = useState(false);
- const [newMember, setNewMember] = useState({ name: '', designation: '', about: '' });
+ const [newMember, setNewMember] = useState({ name: '', category: 'Teacher', designation: '', about: '' });
  const [bannerFile, setBannerFile] = useState(null);
  const [saving, setSaving] = useState(false);
 
  const [editingMember, setEditingMember] = useState(null);
- const [editFormData, setEditFormData] = useState({ name: '', designation: '', about: '' });
+ const [editFormData, setEditFormData] = useState({ name: '', category: 'Teacher', designation: '', about: '' });
  const [editImageFile, setEditImageFile] = useState(null);
  const [removeImage, setRemoveImage] = useState(false);
 
@@ -561,12 +574,17 @@ const CommitteeManager = ({ setIsDirty }) => {
  imageUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
  }
 
- const memberData = { ...newMember, image_url: imageUrl };
+ const memberData = {
+ name: newMember.name,
+ designation: encodeDesignation(newMember.category, newMember.designation),
+ about: newMember.about,
+ image_url: imageUrl
+ };
  const { error } = await supabase.from('committee').insert([memberData]);
  if (error) throw error;
 
  toast.success("New Committee Member Added!");
- setNewMember({ name: '', designation: '', about: '' });
+ setNewMember({ name: '', category: 'Teacher', designation: '', about: '' });
  setBannerFile(null);
  setShowAddForm(false);
  fetchMembers();
@@ -574,7 +592,8 @@ const CommitteeManager = ({ setIsDirty }) => {
  };
 
  const openEditModal = (member) => {
- setEditFormData({ name: member.name, designation: member.designation, about: member.about || '' });
+ const { category, designation } = decodeDesignation(member.designation);
+ setEditFormData({ name: member.name, category, designation, about: member.about || '' });
  setEditImageFile(null);
  setRemoveImage(false);
  setEditingMember(member);
@@ -598,7 +617,12 @@ const CommitteeManager = ({ setIsDirty }) => {
  await supabase.storage.from('nss-images').upload(fileName, compressedFile);
  updatedImageUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
  }
- const finalUpdates = { ...editFormData, image_url: updatedImageUrl };
+ const finalUpdates = {
+ name: editFormData.name,
+ designation: encodeDesignation(editFormData.category, editFormData.designation),
+ about: editFormData.about,
+ image_url: updatedImageUrl
+ };
  const { error } = await supabase.from('committee').update(finalUpdates).eq('id', editingMember.id);
  if (error) throw error;
 
@@ -635,6 +659,15 @@ const CommitteeManager = ({ setIsDirty }) => {
  <form onSubmit={handleAddMember} className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 mb-8">
  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
  <div><label className="text-sm font-semibold mb-1">Full Name *</label><input name="name" value={newMember.name} onChange={handleAddInputChange} required className="w-full p-2.5 border rounded-lg" /></div>
+ <div>
+ <label className="text-sm font-semibold mb-1">Category *</label>
+ <select name="category" value={newMember.category} onChange={handleAddInputChange} required className="w-full p-2.5 border rounded-lg bg-white">
+ <option value="Teacher">Teacher / Mentor</option>
+ <option value="Cultural">Cultural Committee</option>
+ <option value="Student">Student Committee</option>
+ <option value="Environment">Environment Committee</option>
+ </select>
+ </div>
  <div><label className="text-sm font-semibold mb-1">Designation *</label><input name="designation" value={newMember.designation} onChange={handleAddInputChange} required className="w-full p-2.5 border rounded-lg" /></div>
  <div className="md:col-span-2"><label className="text-sm font-semibold mb-1">About *</label><textarea name="about" value={newMember.about} onChange={handleAddInputChange} required rows="3" className="w-full p-2.5 border rounded-lg"></textarea></div>
  <div className="md:col-span-2">
@@ -651,7 +684,9 @@ const CommitteeManager = ({ setIsDirty }) => {
 
  {loading ? <div className="text-center py-10">Loading...</div> : (
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
- {members.map((member) => (
+ {members.map((member) => {
+ const { category, designation } = decodeDesignation(member.designation);
+ return (
  <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
  <div className="p-6 flex flex-col items-center text-center flex-1">
  {member.image_url ? (
@@ -662,7 +697,8 @@ const CommitteeManager = ({ setIsDirty }) => {
  </div>
  )}
  <h4 className="font-bold text-lg mb-1">{member.name}</h4>
- <p className="text-sm text-blue-600 font-semibold">{member.designation}</p>
+ <p className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded uppercase tracking-widest mb-1.5">{category}</p>
+ <p className="text-sm text-blue-600 font-semibold">{designation}</p>
  </div>
  <div className="flex border-t border-gray-100">
  <button onClick={() => openEditModal(member)} className="flex-1 py-3 text-sm font-semibold text-gray-600 hover:bg-blue-50 flex justify-center items-center"><EditIcon /> Edit</button>
@@ -670,7 +706,8 @@ const CommitteeManager = ({ setIsDirty }) => {
  <button onClick={() => handleDeleteMember(member.id)} className="flex-1 py-3 text-sm font-semibold text-gray-600 hover:bg-red-50 flex justify-center items-center"><TrashIcon /> Delete</button>
  </div>
  </div>
- ))}
+ );
+ })}
  </div>
  )}
 
@@ -707,6 +744,15 @@ const CommitteeManager = ({ setIsDirty }) => {
  <div>
  <label className="block text-xs font-bold text-gray-700 mb-1">Full Name *</label>
  <input name="name" value={editFormData.name} onChange={handleEditInputChange} required className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="e.g. Dr. John Doe"/>
+ </div>
+ <div>
+ <label className="block text-xs font-bold text-gray-700 mb-1">Category *</label>
+ <select name="category" value={editFormData.category} onChange={handleEditInputChange} required className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
+ <option value="Teacher">Teacher / Mentor</option>
+ <option value="Cultural">Cultural Committee</option>
+ <option value="Student">Student Committee</option>
+ <option value="Environment">Environment Committee</option>
+ </select>
  </div>
  <div>
  <label className="block text-xs font-bold text-gray-700 mb-1">Designation *</label>
@@ -1270,7 +1316,7 @@ const EventsManager = ({ setIsDirty }) => {
 // ============================================================================
 const SettingsManager = ({ isDirty, setIsDirty }) => { // Note: isDirty is now passed down
  const { toast } = useToast();
- const [siteData, setSiteData] = useState({ hero_title: '', hero_subtitle: '', about_heading: '', about_text: '', about_image_url: '', hero_slider_urls: [], contact_email: '', contact_phone: '', contact_whatsapp: '', social_facebook: '', social_instagram: '', social_youtube: '' });
+ const [siteData, setSiteData] = useState({ hero_title: '', hero_subtitle: '', about_heading: '', about_text: '', about_image_url: '', hero_slider_urls: [], contact_email: '', contact_phone: '', contact_phone_2: '', contact_whatsapp: '', social_facebook: '', social_instagram: '', social_youtube: '' });
  const [loading, setLoading] = useState(true);
  const [saving, setSaving] = useState(false);
  
@@ -1291,6 +1337,7 @@ const SettingsManager = ({ isDirty, setIsDirty }) => { // Note: isDirty is now p
  Facebook: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" /></svg>,
  Instagram: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>,
  Youtube: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 0 0-1.94 2C1 8.13 1 12 1 12s0 3.87.46 5.58a2.78 2.78 0 0 0 1.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.42a2.78 2.78 0 0 0 1.94-2C23 15.87 23 12 23 12s0-3.87-.46-5.58z" /><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" /></svg>,
+ Whatsapp: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>,
  };
 
  const handleChange = (e) => { setIsDirty(true); setSiteData({ ...siteData, [e.target.name]: e.target.value }); };
@@ -1330,7 +1377,14 @@ const SettingsManager = ({ isDirty, setIsDirty }) => { // Note: isDirty is now p
  const { data, error } = await supabase.from('site_content').select('*').limit(1).single();
  if (error && error.code !== 'PGRST116') throw error;
  if (data) {
- setSiteData(data);
+ let phone1 = data.contact_phone || '';
+ let phone2 = '';
+ if (phone1.includes(',')) {
+   const parts = phone1.split(',');
+   phone1 = parts[0].trim();
+   phone2 = parts[1]?.trim() || '';
+ }
+ setSiteData({ ...data, contact_phone: phone1, contact_phone_2: phone2 });
  setSliderSlots((data.hero_slider_urls || []).map(url => ({ isNew: false, file: null, preview: url })));
  setAboutSlots((data.about_image_url ? data.about_image_url.split(',').filter(Boolean) : []).map(url => ({ isNew: false, file: null, preview: url })));
  }
@@ -1374,11 +1428,14 @@ const SettingsManager = ({ isDirty, setIsDirty }) => { // Note: isDirty is now p
  } else { finalSliderUrls.push(slot.preview); }
  }
 
- const finalData = { ...siteData, about_image_url: updatedAboutImageUrl, hero_slider_urls: finalSliderUrls };
+ const finalPhone = siteData.contact_phone_2 ? `${siteData.contact_phone},${siteData.contact_phone_2}` : siteData.contact_phone;
+ const finalData = { ...siteData, contact_phone: finalPhone, about_image_url: updatedAboutImageUrl, hero_slider_urls: finalSliderUrls };
+ delete finalData.contact_phone_2;
+ 
  if (siteData.id) await supabase.from('site_content').update(finalData).eq('id', siteData.id);
  else await supabase.from('site_content').insert([finalData]);
 
- toast.success("Settings Updated!"); setIsDirty(false); setSiteData(finalData);
+ toast.success("Settings Updated!"); setIsDirty(false); setSiteData({ ...finalData, contact_phone: siteData.contact_phone, contact_phone_2: siteData.contact_phone_2 });
  setSliderSlots(finalSliderUrls.map(url => ({ isNew: false, file: null, preview: url })));
  setAboutSlots(finalAboutUrls.map(url => ({ isNew: false, file: null, preview: url })));
  } catch (err) { toast.error("Failed to update settings."); } finally { setSaving(false); }
@@ -1455,22 +1512,26 @@ const SettingsManager = ({ isDirty, setIsDirty }) => { // Note: isDirty is now p
  <h4 className="font-bold text-lg text-indigo-900 mb-4 flex items-center gap-2"><Icons.Contact /> Contact & Socials</h4>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  {[
- { name: 'contact_email', placeholder: 'nss@example.com', icon: <Icons.Email /> },
- { name: 'contact_phone', placeholder: '+91 9876543210', icon: <Icons.Phone /> },
- { name: 'contact_whatsapp', placeholder: '+91 9876543210', icon: <Icons.Phone /> },
- { name: 'social_facebook', placeholder: 'https://facebook.com/...', icon: <Icons.Facebook /> },
- { name: 'social_instagram', placeholder: 'https://instagram.com/...', icon: <Icons.Instagram /> },
- { name: 'social_youtube', placeholder: 'https://youtube.com/...', icon: <Icons.Youtube /> },
+ { name: 'contact_email', label: 'Contact Email', placeholder: 'nss@example.com', icon: <Icons.Email /> },
+ { name: 'contact_phone', label: 'Primary Phone (Call Us 1)', placeholder: '+91 9876543210', icon: <Icons.Phone /> },
+ { name: 'contact_phone_2', label: 'Secondary Phone (Call Us 2)', placeholder: '+91 9876543210', icon: <Icons.Phone /> },
+ { name: 'contact_whatsapp', label: 'WhatsApp Channel Link', placeholder: 'https://whatsapp.com/channel/...', icon: <Icons.Whatsapp /> },
+ { name: 'social_facebook', label: 'Facebook Link', placeholder: 'https://facebook.com/...', icon: <Icons.Facebook /> },
+ { name: 'social_instagram', label: 'Instagram Link', placeholder: 'https://instagram.com/...', icon: <Icons.Instagram /> },
+ { name: 'social_youtube', label: 'YouTube Link', placeholder: 'https://youtube.com/...', icon: <Icons.Youtube /> },
  ].map(field => (
- <div key={field.name} className="relative">
+ <div key={field.name} className="relative flex flex-col gap-1.5">
+ <label className="text-xs font-bold text-indigo-800 ml-1">{field.label}</label>
+ <div className="relative">
  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">{field.icon}</div>
  <input
  name={field.name}
  value={siteData[field.name] || ''}
  onChange={handleChange}
- className="w-full p-2.5 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+ className="w-full p-2.5 pl-10 border border-indigo-200/60 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
  placeholder={field.placeholder}
  />
+ </div>
  </div>
  ))}
  </div>

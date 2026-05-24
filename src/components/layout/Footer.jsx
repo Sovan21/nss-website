@@ -4,6 +4,16 @@ import { Icons } from '../Icons';
 const Footer = ({ siteData, finalData: passedFinalData }) => {
   const finalData = siteData || passedFinalData || {};
 
+  const handleEmailClick = (e, email) => {
+    e.preventDefault();
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = `mailto:${email}`;
+    } else {
+      window.open(`https://mail.google.com/mail/?extsrc=mailto&url=mailto:${email}`, '_blank');
+    }
+  };
+
   return (
     <footer className="relative bg-[#0B1120] text-slate-300 border-t border-white/10 overflow-hidden font-sans" id="footer">
       {/* Decorative gradient glow at the top */}
@@ -16,7 +26,7 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 mb-10">
           
           {/* Column 1: Branding & Intro (takes up more space) */}
-          <div className="lg:col-span-3 flex flex-col items-center sm:items-start text-center sm:text-left">
+          <div className="lg:col-span-4 xl:col-span-3 flex flex-col items-center sm:items-start text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mb-5">
               {/* College Logo */}
               <a href="https://bbcollege.ac.in" target="_blank" rel="noreferrer" className="block h-16 bg-white flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.1)] ring-2 ring-white/20 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 overflow-hidden shrink-0 cursor-pointer rounded-sm py-0.5 px-0">
@@ -71,25 +81,33 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
           </div>
 
           {/* Column 3: Contact Info */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 xl:col-span-4">
             <h4 className="text-white text-sm font-bold mb-4 tracking-wide uppercase">Get In Touch</h4>
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               <li>
-                <a href={`mailto:${finalData.contact_email || "bbcollege1944@gmail.com"}`} className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300">
+                <div onClick={(e) => handleEmailClick(e, finalData.contact_email || "bbcollege1944@gmail.com")} className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300 cursor-pointer">
                   <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors duration-300">
                     <Icons.Mail className="w-4 h-4 text-slate-300 group-hover:text-blue-400" />
                   </div>
-                  <span className="text-[14px] leading-tight pt-1.5 break-all">{finalData.contact_email || "bbcollege1944@gmail.com"}</span>
-                </a>
+                  <span className="text-[14px] leading-tight pt-1.5 break-words">{finalData.contact_email || "bbcollege1944@gmail.com"}</span>
+                </div>
               </li>
-              <li>
-                <span onClick={() => { if (finalData.contact_phone) window.location.href = `tel:${finalData.contact_phone}`; }} className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300 cursor-pointer">
-                  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors duration-300">
-                    <Icons.Phone className="w-4 h-4 text-slate-300 group-hover:text-blue-400" />
+              {finalData.contact_phone && (
+                <li>
+                  <div className="group flex items-start gap-3 text-slate-400 transition-colors duration-300">
+                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors duration-300 mt-0.5">
+                      <Icons.Phone className="w-4 h-4 text-slate-300 group-hover:text-blue-400" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {finalData.contact_phone.split(',').map((phone, i) => phone.trim() ? (
+                        <a key={i} href={`tel:${phone.trim()}`} className="text-[14px] leading-tight pt-1.5 hover:text-blue-300 transition-colors">
+                          {phone.trim()}
+                        </a>
+                      ) : null)}
+                    </div>
                   </div>
-                  <span className="text-[14px] leading-tight pt-1.5">Reach Us by Phone</span>
-                </span>
-              </li>
+                </li>
+              )}
               <li>
                 <a href="https://www.google.com/maps/place/B.B.College/@23.6809444,86.9976048,16.95z/data=!4m6!3m5!1s0x39f71ee555555555:0xed1b371b2dd1ddfb!8m2!3d23.680962!4d86.9975621!16s%2Fm%2F0j25rl7?entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer" className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300">
                   <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors duration-300">
@@ -102,7 +120,7 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
           </div>
 
           {/* Column 4: Social & Credits */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-3">
             <h4 className="text-white text-sm font-bold mb-4 tracking-wide uppercase">Connect With Us</h4>
             
             <div className="flex flex-wrap xl:flex-nowrap justify-center sm:justify-start gap-2 mb-6">
@@ -111,15 +129,14 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
                 { name: 'Instagram', icon: 'instagram', url: finalData.social_instagram || '#', color: 'text-[#E1306C]' },
                 { name: 'Facebook', icon: 'facebook', url: finalData.social_facebook || '#', color: 'text-[#1877F2]' },
                 { name: 'LinkedIn', icon: 'linkedin', url: '#', color: 'text-[#0A66C2]' },
-                { name: 'WhatsApp', icon: 'whatsapp', url: '#', color: 'text-[#25D366]', isWhatsApp: true },
+                { name: 'WhatsApp', icon: 'whatsapp', url: finalData.contact_whatsapp || '#', color: 'text-[#25D366]' },
                 { name: 'YouTube', icon: 'youtube', url: finalData.social_youtube || '#', color: 'text-[#FF0000]' },
               ].map((social) => (
                 <a 
                   key={social.name}
-                  href={social.isWhatsApp ? undefined : social.url}
-                  onClick={social.isWhatsApp ? (e) => { e.preventDefault(); if (finalData.contact_whatsapp) window.open(`https://wa.me/${finalData.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank'); } : undefined}
-                  target={social.isWhatsApp ? undefined : "_blank"}
-                  rel={social.isWhatsApp ? undefined : "noreferrer"}
+                  href={social.url}
+                  target="_blank"
+                  rel="noreferrer"
                   aria-label={social.name}
                   className="relative flex items-center h-9 rounded-full bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 hover:shadow-[0_4px_15px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer"
                 >

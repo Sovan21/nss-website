@@ -8,13 +8,13 @@
   "theme_color": "#faf9f6",
   "icons": [
     {
-      "src": "/nss-logo.png",
+      "src": "/app-logo-nss-site.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/nss-logo.png",
+      "src": "/app-logo-nss-site.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

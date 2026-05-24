@@ -15,6 +15,7 @@ import Activities from "@/components/sections/Activities";
 import Committee from "@/components/sections/Committee";
 import About from "@/components/sections/About";
 import Contact from "@/components/sections/Contact";
+import TeachersSection from "@/components/sections/TeachersSection";
 
 const VALID_TABS = ['home', 'activities', 'committee', 'about', 'contact'];
 const getTabFromHash = () => {
@@ -147,12 +148,17 @@ export default function Home() {
             sliderUrls={finalData.hero_slider_urls}
             onNavigate={setActiveTab}
           />
+          <TeachersSection 
+            members={committeeData?.filter(m => !m.designation || !m.designation.includes('::') || m.designation.startsWith('Teacher::')) || []} 
+          />
         </div>
         <div className={activeTab === 'activities' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <Activities prefetchedEvents={eventsData} />
         </div>
         <div className={activeTab === 'committee' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
-          <Committee prefetchedMembers={committeeData} />
+          <Committee 
+            prefetchedMembers={committeeData?.filter(m => m.designation && m.designation.includes('::') && !m.designation.startsWith('Teacher::')) || []} 
+          />
         </div>
         <div className={activeTab === 'about' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <About onNavigate={setActiveTab} siteData={siteData} />

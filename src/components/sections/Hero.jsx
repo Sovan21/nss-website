@@ -91,11 +91,11 @@ export default function HeroSection({ title, subtitle, sliderUrls, onNavigate })
           <span className="text-[10px] md:text-sm font-bold text-white uppercase tracking-[0.2em]">National Service Scheme</span>
         </div>
         
-        <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 md:mb-6 text-white drop-shadow-2xl leading-tight whitespace-pre-line tracking-tight animate-fade-in-up [animation-delay:100ms]">
+        <h1 className="hero-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 md:mb-6 drop-shadow-2xl whitespace-pre-line tracking-tight animate-fade-in-up [animation-delay:100ms]">
           {title}
         </h1>
         
-        <p className="text-xs sm:text-base md:text-xl font-semibold mb-8 md:mb-10 text-slate-100 max-w-3xl leading-relaxed drop-shadow-md animate-fade-in-up [animation-delay:200ms]">
+        <p className="hero-subtitle text-xs sm:text-base md:text-xl font-semibold mb-8 md:mb-10 max-w-3xl leading-relaxed animate-fade-in-up [animation-delay:200ms]">
           {subtitle}
         </p>
         

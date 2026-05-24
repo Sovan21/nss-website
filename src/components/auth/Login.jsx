@@ -53,6 +53,13 @@ export default function Login({ onClose, onSwitch }) {
   const [loading, setLoading] = useState(false);
   const [activeFact, setActiveFact] = useState(0);
 
+  // Forgot Password Flow States
+  const [view, setView] = useState('login'); // 'login', 'forgot_email', 'forgot_otp', 'forgot_password'
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   // Auto-cycle through facts
   useEffect(() => {
     const timer = setInterval(() => {
@@ -81,9 +88,10 @@ export default function Login({ onClose, onSwitch }) {
    */
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+      // Only process SIGNED_IN events to prevent UI freezing during password updates
+      if (event === 'SIGNED_IN' && session?.user) {
         const user = session.user;
-        
+
         // 1. Check if the user profile already exists
         const { data: existingProfile } = await supabase
           .from('registrations')
@@ -104,17 +112,19 @@ export default function Login({ onClose, onSwitch }) {
             email: user.email,
             photo_url: user.user_metadata.avatar_url || user.user_metadata.picture || '',
           };
-          
+
           const { data: newProfile, error } = await supabase
             .from('registrations')
             .insert([newUserProfile])
             .select()
             .single();
-            
+
           if (!error && newProfile) {
             finalProfile = newProfile;
           } else {
             console.error("Failed to create new profile:", error);
+            // Fallback so the user is still logged in on the frontend
+            finalProfile = newUserProfile;
           }
         }
 
@@ -122,7 +132,12 @@ export default function Login({ onClose, onSwitch }) {
           localStorage.removeItem('nss_admin_mode');
           localStorage.setItem('nss_user', JSON.stringify(finalProfile));
           window.dispatchEvent(new Event('nss_user_logged_in'));
-          setTimeout(() => { if (onClose) onClose(); }, 500);
+          
+          // Only close automatically if we are not in the middle of a password reset flow
+          // because we need the modal to stay open for them to set a new password.
+          if (document.getElementById('password-reset-active') === null) {
+            setTimeout(() => { if (onClose) onClose(); }, 500);
+          }
         }
       }
     });
@@ -185,14 +200,84 @@ export default function Login({ onClose, onSwitch }) {
     }
   };
 
+  // --- Forgot Password Flow Handlers ---
+  const handleSendResetOTP = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail) return toast.error("Please enter your email.");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail);
+      if (error) throw error;
+      toast.success("OTP / Reset link sent to your email.");
+      setView('forgot_otp');
+    } catch (err) {
+      toast.error(err.message || "Failed to send reset email.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    if (!forgotOtp) return toast.error("Please enter the OTP.");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: forgotEmail,
+        token: forgotOtp,
+        type: 'recovery',
+      });
+      if (error) throw error;
+      toast.success("OTP verified. Please set a new password.");
+      setView('forgot_password');
+    } catch (err) {
+      toast.error(err.message || "Invalid OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetNewPassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) return toast.error("Passwords do not match.");
+    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters.");
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Successfully updated password!
+      toast.success("Password changed successfully! Please login with your new password.");
+      
+      // Sign out to clear the temporary recovery session
+      await supabase.auth.signOut();
+      
+      // Redirect to login form
+      setView('login');
+      setNewPassword('');
+      setConfirmPassword('');
+      setForgotOtp('');
+      
+    } catch (err) {
+      console.error("Password Update Error:", err);
+      toast.error(err.message || "Failed to update password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const socialBtnClass = `w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-[4px_4px_10px_rgba(0,0,0,0.08),-4px_-4px_10px_rgba(255,255,255,0.9)] transition-all duration-300 border border-blue-50 ${loading ? 'opacity-50 cursor-not-allowed pointer-events-none grayscale-[0.5]' : 'hover:shadow-inner hover:scale-105 active:scale-95 cursor-pointer'}`;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 font-sans antialiased">
       <div className="absolute inset-0 bg-black/40 transition-opacity cursor-pointer" onClick={onClose}></div>
-      
+
       <div className="relative z-10 w-full max-w-5xl bg-white shadow-2xl rounded-3xl animate-fade-in-up border border-blue-100 overflow-hidden max-h-[92dvh] md:max-h-[90vh] flex flex-col md:flex-row">
-        
+
         {/* Close Button */}
         <button onClick={onClose} className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 flex items-center justify-center bg-white/80 md:bg-white/20 hover:bg-white md:hover:bg-white/30 rounded-full text-slate-400 md:text-white/70 hover:text-slate-700 md:hover:text-white transition-colors border border-slate-200 md:border-white/20 shadow-sm focus:outline-none z-30 cursor-pointer backdrop-blur-sm">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -282,7 +367,7 @@ export default function Login({ onClose, onSwitch }) {
         {/* ===== RIGHT PANEL: Login Form ===== */}
         <div className="flex-1 bg-gradient-to-br from-sky-50 to-blue-50 p-6 md:p-10 flex flex-col justify-center overflow-y-auto max-h-[92dvh] md:max-h-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="max-w-md mx-auto w-full">
-            
+
             {/* Mobile-only NSS branding */}
             <div className="md:hidden text-center mb-6 mt-4">
               <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-xl shadow-blue-600/20 mx-auto mb-3 ring-2 ring-blue-100 overflow-hidden">
@@ -292,52 +377,108 @@ export default function Login({ onClose, onSwitch }) {
             </div>
 
             <div className="text-center mb-8">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">Welcome Back</h2>
-              <p className="text-slate-500 text-[14px] sm:text-[15px] font-medium">Sign in to your NSS account</p>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div>
-                <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Email Address</label>
-                <input name="email" type="email" placeholder="Enter your email" onChange={handleChange} className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" required />
-              </div>
-
-              <div>
-                <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Password</label>
-                <input name="password" type="password" placeholder="Enter password" onChange={handleChange} className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" required />
-              </div>
-
-              <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all duration-300 text-[17px] mt-2 shadow-lg cursor-pointer ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98]'}`}>
-                {loading ? 'Verifying...' : 'Login Now'}
-              </button>
-            </form>
-
-            <div className="mt-6 text-center border-t border-blue-100 pt-5">
-              <p className="text-slate-500 text-[14px] sm:text-[15px]">
-                New volunteer?{' '}
-                <button type="button" onClick={() => onSwitch('register')} className="text-blue-600 font-semibold hover:text-blue-800 transition-colors ml-1 cursor-pointer">
-                  Register here
-                </button>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">
+                {view === 'login' ? 'Welcome Back' : view === 'forgot_email' ? 'Reset Password' : view === 'forgot_otp' ? 'Enter OTP' : 'New Password'}
+              </h2>
+              <p className="text-slate-500 text-[14px] sm:text-[15px] font-medium">
+                {view === 'login' ? 'Sign in to your NSS account' : view === 'forgot_email' ? 'Enter your email to receive an OTP' : view === 'forgot_otp' ? 'Check your email for the 6-digit code' : 'Set a new secure password'}
               </p>
             </div>
 
-            <div className="mt-5 flex flex-col items-center">
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-5">Or continue with</p>
-              <div className="flex justify-center items-center gap-4">
-                <button type="button" disabled={loading} onClick={() => handleSocialLogin('google')} className={socialBtnClass} title="Google">
-                  <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" className="w-6 h-6" alt="Google" />
+            {view === 'login' && (
+              <form onSubmit={handleLogin} className="space-y-5 animate-fade-in-up">
+                <div>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Email Address</label>
+                  <input name="email" type="email" placeholder="Enter your email" onChange={handleChange} className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" required />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2 ml-1 mr-1">
+                    <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider">Password</label>
+                    <button type="button" onClick={() => setView('forgot_email')} className="text-blue-600 text-xs font-bold hover:text-blue-800 transition-colors">Forgot Password?</button>
+                  </div>
+                  <input name="password" type="password" placeholder="Enter password" onChange={handleChange} className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" required />
+                </div>
+
+                <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all duration-300 text-[17px] mt-2 shadow-lg cursor-pointer ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98]'}`}>
+                  {loading ? 'Verifying...' : 'Login Now'}
                 </button>
-                <button type="button" disabled={loading} onClick={() => handleSocialLogin('facebook')} className={socialBtnClass} title="Facebook">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/2023_Facebook_icon.svg" className="w-6 h-6" alt="Facebook" />
+              </form>
+            )}
+
+            {view === 'forgot_email' && (
+              <form onSubmit={handleSendResetOTP} className="space-y-5 animate-fade-in-up">
+                <div>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Email Address</label>
+                  <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="Enter your registered email" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" required />
+                </div>
+                <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all text-[17px] mt-2 shadow-lg ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02]'}`}>
+                  {loading ? 'Sending...' : 'Send OTP'}
                 </button>
-                <button type="button" disabled={loading} onClick={() => handleSocialLogin('linkedin_oidc')} className={socialBtnClass} title="LinkedIn">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" className="w-6 h-6" alt="LinkedIn" />
+                <button type="button" onClick={() => setView('login')} className="w-full text-slate-500 font-semibold text-sm hover:text-slate-800 mt-3">Back to Login</button>
+              </form>
+            )}
+
+            {view === 'forgot_otp' && (
+              <form onSubmit={handleVerifyOTP} className="space-y-5 animate-fade-in-up">
+                <div>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">6-Digit OTP Code</label>
+                  <input type="text" value={forgotOtp} onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Enter 6-digit OTP" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px] text-center tracking-[0.5em] font-bold" required minLength={6} maxLength={6} pattern="\d{6}" title="Please enter exactly 6 digits" />
+                </div>
+                <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all text-[17px] mt-2 shadow-lg ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02]'}`}>
+                  {loading ? 'Verifying...' : 'Verify OTP'}
                 </button>
-                <button type="button" disabled={loading} onClick={() => handleSocialLogin('github')} className={socialBtnClass} title="GitHub">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" className="w-6 h-6" alt="GitHub" />
+                <button type="button" onClick={() => setView('login')} className="w-full text-slate-500 font-semibold text-sm hover:text-slate-800 mt-3">Cancel</button>
+              </form>
+            )}
+
+            {view === 'forgot_password' && (
+              <form onSubmit={handleSetNewPassword} className="space-y-5 animate-fade-in-up">
+                <input type="hidden" id="password-reset-active" value="true" />
+                <div>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">New Password</label>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 6 characters" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" required minLength={6} />
+                </div>
+                <div>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Confirm Password</label>
+                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" required minLength={6} />
+                </div>
+                <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all text-[17px] mt-2 shadow-lg ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02]'}`}>
+                  {loading ? 'Updating...' : 'Update Password'}
                 </button>
-              </div>
-            </div>
+              </form>
+            )}
+
+            {view === 'login' && (
+              <>
+                <div className="mt-6 text-center border-t border-blue-100 pt-5">
+                  <p className="text-slate-500 text-[14px] sm:text-[15px]">
+                    New volunteer?{' '}
+                    <button type="button" onClick={() => onSwitch('register')} className="text-blue-600 font-semibold hover:text-blue-800 transition-colors ml-1 cursor-pointer">
+                      Register here
+                    </button>
+                  </p>
+                </div>
+
+                <div className="mt-5 flex flex-col items-center">
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-5">Or continue with</p>
+                  <div className="flex justify-center items-center gap-4">
+                    <button type="button" disabled={loading} onClick={() => handleSocialLogin('google')} className={socialBtnClass} title="Google">
+                      <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" className="w-6 h-6" alt="Google" />
+                    </button>
+                    <button type="button" disabled={loading} onClick={() => handleSocialLogin('facebook')} className={socialBtnClass} title="Facebook">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/2023_Facebook_icon.svg" className="w-6 h-6" alt="Facebook" />
+                    </button>
+                    <button type="button" disabled={loading} onClick={() => handleSocialLogin('linkedin_oidc')} className={socialBtnClass} title="LinkedIn">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" className="w-6 h-6" alt="LinkedIn" />
+                    </button>
+                    <button type="button" disabled={loading} onClick={() => handleSocialLogin('github')} className={socialBtnClass} title="GitHub">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" className="w-6 h-6" alt="GitHub" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
