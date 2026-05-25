@@ -77,16 +77,14 @@ export default function ActivitiesPage({ prefetchedEvents }) {
             <p className="text-slate-400 font-bold tracking-tight">No activities published yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {events.map((evt, index) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            {events.map((evt) => {
               const status = getEventStatus(evt.start_date, evt.end_date);
-              // Balanced bento logic for mobile and desktop
-              const isLarge = index % 5 === 0;
               
               return (
                 <div
                   key={evt.id}
-                  className={`group bg-slate-900 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(37,99,235,0.15)] overflow-hidden border border-white/10 transition-all duration-700 hover:-translate-y-2 flex flex-col cursor-pointer relative h-[220px] md:h-[320px] ${isLarge ? 'md:col-span-2' : 'md:col-span-1'}`}
+                  className="group bg-slate-900 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(37,99,235,0.15)] overflow-hidden border border-white/10 transition-all duration-700 hover:-translate-y-2 flex flex-col cursor-pointer relative aspect-[2/1]"
                   onClick={() => setSelectedEvent(evt)}
                 >
                   <div className="absolute inset-0 overflow-hidden">
@@ -99,19 +97,19 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-500"></div>
                   </div>
                   
-                  <div className="relative z-10 p-5 md:p-10 flex-1 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <div className={`px-4 py-1.5 rounded-full text-[9px] md:text-[10px] font-black tracking-[0.15em] uppercase border shadow-xl backdrop-blur-md transition-all duration-500 ${status.color} group-hover:scale-110 group-hover:shadow-blue-500/20`}>
+                  <div className="relative z-10 p-4 md:p-6 flex-1 flex flex-col justify-between">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                      <div className={`px-3 py-1.5 rounded-full text-[9px] md:text-[10px] font-black tracking-widest uppercase border shadow-2xl backdrop-blur-md transition-all duration-500 ${status.color} group-hover:scale-105`}>
                         {status.text}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-blue-100 bg-slate-900/60 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/20 shadow-lg">
+                        <Icons.Calendar className="w-4 h-4 text-blue-400" />
+                        {evt.start_date} {evt.start_date !== evt.end_date && ` - ${evt.end_date}`}
                       </div>
                     </div>
                     
-                    <div className="transform transition-all duration-700 group-hover:translate-y-[-10px]">
-                      <div className="flex items-center gap-2 text-[10px] md:text-xs font-black text-blue-400 mb-2 uppercase tracking-wider">
-                        <Icons.Calendar className="w-3.5 h-3.5" />
-                        {evt.start_date} {evt.start_date !== evt.end_date && ` - ${evt.end_date}`}
-                      </div>
-                      <h3 className={`font-black text-white leading-tight drop-shadow-2xl mb-2 tracking-tight ${isLarge ? 'text-xl md:text-4xl' : 'text-lg md:text-2xl'}`}>
+                    <div className="transform transition-all duration-700 translate-y-8 md:translate-y-10 group-hover:translate-y-0">
+                      <h3 className="font-black text-white leading-tight drop-shadow-2xl mb-2 tracking-tight text-xl md:text-3xl">
                         {evt.title}
                       </h3>
                       <div className="flex items-center gap-2 text-white font-black text-[10px] md:text-xs bg-white/10 hover:bg-blue-600 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 transition-all opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 w-max uppercase tracking-widest">

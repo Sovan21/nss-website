@@ -3,6 +3,51 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getInitials } from './UserAvatar';
 
+const POPULAR_SKILLS = [
+  // Web & App Development
+  "JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "C", "Ruby", "PHP", "Swift", "Kotlin", "Go", "Rust", "Dart",
+  "HTML5", "CSS3", "SASS/SCSS", "React.js", "Angular", "Vue.js", "Node.js", "Next.js", "Nuxt.js", "Express.js", "Django", "Flask",
+  "Spring Boot", "Laravel", "React Native", "Flutter", "Tailwind CSS", "Bootstrap", "Material-UI", "Webpack", "Vite", "GraphQL", "REST APIs",
+  
+  // Cloud, DevOps & Databases
+  "AWS", "Microsoft Azure", "Google Cloud Platform (GCP)", "Docker", "Kubernetes", "Jenkins", "CI/CD", "Terraform", "Ansible",
+  "Linux", "Unix", "Bash Scripting", "Git", "GitHub", "GitLab", "Bitbucket", "Agile Methodologies", "Scrum",
+  "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis", "Firebase", "Supabase", "Oracle DB", "Elasticsearch", "Cassandra",
+  
+  // Data Science, AI & Machine Learning
+  "Data Analysis", "Data Visualization", "Machine Learning", "Deep Learning", "Artificial Intelligence", "Natural Language Processing (NLP)",
+  "Computer Vision", "Pandas", "NumPy", "TensorFlow", "PyTorch", "Scikit-Learn", "Jupyter Notebook", "R Programming", "MATLAB",
+  "Tableau", "Power BI", "Data Mining", "Big Data", "Hadoop", "Spark", "Apache Kafka", "Web Scraping",
+  
+  // Design, Multimedia & UX/UI
+  "UI/UX Design", "Graphic Design", "Web Design", "Mobile App Design", "Wireframing", "Prototyping", "Figma", "Adobe XD", "Sketch",
+  "Adobe Photoshop", "Adobe Illustrator", "Adobe InDesign", "Adobe Premiere Pro", "Adobe After Effects", "Video Editing", "Animation",
+  "Motion Graphics", "3D Modeling", "Blender", "AutoCAD", "Color Theory", "Typography", "User Research", "Usability Testing",
+  
+  // Digital Marketing, SEO & Content
+  "Digital Marketing", "Search Engine Optimization (SEO)", "Search Engine Marketing (SEM)", "Social Media Marketing (SMM)",
+  "Content Marketing", "Content Writing", "Copywriting", "Email Marketing", "Google Analytics", "Google Ads", "Facebook Ads",
+  "Brand Management", "Market Research", "Affiliate Marketing", "Blogging", "WordPress", "Shopify", "E-commerce Management",
+  
+  // Business, Finance & HR
+  "Business Analysis", "Financial Analysis", "Accounting", "Bookkeeping", "QuickBooks", "Microsoft Excel", "Financial Modeling",
+  "Project Management", "Product Management", "Risk Management", "Supply Chain Management", "Operations Management", "Business Strategy",
+  "Human Resources", "Talent Acquisition", "Employee Relations", "Payroll Management", "Performance Management",
+  
+  // Sales & Customer Service
+  "Sales", "B2B Sales", "B2C Sales", "Lead Generation", "Customer Relationship Management (CRM)", "Salesforce", "Negotiation",
+  "Customer Service", "Customer Success", "Technical Support", "Account Management", "Client Relations", "Public Relations (PR)",
+  
+  // Engineering & Technical
+  "Mechanical Engineering", "Electrical Engineering", "Civil Engineering", "SolidWorks", "MATLAB", "PLC Programming", "IoT",
+  "Cybersecurity", "Network Administration", "Penetration Testing", "Information Security", "Cryptography", "Ethical Hacking",
+  
+  // Soft Skills & Personal Attributes
+  "Leadership", "Teamwork", "Communication", "Problem Solving", "Critical Thinking", "Time Management", "Adaptability",
+  "Conflict Resolution", "Decision Making", "Emotional Intelligence", "Creativity", "Innovation", "Work Ethic", "Attention to Detail",
+  "Public Speaking", "Event Management", "Multitasking", "Mentoring", "Presentation Skills", "Strategic Planning", "Networking"
+];
+
 export default function CVBuilder({ user, onClose }) {
   const [mounted, setMounted] = useState(false);
   const storageKey = `nss_cv_data_${user?.id}`;
@@ -60,8 +105,23 @@ export default function CVBuilder({ user, onClose }) {
 
   const [activeTab, setActiveTab] = useState('personal');
   const [newSkill, setNewSkill] = useState('');
+  const [showSkillSuggestions, setShowSkillSuggestions] = useState(false);
+  const [filteredSkills, setFilteredSkills] = useState([]);
   const [showPreviewMobile, setShowPreviewMobile] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  // Auto-filter skills based on input
+  useEffect(() => {
+    if (newSkill.trim()) {
+      const filtered = POPULAR_SKILLS.filter(skill => 
+        skill.toLowerCase().includes(newSkill.trim().toLowerCase()) && 
+        !cvData.skills.includes(skill)
+      );
+      setFilteredSkills(filtered.slice(0, 6)); // Show top 6 suggestions
+    } else {
+      setFilteredSkills([]);
+    }
+  }, [newSkill, cvData.skills]);
 
   // Auto-adjust zoom for mobile screens
   useEffect(() => {
@@ -228,10 +288,41 @@ export default function CVBuilder({ user, onClose }) {
         return (
           <div className="space-y-4 animate-fade-in-up">
             <h3 className="font-bold text-slate-800 border-b pb-2 mb-4">Skills</h3>
-            <form onSubmit={handleAddSkill} className="flex gap-2">
-              <input type="text" value={newSkill} onChange={e => setNewSkill(e.target.value)} placeholder="e.g. Graphic Design" className="flex-1 p-2.5 bg-slate-50 border rounded-lg outline-none focus:border-blue-500" />
-              <button type="submit" className="bg-blue-600 text-white px-4 rounded-lg font-bold">Add</button>
-            </form>
+            <div className="relative">
+              <form onSubmit={handleAddSkill} className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newSkill} 
+                  onChange={e => { setNewSkill(e.target.value); setShowSkillSuggestions(true); }} 
+                  onFocus={() => setShowSkillSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSkillSuggestions(false), 200)}
+                  placeholder="e.g. Graphic Design" 
+                  className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm" 
+                />
+                <button type="submit" className="bg-blue-600 text-white px-5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm">Add</button>
+              </form>
+              
+              {/* Suggestions Dropdown */}
+              {showSkillSuggestions && filteredSkills.length > 0 && (
+                <div className="absolute z-20 w-[calc(100%-80px)] mt-1.5 bg-white border border-slate-200 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] overflow-hidden animate-fade-in-up">
+                  {filteredSkills.map(skill => (
+                    <div 
+                      key={skill} 
+                      className="px-4 py-2.5 hover:bg-blue-50 hover:text-blue-700 cursor-pointer text-sm text-slate-700 font-medium border-b border-slate-100 last:border-0 transition-colors flex items-center gap-2"
+                      onClick={() => {
+                        setCvData(prev => ({ ...prev, skills: [...prev.skills, skill] }));
+                        setNewSkill('');
+                        setShowSkillSuggestions(false);
+                      }}
+                    >
+                      <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      {skill}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
             <div className="flex flex-wrap gap-2 mt-4">
               {cvData.skills.map(skill => (
                 <div key={skill} className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -313,10 +404,14 @@ export default function CVBuilder({ user, onClose }) {
             height: auto !important;
             background: white !important;
           }
-          @page {
-            margin: 0;
-            size: A4;
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
+        }
+        @page {
+          margin: 0;
+          size: A4;
         }
       `}</style>
       <div className="cv-portal-root fixed inset-0 z-[9999] bg-white flex flex-col print:bg-white print:block print:!static">
@@ -376,21 +471,22 @@ export default function CVBuilder({ user, onClose }) {
         </div>
 
         {/* Right Area (Live Preview) */}
-        <div className={`flex-1 bg-slate-200/80 overflow-y-auto p-4 md:p-8 flex-col items-center print:p-0 print:bg-white print:block relative ${showPreviewMobile ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`flex-1 bg-slate-200/80 overflow-auto p-4 md:p-8 flex-col print:p-0 print:bg-white print:block relative ${showPreviewMobile ? 'flex' : 'hidden md:flex'}`}>
           
           {/* Zoom Controls (Sticky Top) */}
-          <div className="flex items-center gap-3 mb-6 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] px-5 py-2 rounded-full sticky top-0 z-20 print:hidden shrink-0 border border-slate-100 transition-all hover:shadow-md">
+          <div className="flex items-center mx-auto gap-3 mb-6 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] px-5 py-2 rounded-full sticky top-0 z-20 print:hidden shrink-0 border border-slate-100 transition-all hover:shadow-md w-max">
             <button onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-lg transition-colors">-</button>
             <span className="text-sm font-bold text-slate-700 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
             <button onClick={() => setZoomLevel(z => Math.min(2, z + 0.1))} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-lg transition-colors">+</button>
           </div>
 
-          {/* Scale Wrapper to fix whitespace */}
-          <div className="w-full flex justify-center print:block print:!min-h-0 print:!h-auto print:!w-auto print:m-0 print:p-0" style={{ minHeight: `calc(297mm * ${zoomLevel})` }}>
-            <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center', transition: 'transform 0.15s ease-out' }} className="print:!transform-none print:!transition-none print:w-full print:flex print:justify-center">
+          {/* Scale Wrapper to fix whitespace and scrolling */}
+          <div className="w-full print:block print:!min-h-0 print:!h-auto print:!w-auto print:m-0 print:p-0 overflow-x-auto">
+            <div style={{ width: `calc(210mm * ${zoomLevel})`, minHeight: `calc(297mm * ${zoomLevel})` }} className="relative shrink-0 mx-auto print:!w-full print:!min-h-0 print:!h-auto print:!mx-0">
+              <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left', transition: 'transform 0.15s ease-out' }} className="absolute top-0 left-0 print:!transform-none print:!relative print:!transition-none print:w-full print:flex print:justify-center">
               
               {/* A4 Paper */}
-              <div className="bg-white w-[210mm] min-h-[297mm] shadow-2xl rounded-sm p-[15mm] md:p-[20mm] shrink-0 print:shadow-none print:w-full print:max-w-none print:m-0 print:p-[15mm] md:print:p-[20mm] font-[Times_New_Roman,Times,serif] text-black">
+              <div className="bg-white w-[210mm] min-h-[297mm] shadow-2xl rounded-sm p-[12mm] md:p-[15mm] shrink-0 print:shadow-none print:w-full print:max-w-none print:m-0 print:min-h-0 print:h-auto print:p-[12mm] font-[Times_New_Roman,Times,serif] text-slate-900">
             
             {/* Header (Centered) */}
             <div className="flex flex-col items-center mb-6 text-center">
@@ -405,60 +501,43 @@ export default function CVBuilder({ user, onClose }) {
                   </span>
                 </div>
               )}
-              <h1 className="text-[28px] sm:text-[34px] font-bold uppercase mb-0.5 text-slate-900" style={{ letterSpacing: '0.05em' }}>{cvData.personal.fullName || 'YOUR NAME'}</h1>
+              <h1 className="text-[28px] sm:text-[32px] font-bold uppercase mb-1 text-slate-900" style={{ letterSpacing: '0.02em' }}>{cvData.personal.fullName || 'YOUR NAME'}</h1>
               {cvData.personal.jobTarget && (
-                <h2 className="text-[14px] sm:text-[15px] font-bold text-slate-700 uppercase mb-1">{cvData.personal.jobTarget}</h2>
+                <h2 className="text-[14px] sm:text-[15px] text-slate-800 mb-1">{cvData.personal.jobTarget}</h2>
               )}
-              <p className="text-[12px] sm:text-[13px] text-slate-800 font-medium">
+              <p className="text-[12px] sm:text-[13px] text-slate-700">
                 {cvData.personal.email} {cvData.personal.phone ? ` | ${cvData.personal.phone}` : ''} {cvData.personal.address ? ` | ${cvData.personal.address}` : ''}
               </p>
             </div>
 
             {/* Professional Summary */}
-            {cvData.personal.summary && (
+            {cvData.personal.bio && (
               <div className="mb-5">
-                <div className="flex items-center mb-3">
-                  <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 whitespace-nowrap">Professional Statement</h2>
-                  <div className="flex-1 border-t-[1.5px] border-slate-300 ml-4"></div>
-                </div>
-                <p className="text-[13px] sm:text-[14px] text-slate-800 leading-relaxed text-justify">
-                  {cvData.personal.summary}
+                <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 border-b-[1.5px] border-slate-800 pb-0.5 mb-2">Professional Summary</h2>
+                <p className="text-[12px] sm:text-[13px] text-slate-800 leading-relaxed text-justify">
+                  {cvData.personal.bio}
                 </p>
               </div>
             )}
 
-            {/* Skills */}
-            {cvData.skills.length > 0 && (
-              <div className="mb-5">
-                <div className="flex items-center mb-3">
-                  <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 whitespace-nowrap">Skills</h2>
-                  <div className="flex-1 border-t-[1.5px] border-slate-300 ml-4"></div>
-                </div>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 pl-5">
-                  {cvData.skills.map(skill => (
-                    <ul key={skill} className="list-disc list-outside text-[13px] sm:text-[14px] text-slate-800 font-medium">
-                      <li>{skill}</li>
-                    </ul>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Education */}
             {cvData.education.length > 0 && (
               <div className="mb-5">
-                <div className="flex items-center mb-3">
-                  <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 whitespace-nowrap">Education</h2>
-                  <div className="flex-1 border-t-[1.5px] border-slate-300 ml-4"></div>
-                </div>
-                <div className="space-y-4">
+                <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 border-b-[1.5px] border-slate-800 pb-0.5 mb-2">Education</h2>
+                <div className="space-y-3">
                   {cvData.education.map(edu => (
-                    <div key={edu.id} className="text-[13px] sm:text-[14px] text-slate-800">
-                      <div>{edu.institution}{edu.address ? ` | ${edu.address}` : ''}</div>
-                      <div className="font-bold">{edu.degree}</div>
-                      <div className="italic text-slate-700">{edu.year}</div>
+                    <div key={edu.id} className="text-[12px] sm:text-[13px] text-slate-800">
+                      <div className="flex justify-between items-start">
+                        <div className="font-bold">{edu.institution}</div>
+                        <div className="text-right">{edu.address}</div>
+                      </div>
+                      <div className="flex justify-between items-start">
+                        <div className="italic">{edu.degree}</div>
+                        <div className="text-right">{edu.year}</div>
+                      </div>
                       {edu.details && (
-                        <ul className="list-disc list-outside ml-5 mt-1 text-[13px] sm:text-[14px]">
+                        <ul className="list-disc list-outside ml-4 mt-1">
                           <li>{edu.details}</li>
                         </ul>
                       )}
@@ -471,9 +550,9 @@ export default function CVBuilder({ user, onClose }) {
             {/* Skills */}
             {cvData.skills.length > 0 && (
               <div className="mb-5">
-                <h2 className="text-[16px] sm:text-[18px] font-bold border-b-[1.5px] border-black pb-0.5 mb-2">Skills</h2>
-                <ul className="list-disc list-outside ml-5 text-[13px] sm:text-[14px] space-y-1">
-                  <li><span className="font-bold">Core Competencies:</span> {cvData.skills.join(', ')}.</li>
+                <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 border-b-[1.5px] border-slate-800 pb-0.5 mb-2">Skills</h2>
+                <ul className="list-disc list-outside ml-4 text-[12px] sm:text-[13px] text-slate-800 space-y-0.5">
+                  <li><span className="font-bold">Core Competencies:</span> {cvData.skills.join(', ')}</li>
                 </ul>
               </div>
             )}
@@ -483,18 +562,18 @@ export default function CVBuilder({ user, onClose }) {
             {/* Volunteering Experience / Experience */}
             {cvData.experience.length > 0 && (
               <div className="mb-5">
-                <div className="flex items-center mb-3">
-                  <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 whitespace-nowrap">Work History</h2>
-                  <div className="flex-1 border-t-[1.5px] border-slate-300 ml-4"></div>
-                </div>
-                <div className="space-y-4">
+                <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 border-b-[1.5px] border-slate-800 pb-0.5 mb-2">Experience</h2>
+                <div className="space-y-3">
                   {cvData.experience.map(exp => (
-                    <div key={exp.id} className="text-[13px] sm:text-[14px] text-slate-800">
-                      <div>{exp.organization}</div>
-                      <div className="font-bold">{exp.role}</div>
-                      <div className="italic text-slate-700">{exp.duration}</div>
+                    <div key={exp.id} className="text-[12px] sm:text-[13px] text-slate-800">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-bold">{exp.organization}</span> | <span className="italic">{exp.role}</span>
+                        </div>
+                        <div className="text-right">{exp.duration}</div>
+                      </div>
                       {exp.description && (
-                        <ul className="list-disc list-outside ml-5 mt-1 text-[13px] sm:text-[14px]">
+                        <ul className="list-disc list-outside ml-4 mt-1 space-y-0.5">
                           {exp.description.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
                             <li key={idx}>{line}</li>
                           ))}
@@ -509,23 +588,22 @@ export default function CVBuilder({ user, onClose }) {
             {/* Projects */}
             {cvData.projects.length > 0 && (
               <div className="mb-5">
-                <div className="flex items-center mb-3">
-                  <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 whitespace-nowrap">Projects</h2>
-                  <div className="flex-1 border-t-[1.5px] border-slate-300 ml-4"></div>
-                </div>
-                <div className="space-y-4">
+                <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 border-b-[1.5px] border-slate-800 pb-0.5 mb-2">Projects</h2>
+                <div className="space-y-3">
                   {cvData.projects.map(proj => (
-                    <div key={proj.id} className="text-[13px] sm:text-[14px] text-slate-800">
-                      <div>{proj.name}</div>
-                      {proj.link && (
-                        <div className="italic text-slate-700">
-                          <a href={proj.link.startsWith('http') ? proj.link : `https://${proj.link}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-black">
-                            Link to Project
-                          </a>
-                        </div>
-                      )}
+                    <div key={proj.id} className="text-[12px] sm:text-[13px] text-slate-800">
+                      <div className="flex justify-between items-start">
+                        <div className="font-bold">{proj.name}</div>
+                        {proj.link && (
+                          <div className="text-right">
+                            <a href={proj.link.startsWith('http') ? proj.link : `https://${proj.link}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-800">
+                              Link to Project
+                            </a>
+                          </div>
+                        )}
+                      </div>
                       {proj.description && (
-                        <ul className="list-disc list-outside ml-5 mt-1 text-[13px] sm:text-[14px]">
+                        <ul className="list-disc list-outside ml-4 mt-1 space-y-0.5">
                           {proj.description.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
                             <li key={idx}>{line}</li>
                           ))}
@@ -540,17 +618,12 @@ export default function CVBuilder({ user, onClose }) {
             {/* Languages */}
             {cvData.languages.length > 0 && (
               <div className="mb-5">
-                <div className="flex items-center mb-3">
-                  <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 whitespace-nowrap">Languages</h2>
-                  <div className="flex-1 border-t-[1.5px] border-slate-300 ml-4"></div>
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 pl-5">
+                <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-900 border-b-[1.5px] border-slate-800 pb-0.5 mb-2">Languages</h2>
+                <ul className="list-disc list-outside ml-4 text-[12px] sm:text-[13px] text-slate-800 space-y-0.5">
                   {cvData.languages.map(lang => (
-                    <ul key={lang.id} className="list-disc list-outside text-[13px] sm:text-[14px] text-slate-800">
-                      <li><span className="font-bold">{lang.language}:</span> {lang.proficiency}</li>
-                    </ul>
+                    <li key={lang.id}><span className="font-bold">{lang.language}:</span> {lang.proficiency}</li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 
@@ -559,6 +632,7 @@ export default function CVBuilder({ user, onClose }) {
       </div>
     </div>
   </div>
+</div>
 </div>
 </>,
     document.body
