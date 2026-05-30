@@ -22,7 +22,7 @@ export const metadata = {
   metadataBase: new URL('https://nssbbcollege.netlify.app'),
   verification: {
     // Paste your Google Search Console verification code here (e.g., 'your-google-code')
-    google: '',
+    google: '<meta name="google-site-verification" content="odtKt7kQNmtHq6JtVD2DNiDG2JgGpa9XFs-HvR6ZB_Y" />',
   },
   title: {
     default: "NSS Unit | Banwarilal Bhalotia College (B.B. College), Asansol",
@@ -30,9 +30,9 @@ export const metadata = {
   },
   description: "Official National Service Scheme (NSS) Unit portal of Banwarilal Bhalotia College, Asansol. Volunteer registration, social activities, blood donation camps, and community drives under Kazi Nazrul University.",
   keywords: [
-    "NSS", "National Service Scheme", "Banwarilal Bhalotia College", "BB College Asansol", 
-    "B.B. College NSS", "BB College NSS Unit", "NSS Unit BB College", "Asansol College NSS", 
-    "Kazi Nazrul University NSS", "KNU NSS", "NSS volunteer registration", "Social service college Asansol", 
+    "NSS", "National Service Scheme", "Banwarilal Bhalotia College", "BB College Asansol",
+    "B.B. College NSS", "BB College NSS Unit", "NSS Unit BB College", "Asansol College NSS",
+    "Kazi Nazrul University NSS", "KNU NSS", "NSS volunteer registration", "Social service college Asansol",
     "BBCollege", "Asansol", "West Bengal NSS"
   ],
   authors: [{ name: "NSS Unit BB College" }],
