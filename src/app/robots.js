@@ -5,6 +5,6 @@ export default function robots() {
       allow: '/',
       disallow: ['/admin/', '/admin-login/', '/api/'],
     },
-    sitemap: 'https://nssbbcollege.netlify.app/sitemap.xml',
+    sitemap: 'https://nss-bbcollege.netlify.app/sitemap.xml',
   };
 }

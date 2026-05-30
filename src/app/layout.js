@@ -19,7 +19,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata = {
-  metadataBase: new URL('https://nssbbcollege.netlify.app'),
+  metadataBase: new URL('https://nss-bbcollege.netlify.app'),
   verification: {
     // Paste your Google Search Console verification code here (e.g., 'your-google-code')
     google: 'odtKt7kQNmtHq6JtVD2DNiDG2JgGpa9XFs-HvR6ZB_Y',
@@ -54,7 +54,7 @@ export const metadata = {
   openGraph: {
     title: "NSS Unit | Banwarilal Bhalotia College, Asansol",
     description: "Official National Service Scheme (NSS) Unit portal of Banwarilal Bhalotia College, Asansol. Join us in community service, blood donation, and swachh bharat activities.",
-    url: 'https://nssbbcollege.netlify.app',
+    url: 'https://nss-bbcollege.netlify.app',
     siteName: "NSS Unit - Banwarilal Bhalotia College",
     images: [
       {
@@ -100,8 +100,8 @@ export default function RootLayout({ children }) {
               "@type": "EducationalOrganization",
               "name": "NSS Unit - Banwarilal Bhalotia College",
               "alternateName": ["BB College NSS Unit", "National Service Scheme Unit - Banwarilal Bhalotia College"],
-              "url": "https://nssbbcollege.netlify.app",
-              "logo": "https://nssbbcollege.netlify.app/app-logo-nss-site.png",
+              "url": "https://nss-bbcollege.netlify.app",
+              "logo": "https://nss-bbcollege.netlify.app/app-logo-nss-site.png",
               "sameAs": [
                 "https://www.bbcollege.ac.in"
               ],

@@ -1,5 +1,5 @@
 export default function sitemap() {
-  const baseUrl = 'https://nssbbcollege.netlify.app';
+  const baseUrl = 'https://nss-bbcollege.netlify.app';
 
   return [
     {
