@@ -22,7 +22,7 @@ export const metadata = {
   metadataBase: new URL('https://nssbbcollege.netlify.app'),
   verification: {
     // Paste your Google Search Console verification code here (e.g., 'your-google-code')
-    google: '<meta name="google-site-verification" content="odtKt7kQNmtHq6JtVD2DNiDG2JgGpa9XFs-HvR6ZB_Y" />',
+    google: 'odtKt7kQNmtHq6JtVD2DNiDG2JgGpa9XFs-HvR6ZB_Y',
   },
   title: {
     default: "NSS Unit | Banwarilal Bhalotia College (B.B. College), Asansol",
