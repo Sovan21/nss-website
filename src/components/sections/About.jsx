@@ -93,7 +93,7 @@ export default function AboutPage({ onNavigate, siteData }) {
                   >
                     <img
                       src={imgUrl}
-                      alt={`NSS Slide ${index}`}
+                      alt={`Banwarilal Bhalotia College NSS Unit - Slide ${index + 1}`}
                       loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover scale-105 transform origin-center transition-transform duration-[10000ms] will-change-transform ease-linear"
                       style={{ transform: index === activeImgIdx ? 'scale(1)' : 'scale(1.1)' }}
@@ -107,17 +107,17 @@ export default function AboutPage({ onNavigate, siteData }) {
             <div className="hidden lg:block w-full h-full relative z-10">
               {images.length === 1 && (
                 <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-white z-10 hover:shadow-2xl transition-shadow duration-500">
-                  <img src={images[0]} alt="About NSS" loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                  <img src={images[0]} alt="NSS Unit Banwarilal Bhalotia College (B.B. College) Asansol" loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
                 </div>
               )}
               
               {images.length === 2 && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-[68%] aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-white hover:z-30 hover:scale-105 hover:rotate-0 rotate-[-4deg] transition-all duration-500 absolute left-4 top-4">
-                    <img src={images[0]} alt="About 1" loading="lazy" className="w-full h-full object-cover" />
+                    <img src={images[0]} alt="NSS Volunteer Activity - Banwarilal Bhalotia College" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                   <div className="w-[60%] aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-white hover:z-30 hover:scale-105 hover:rotate-0 rotate-[4deg] transition-all duration-500 absolute right-4 bottom-4">
-                    <img src={images[1]} alt="About 2" loading="lazy" className="w-full h-full object-cover" />
+                    <img src={images[1]} alt="NSS Community Camp - B.B. College Asansol" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                 </div>
               )}
@@ -126,15 +126,15 @@ export default function AboutPage({ onNavigate, siteData }) {
                 <div className="absolute inset-0">
                   {/* Photo 1: Left scatter */}
                   <div className="w-[58%] aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-white hover:z-30 hover:scale-105 hover:rotate-0 rotate-[-5deg] transition-all duration-500 absolute left-2 top-8 z-10">
-                    <img src={images[0]} alt="About 1" loading="lazy" className="w-full h-full object-cover" />
+                    <img src={images[0]} alt="NSS Social Service Initiative - BB College Asansol" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                   {/* Photo 2: Top Right scatter */}
                   <div className="w-[50%] aspect-square rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-white hover:z-30 hover:scale-105 hover:rotate-0 rotate-[3deg] transition-all duration-500 absolute right-2 top-2 z-20">
-                    <img src={images[1]} alt="About 2" loading="lazy" className="w-full h-full object-cover" />
+                    <img src={images[1]} alt="NSS Blood Donation Camp - BB College" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                   {/* Photo 3: Bottom Right scatter */}
                   <div className="w-[48%] aspect-[4/3] rounded-2xl overflow-hidden shadow-lg border-4 border-white bg-white hover:z-30 hover:scale-105 hover:rotate-0 rotate-[-2deg] transition-all duration-500 absolute right-6 bottom-4 z-[15]">
-                    <img src={images[2]} alt="About 3" loading="lazy" className="w-full h-full object-cover" />
+                    <img src={images[2]} alt="NSS Environment and Swachhata Drive - Banwarilal Bhalotia College" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                 </div>
               )}

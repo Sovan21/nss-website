@@ -70,7 +70,7 @@ export default function HeroSection({ title, subtitle, sliderUrls, onNavigate })
         >
           <img
             src={imgUrl}
-            alt="NSS Slide"
+            alt={`Banwarilal Bhalotia College NSS Unit - Event Slide ${index + 1}`}
             className="absolute inset-0 w-full h-full object-cover scale-105 transform origin-center transition-transform duration-[10000ms] will-change-transform ease-linear"
             style={{ transform: index === currentSlide ? 'scale(1)' : 'scale(1.1)' }}
           />
