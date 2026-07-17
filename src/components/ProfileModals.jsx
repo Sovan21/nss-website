@@ -4,6 +4,25 @@ import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import CVBuilder from "./CVBuilder";
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [_, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear());
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
+
 export const ProfileCardContent = ({ user, onClose, onLogout }) => {
   const [currentView, setCurrentView] = useState('profile');
 
@@ -13,6 +32,10 @@ export const ProfileCardContent = ({ user, onClose, onLogout }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -24,8 +47,8 @@ export const ProfileCardContent = ({ user, onClose, onLogout }) => {
       toast.error("New passwords do not match!");
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters.");
+    if (newPassword.length < 6 || newPassword.length > 16) {
+      toast.error("Password must be between 6 and 16 characters.");
       return;
     }
     setLoading(true);
@@ -67,7 +90,7 @@ export const ProfileCardContent = ({ user, onClose, onLogout }) => {
         </div>
         <h3 className="font-black text-slate-900 text-xl md:text-2xl truncate w-full px-2 tracking-wide">{user.full_name}</h3>
         <p className="text-sm font-semibold text-slate-500 mb-1.5 px-2 truncate w-full">{user.email}</p>
-        {(!user.phone || !user.department || !user.roll_no) ? (
+        {(!user.phone || !user.department || !user.college_application_id) ? (
           <p className="mt-1.5 bg-amber-50 text-amber-700 font-extrabold text-[11px] md:text-xs px-4 py-1.5 rounded-full border border-amber-200 flex items-center justify-center gap-1.5 shadow-sm">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             Profile Incomplete — Contact Admin
@@ -85,15 +108,20 @@ export const ProfileCardContent = ({ user, onClose, onLogout }) => {
             <div className="grid grid-cols-2 gap-y-4 gap-x-3 px-1">
               <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Department</span><span className="text-[14px] font-extrabold text-slate-800">{user.department || 'N/A'}</span></div>
               <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Semester</span><span className="text-[14px] font-extrabold text-slate-800">{user.semester || 'N/A'}</span></div>
-              <div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Roll No</span><span className="text-[14px] font-extrabold text-slate-800 uppercase tracking-wider">{user.roll_no || 'N/A'}</span></div>
+              <div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">College Application ID</span><span className="text-[14px] font-extrabold text-slate-800 uppercase tracking-wider">{user.college_application_id || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Prev Experience</span><span className="text-[14px] font-extrabold text-slate-800">{user.prev_experience || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Extra Curriculum</span><span className="text-[14px] font-extrabold text-slate-800">{user.extra_curriculum || 'N/A'}</span></div>
             </div>
           </div>
           <div>
             <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-3 border-b border-blue-100 pb-1.5">Personal Details</p>
             <div className="grid grid-cols-2 gap-y-4 gap-x-3 px-1">
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Father's Name</span><span className="text-[14px] font-extrabold text-slate-800">{user.fathers_name || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mother's Name</span><span className="text-[14px] font-extrabold text-slate-800">{user.mothers_name || 'N/A'}</span></div>
+              <div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Aadhaar Number</span><span className="text-[14px] font-extrabold text-slate-800 tracking-wider">{user.aadhaar_no || 'N/A'}</span></div>
               <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Phone</span><span className="text-[14px] font-extrabold text-slate-800">{user.phone || 'N/A'}</span></div>
               <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">WhatsApp</span><span className="text-[14px] font-extrabold text-slate-800">{user.whatsapp || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">DOB</span><span className="text-[14px] font-extrabold text-slate-800">{user.dob || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">DOB</span><span className="text-[14px] font-extrabold text-slate-800">{formatDate(user.dob) || 'N/A'}</span></div>
               <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Blood Group</span><span className="text-[14px] font-extrabold text-red-600 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.5c3.59 0 6.5-2.91 6.5-6.5 0-4-6.5-12-6.5-12S5.5 11 5.5 15c0 3.59 2.91 6.5 6.5 6.5z" /></svg>{user.blood_group || 'N/A'}</span></div>
               {user.current_address && (<div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Address</span><span className="text-[13px] font-bold text-slate-700 leading-snug block">{user.current_address}</span></div>)}
             </div>
@@ -170,15 +198,94 @@ export const ProfileCardContent = ({ user, onClose, onLogout }) => {
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Current Password</label>
-            <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="••••••••" />
+            <div className="relative">
+              <input 
+                type={showCurrentPassword ? "text" : "password"} 
+                value={currentPassword} 
+                onChange={(e) => setCurrentPassword(e.target.value)} 
+                required 
+                className="w-full p-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" 
+                placeholder="••••••••" 
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-1 z-10"
+              >
+                {showCurrentPassword ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">New Password</label>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="••••••••" />
+            <div className="relative">
+              <input 
+                type={showNewPassword ? "text" : "password"} 
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)} 
+                required 
+                minLength={6} 
+                maxLength={16} 
+                className="w-full p-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" 
+                placeholder="6 to 16 characters" 
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-1 z-10"
+              >
+                {showNewPassword ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Confirm Password</label>
-            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="••••••••" />
+            <div className="relative">
+              <input 
+                type={showConfirmPassword ? "text" : "password"} 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                required 
+                minLength={6} 
+                maxLength={16} 
+                className="w-full p-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" 
+                placeholder="Re-enter password" 
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-1 z-10"
+              >
+                {showConfirmPassword ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-xl mt-4 hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? 'Updating...' : 'Update Password'}

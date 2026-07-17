@@ -2,6 +2,7 @@
  * LoadingScreen & GlobalStyles Components
  * Purpose: Animated loading screen with NSS motto and global CSS injections.
  */
+import { useLanguage } from "@/context/LanguageContext";
 
 // Global CSS for Scrollbar and Custom Motto Animation
 export const GlobalStyles = () => (
@@ -60,29 +61,39 @@ export const GlobalStyles = () => (
   `}</style>
 );
 
-const LoadingScreen = () => (
-  <div id="nss-loading-screen" className="min-h-screen flex items-center justify-center bg-[#faf9f6] flex-col relative overflow-hidden">
-    {/* 
-      FALLBACK AUTO-RELOAD: If React fails to hydrate after back-navigation from OAuth,
-      this script reloads the page after 2 seconds. On normal loads, React removes this
-      component from the DOM quickly, so the reload never triggers.
-    */}
-    {/* Fallback auto-reload moved to useEffect */}
-    <GlobalStyles />
-    <div className="z-10 flex flex-col items-center px-4 w-full animate-fade-in-up">
-      <div className="flex items-center justify-center mb-6">
-        <img src="/nss-logo.png" alt="NSS Logo" className="w-28 h-28 md:w-32 md:h-32 object-contain animate-pulse" />
-      </div>
-      <h2 className="text-2xl md:text-4xl lg:text-5xl font-black uppercase animate-motto text-center whitespace-nowrap tracking-widest">
-        NOT ME BUT YOU
-      </h2>
-      <div className="mt-8 flex gap-2.5">
-        <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '0ms' }}></div>
-        <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '150ms' }}></div>
-        <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '300ms' }}></div>
+const LoadingScreen = () => {
+  let t = (k) => k === "loading.motto" ? "NOT ME BUT YOU" : k;
+  try {
+    const lang = useLanguage();
+    if (lang) t = lang.t;
+  } catch (e) {
+    // fallback if rendered outside provider
+  }
+
+  return (
+    <div id="nss-loading-screen" className="min-h-screen flex items-center justify-center bg-[#faf9f6] flex-col relative overflow-hidden">
+      {/* 
+        FALLBACK AUTO-RELOAD: If React fails to hydrate after back-navigation from OAuth,
+        this script reloads the page after 2 seconds. On normal loads, React removes this
+        component from the DOM quickly, so the reload never triggers.
+      */}
+      {/* Fallback auto-reload moved to useEffect */}
+      <GlobalStyles />
+      <div className="z-10 flex flex-col items-center px-4 w-full animate-fade-in-up">
+        <div className="flex items-center justify-center mb-6">
+          <img src="/nss-logo.png" alt="NSS Logo" className="w-28 h-28 md:w-32 md:h-32 object-contain animate-pulse" />
+        </div>
+        <h2 className="text-2xl md:text-4xl lg:text-5xl font-black uppercase animate-motto text-center whitespace-nowrap tracking-widest">
+          {t("loading.motto")}
+        </h2>
+        <div className="mt-8 flex gap-2.5">
+          <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '150ms' }}></div>
+          <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '300ms' }}></div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default LoadingScreen;

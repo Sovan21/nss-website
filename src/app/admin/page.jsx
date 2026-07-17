@@ -5,6 +5,53 @@ import { useRouter } from 'next/navigation'; // Updated for Next.js
 import { supabaseAdmin as supabase } from '@/lib/supabase';// Updated path
 import { useToast } from '@/components/Toast';
 
+const DEPARTMENTS = [
+  "Bengali",
+  "Botany",
+  "Chemistry",
+  "Computer Science",
+  "Commerce",
+  "Economics",
+  "Education",
+  "Electronics",
+  "English",
+  "Geography",
+  "Geography (Hindi Shift)",
+  "Hindi",
+  "History",
+  "Mathematics",
+  "Microbiology",
+  "Philosophy",
+  "Physics",
+  "Political Science",
+  "Political Science (Hindi Shift)",
+  "Sanskrit",
+  "Statistics",
+  "Urdu",
+  "Zoology",
+  "BBA",
+  "BCA"
+];
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [_, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear());
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
+
 
 // ============================================================================
 // UTILITY 1: DYNAMIC IMAGE COMPRESSOR (TARGET SIZE BASED)
@@ -111,6 +158,7 @@ const VolunteersManager = ({ setIsDirty }) => {
  // Delete Confirmation States
  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+ const [deleting, setDeleting] = useState(false);
 
  const [searchTerm, setSearchTerm] = useState('');
  const [filterBloodGroup, setFilterBloodGroup] = useState('');
@@ -132,7 +180,7 @@ const VolunteersManager = ({ setIsDirty }) => {
  let query = supabase.from('registrations').select('*', { count: 'exact' }).eq('role', 'volunteer');
 
  if (search) {
- query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,roll_no.ilike.%${search}%`);
+ query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,college_application_id.ilike.%${search}%,aadhaar_no.ilike.%${search}%`);
  }
  if (bloodGroup) {
  query = query.eq('blood_group', bloodGroup);
@@ -152,11 +200,12 @@ const VolunteersManager = ({ setIsDirty }) => {
 
  const exportToCSV = () => {
  if (volunteers.length === 0) return toast.warning("No data available to export!");
- const headers = ["ID","Full Name","Department","Semester","Roll No","Phone","WhatsApp","Email","Blood Group","Gender","DOB","Address"];
+ const headers = ["ID","Full Name","Father's Name","Mother's Name","Aadhaar Number","Department","Semester","College Application ID","Extra Curriculum","Previous Experience","Phone","WhatsApp","Email","Blood Group","Gender","DOB","Address"];
  const csvRows = volunteers.map(vol => [
- vol.id, `"${vol.full_name || ''}"`, `"${vol.department || ''}"`, `"${vol.semester || ''}"`, `"${vol.roll_no || ''}"`,
+ vol.id, `"${vol.full_name || ''}"`, `"${vol.fathers_name || ''}"`, `"${vol.mothers_name || ''}"`, `"${vol.aadhaar_no || ''}"`,
+ `"${vol.department || ''}"`, `"${vol.semester || ''}"`, `"${vol.college_application_id || ''}"`, `"${vol.extra_curriculum || ''}"`, `"${vol.prev_experience || ''}"`,
  `"${vol.phone || ''}"`, `"${vol.whatsapp || ''}"`, `"${vol.email || ''}"`, `"${vol.blood_group || ''}"`, `"${vol.gender || ''}"`,
- `"${vol.dob || ''}"`, `"${vol.current_address ? vol.current_address.replace(/"/g, '""') : ''}"`
+ `"${vol.dob ? formatDate(vol.dob) : ''}"`, `"${vol.current_address ? vol.current_address.replace(/"/g, '""') : ''}"`
  ].join(','));
  const csvString = [headers.join(','), ...csvRows].join('\n');
  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
@@ -204,41 +253,41 @@ const VolunteersManager = ({ setIsDirty }) => {
  };
 
  const handleDeleteVolunteer = async () => {
- // Confirmation is now handled by the modal's disabled button state
- try {
- // Step 1: Delete the user's profile picture from storage first.
- await deleteSupabaseImage(selectedVol.photo_url);
+    setDeleting(true);
+    try {
+      // Step 1: Delete the user's profile picture from storage first.
+      await deleteSupabaseImage(selectedVol.photo_url);
 
- // Step 2: Call our secure API route to delete the user from Supabase Auth
- // This will completely remove them from the authentication system.
- // Note: Because of ON DELETE CASCADE, this will also automatically delete 
- // their profile from the 'registrations' table.
- const response = await fetch('/api/admin/delete-user', {
- method: 'POST',
- headers: {
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify({ userId: selectedVol.id }),
- });
+      // Step 2: Call our secure API route to delete the user from Supabase Auth
+      // This will completely remove them from the authentication system.
+      // Note: Because of ON DELETE CASCADE, this will also automatically delete 
+      // their profile from the 'registrations' table.
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: selectedVol.id }),
+      });
 
- const data = await response.json();
+      const data = await response.json();
 
- if (!response.ok) {
- throw new Error(data.error || 'Failed to delete user via API');
- }
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete user via API');
+      }
 
- toast.success("Volunteer and all associated data have been completely removed.");
- setShowDeleteConfirm(false);
- setSelectedVol(null);
- fetchVolunteers(currentPage, debouncedSearchTerm, filterBloodGroup);
- } catch (err) {
- console.error("Deletion Error:", err);
- toast.error(`Failed to delete volunteer: ${err.message}`);
- } finally {
- // Ensure the modal is always closed
- setShowDeleteConfirm(false);
- }
- };
+      toast.success("Volunteer and all associated data have been completely removed.");
+      setShowDeleteConfirm(false);
+      setSelectedVol(null);
+      fetchVolunteers(currentPage, debouncedSearchTerm, filterBloodGroup);
+    } catch (err) {
+      console.error("Deletion Error:", err);
+      toast.error(`Failed to delete volunteer: ${err.message}`);
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
  return (
  <div className="bg-white p-4 md:p-6 rounded-lg shadow-md border-t-4 border-red-500 relative">
@@ -347,20 +396,29 @@ const VolunteersManager = ({ setIsDirty }) => {
  placeholder="Type the name here"
  />
  <div className="flex gap-3">
- <button
- onClick={() => setShowDeleteConfirm(false)}
- className="flex-1 py-3 bg-gray-100 text-gray-800 font-bold rounded-xl hover:bg-gray-200 transition"
- >
- Cancel
- </button>
- <button
- onClick={handleDeleteVolunteer}
- disabled={deleteConfirmInput !== selectedVol.full_name}
- className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl transition disabled:bg-red-300 disabled:cursor-not-allowed"
- >
- Confirm & Delete
- </button>
- </div>
+  <button
+  onClick={() => setShowDeleteConfirm(false)}
+  disabled={deleting}
+  className="flex-1 py-3 bg-gray-100 text-gray-800 font-bold rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+  Cancel
+  </button>
+  <button
+  onClick={handleDeleteVolunteer}
+  disabled={deleteConfirmInput !== selectedVol.full_name || deleting}
+  className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl transition disabled:bg-red-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+  >
+  {deleting ? (
+    <>
+      <svg className="animate-spin h-4 w-4 text-white shrink-0" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+      Deleting...
+    </>
+  ) : 'Confirm & Delete'}
+  </button>
+  </div>
  </div>
  </div>
  )}
@@ -401,7 +459,7 @@ const VolunteersManager = ({ setIsDirty }) => {
  <div className="text-center sm:text-left flex-1 w-full">
  <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">{selectedVol.full_name}</h2>
  <p className="text-blue-600 font-bold bg-blue-50 inline-block px-3 py-1 rounded-lg text-xs sm:text-sm mb-2">{selectedVol.department} • {selectedVol.semester} Sem</p>
- <p className="text-gray-500 text-xs sm:text-sm font-semibold mb-3">Roll No: <span className="text-gray-800">{selectedVol.roll_no}</span></p>
+ <p className="text-gray-500 text-xs sm:text-sm font-semibold mb-3">College Application ID: <span className="text-gray-800">{selectedVol.college_application_id}</span></p>
  <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
  <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center">
  <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 21.5c3.59 0 6.5-2.91 6.5-6.5 0-4-6.5-12-6.5-12S5.5 11 5.5 15c0 3.59 2.91 6.5 6.5 6.5z" /></svg>
@@ -413,12 +471,23 @@ const VolunteersManager = ({ setIsDirty }) => {
  </span>
  <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center">
  <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
- {selectedVol.dob}
+ {formatDate(selectedVol.dob)}
  </span>
  </div>
  </div>
  </div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+ <h4 className="font-extrabold text-gray-800 mb-3 text-xs sm:text-sm border-b pb-2">Family & Personal Info</h4>
+ <p className="text-xs sm:text-sm mb-1.5"><span className="text-gray-500 font-medium">Father's Name:</span> <span className="font-bold text-gray-900">{selectedVol.fathers_name || "N/A"}</span></p>
+ <p className="text-xs sm:text-sm mb-1.5"><span className="text-gray-500 font-medium">Mother's Name:</span> <span className="font-bold text-gray-900">{selectedVol.mothers_name || "N/A"}</span></p>
+ <p className="text-xs sm:text-sm mb-1"><span className="text-gray-500 font-medium">Aadhaar Number:</span> <span className="font-bold text-gray-900">{selectedVol.aadhaar_no || "N/A"}</span></p>
+ </div>
+ <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+ <h4 className="font-extrabold text-gray-800 mb-3 text-xs sm:text-sm border-b pb-2">Experience & Activities</h4>
+ <p className="text-xs sm:text-sm mb-1.5"><span className="text-gray-500 font-medium">Previous Experience:</span> <span className="font-bold text-gray-900">{selectedVol.prev_experience || "N/A"}</span></p>
+ <p className="text-xs sm:text-sm mb-1"><span className="text-gray-500 font-medium">Extra Curriculum:</span> <span className="font-bold text-gray-900 leading-relaxed">{selectedVol.extra_curriculum || "N/A"}</span></p>
+ </div>
  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
  <h4 className="font-extrabold text-gray-800 mb-3 text-xs sm:text-sm border-b pb-2">Contact Info</h4>
  <p className="text-xs sm:text-sm mb-1.5"><span className="text-gray-500 font-medium">Email:</span> <span className="font-bold text-gray-900 break-all">{selectedVol.email}</span></p>
@@ -461,22 +530,61 @@ const VolunteersManager = ({ setIsDirty }) => {
  </div>
  </div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
- <input required name="full_name" value={editFormData.full_name} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
- </div>
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">Roll No</label>
- <input required name="roll_no" value={editFormData.roll_no} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
- </div>
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">Department</label>
- <input required name="department" value={editFormData.department} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
- </div>
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">Semester</label>
- <input required name="semester" value={editFormData.semester} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
- </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
+  <input required name="full_name" value={editFormData.full_name || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">College Application ID</label>
+  <input required name="college_application_id" value={editFormData.college_application_id || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Department</label>
+  <select required name="department" value={editFormData.department || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
+  <option value="">Select</option>
+  {DEPARTMENTS.map(dept => (
+    <option key={dept} value={dept}>{dept}</option>
+  ))}
+  </select>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Semester</label>
+  <select required name="semester" value={editFormData.semester || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
+  <option value="">Select</option>
+  <option value="1st">1st Sem</option>
+  <option value="2nd">2nd Sem</option>
+  <option value="3rd">3rd Sem</option>
+  <option value="4th">4th Sem</option>
+  <option value="5th">5th Sem</option>
+  <option value="6th">6th Sem</option>
+  <option value="7th">7th Sem</option>
+  <option value="8th">8th Sem</option>
+  </select>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Father's Name</label>
+  <input required name="fathers_name" value={editFormData.fathers_name || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Mother's Name</label>
+  <input required name="mothers_name" value={editFormData.mothers_name || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Aadhaar Number</label>
+  <input required name="aadhaar_no" value={editFormData.aadhaar_no || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Previous Experience</label>
+  <select required name="prev_experience" value={editFormData.prev_experience || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
+  <option value="">Select</option>
+  <option value="Yes">Yes</option>
+  <option value="No">No</option>
+  </select>
+  </div>
+  <div className="md:col-span-2">
+  <label className="block text-xs font-bold text-gray-700 mb-1">Extra Curriculum Activities</label>
+  <input name="extra_curriculum" value={editFormData.extra_curriculum || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+  </div>
  <div>
  <label className="block text-xs font-bold text-gray-700 mb-1">Phone</label>
  <input required name="phone" value={editFormData.phone} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
@@ -485,16 +593,25 @@ const VolunteersManager = ({ setIsDirty }) => {
  <label className="block text-xs font-bold text-gray-700 mb-1">WhatsApp</label>
  <input required name="whatsapp" value={editFormData.whatsapp} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
  </div>
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">Blood Group</label>
- <select name="blood_group" value={editFormData.blood_group} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
- <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option>
- </select>
- </div>
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">DOB</label>
- <input type="date" required name="dob" value={editFormData.dob} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
- </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Blood Group</label>
+  <select name="blood_group" value={editFormData.blood_group} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
+  <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option>
+  </select>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Gender</label>
+  <select required name="gender" value={editFormData.gender || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
+  <option value="">Select</option>
+  <option value="Male">Male</option>
+  <option value="Female">Female</option>
+  <option value="Other">Other</option>
+  </select>
+  </div>
+  <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">DOB</label>
+  <input type="date" required name="dob" value={editFormData.dob} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+  </div>
  <div className="md:col-span-2">
  <label className="block text-xs font-bold text-gray-700 mb-1">Current Address</label>
  <textarea required name="current_address" value={editFormData.current_address} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" rows="2"></textarea>
@@ -881,7 +998,7 @@ const EventCard = React.memo(({ evt, onEdit, onDelete, onView }) => {
  <h4 className="font-semibold text-slate-800 text-lg mb-1 line-clamp-1">{evt.title}</h4>
  <p className="text-sm text-slate-400 font-semibold mb-4 flex items-center gap-1.5">
  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
- {evt.start_date} — {evt.end_date}
+ {formatDate(evt.start_date)} — {formatDate(evt.end_date)}
  </p>
  <div className="mt-auto flex gap-2 w-full pt-4 border-t border-slate-50">
  <button onClick={() => onEdit(evt)} className="flex-[2] bg-blue-50 text-blue-700 font-bold text-xs sm:text-sm py-2.5 rounded-xl hover:bg-blue-100 transition-colors">Edit Details</button>

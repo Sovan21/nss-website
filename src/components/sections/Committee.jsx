@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { Icons } from "@/components/Icons";
 import LoadingScreen from "@/components/layout/LoadingScreen";
+import { useLanguage } from "@/context/LanguageContext";
 
 const decodeDesignation = (raw) => {
   if (!raw) return { category: 'Teacher', designation: '' };
@@ -52,6 +53,7 @@ const CommitteeCard = ({ member, onCardClick }) => {
 };
 
 export default function CommitteePage({ prefetchedMembers }) {
+  const { t } = useLanguage();
   const [members, setMembers] = useState(prefetchedMembers || []);
   const [loading, setLoading] = useState(!prefetchedMembers);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -92,20 +94,20 @@ export default function CommitteePage({ prefetchedMembers }) {
 
   const committeeDetails = {
     Cultural: {
-      title: "Cultural Activities & Events",
-      desc: "Organizes cultural events, celebrations, and awareness campaigns through arts, drama, and music to foster unity and preserve heritage.",
+      title: t("committee.details.Cultural.title"),
+      desc: t("committee.details.Cultural.desc"),
       icon: <svg className="w-6 h-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
       bg: "bg-pink-50/50", border: "border-pink-100"
     },
     Student: {
-      title: "Core Coordination & Management",
-      desc: "The core student body responsible for overall coordination, volunteer management, and executing NSS regular and special camp activities.",
+      title: t("committee.details.Student.title"),
+      desc: t("committee.details.Student.desc"),
       icon: <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
       bg: "bg-blue-50/50", border: "border-blue-100"
     },
     Environment: {
-      title: "Environmental Initiatives",
-      desc: "Focuses on tree plantation drives, campus cleaning (Swachh Bharat), plastic-free campaigns, and environmental awareness among youth.",
+      title: t("committee.details.Environment.title"),
+      desc: t("committee.details.Environment.desc"),
       icon: <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
       bg: "bg-green-50/50", border: "border-green-100"
     }
@@ -118,12 +120,12 @@ export default function CommitteePage({ prefetchedMembers }) {
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-8 md:mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-3 border border-blue-100">
-            <Icons.Team className="w-3.5 h-3.5" /> Student Wing
+            <Icons.Team className="w-3.5 h-3.5" /> {t("committee.badge")}
           </div>
           <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-none">
-            Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">Committee</span>
+            {t("committee.heading")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">{t("committee.headingAccent")}</span>
           </h2>
-          <p className="text-slate-500 font-medium text-xs md:text-base leading-relaxed">Meet the active student volunteers leading our various NSS initiatives and programs.</p>
+          <p className="text-slate-500 font-medium text-xs md:text-base leading-relaxed">{t("committee.subtitle")}</p>
         </div>
 
         {/* Tab Navigation */}
@@ -135,7 +137,7 @@ export default function CommitteePage({ prefetchedMembers }) {
                 onClick={() => setActiveCategory(cat)}
                 className={`px-6 md:px-10 py-3 md:py-3.5 rounded-full font-bold text-xs md:text-sm transition-all duration-300 whitespace-nowrap ${activeCategory === cat ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-[1.02]' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/50'}`}
               >
-                {cat} Committee
+                {t(`committee.tab.${cat}`)}{t("committee.tabSuffix")}
               </button>
             ))}
           </div>
@@ -155,7 +157,7 @@ export default function CommitteePage({ prefetchedMembers }) {
         {filteredMembers.length === 0 ? (
           <div className="bg-white p-16 rounded-3xl md:rounded-[2.5rem] text-center border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] animate-fade-in-up">
             <Icons.Users className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-            <p className="text-slate-400 font-bold tracking-tight">No members found in the {activeCategory} committee yet.</p>
+            <p className="text-slate-400 font-bold tracking-tight">{t("committee.noMembers")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 items-stretch animate-fade-in-up" key={activeCategory}>
@@ -192,11 +194,11 @@ export default function CommitteePage({ prefetchedMembers }) {
                 
                 {selectedMember.about ? (
                   <div className="bg-slate-50 rounded-2xl p-4 md:p-5 text-sm text-slate-700 leading-relaxed text-left border border-slate-100 max-h-60 overflow-y-auto custom-scrollbar">
-                    <h4 className="font-black text-slate-800 mb-2 uppercase tracking-wide text-xs">About</h4>
+                    <h4 className="font-black text-slate-800 mb-2 uppercase tracking-wide text-xs">{t("committee.about")}</h4>
                     <div className="whitespace-pre-wrap">{selectedMember.about}</div>
                   </div>
                 ) : (
-                  <p className="text-slate-400 italic text-sm">No additional details available.</p>
+                  <p className="text-slate-400 italic text-sm">{t("committee.noDetails")}</p>
                 )}
               </div>
             </div>

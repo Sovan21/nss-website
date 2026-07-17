@@ -4,8 +4,29 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { Icons } from "@/components/Icons";
 import LoadingScreen from "@/components/layout/LoadingScreen";
+import { useLanguage } from "@/context/LanguageContext";
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [_, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear());
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
 
 export default function ActivitiesPage({ prefetchedEvents }) {
+  const { t } = useLanguage();
   const [events, setEvents] = useState(prefetchedEvents || []);
   const [loading, setLoading] = useState(!prefetchedEvents);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -46,9 +67,9 @@ export default function ActivitiesPage({ prefetchedEvents }) {
     const endDate = new Date(end);
     endDate.setHours(0, 0, 0, 0);
 
-    if (today < startDate) return { text: "Upcoming", color: "bg-amber-50 text-amber-800 border-amber-200" };
-    if (today > endDate) return { text: "Past Event", color: "bg-slate-100 text-slate-600 border-slate-200" };
-    return { text: "Active Now", color: "bg-emerald-50 text-emerald-800 border-emerald-200 animate-pulse" };
+    if (today < startDate) return { text: t("activities.upcoming"), color: "bg-amber-50 text-amber-800 border-amber-200" };
+    if (today > endDate) return { text: t("activities.past"), color: "bg-slate-100 text-slate-600 border-slate-200" };
+    return { text: t("activities.activeNow"), color: "bg-emerald-50 text-emerald-800 border-emerald-200 animate-pulse" };
   };
 
   const getCount = (text) => {
@@ -61,12 +82,12 @@ export default function ActivitiesPage({ prefetchedEvents }) {
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 border border-blue-100">
-            <Icons.Sparkles className="w-3.5 h-3.5" /> Impact in Action
+            <Icons.Sparkles className="w-3.5 h-3.5" /> {t("activities.badge")}
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight leading-none">
-            Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">Activities</span>
+            {t("activities.heading")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">{t("activities.headingAccent")}</span>
           </h2>
-          <p className="text-slate-500 font-medium text-sm md:text-lg leading-relaxed">Discover how our volunteers are serving the community through dedicated service and leadership.</p>
+          <p className="text-slate-500 font-medium text-sm md:text-lg leading-relaxed">{t("activities.subtitle")}</p>
         </div>
 
         {events.length === 0 ? (
@@ -74,7 +95,7 @@ export default function ActivitiesPage({ prefetchedEvents }) {
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100 text-slate-300">
               <Icons.Calendar className="w-8 h-8" />
             </div>
-            <p className="text-slate-400 font-bold tracking-tight">No activities published yet.</p>
+            <p className="text-slate-400 font-bold tracking-tight">{t("activities.noEvents")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
@@ -104,7 +125,7 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-blue-100 bg-slate-900/60 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/20 shadow-lg">
                         <Icons.Calendar className="w-4 h-4 text-blue-400" />
-                        {evt.start_date} {evt.start_date !== evt.end_date && ` - ${evt.end_date}`}
+                        {formatDate(evt.start_date)}{evt.start_date !== evt.end_date && ` - ${formatDate(evt.end_date)}`}
                       </div>
                     </div>
                     
@@ -113,7 +134,7 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                         {evt.title}
                       </h3>
                       <div className="flex items-center gap-2 text-white font-black text-[10px] md:text-xs bg-white/10 hover:bg-blue-600 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 transition-all opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 w-max uppercase tracking-widest">
-                        View Details <Icons.ArrowRight className="w-3.5 h-3.5 ml-1.5 transform group-hover:translate-x-1 transition-transform" />
+                        {t("activities.viewDetails")} <Icons.ArrowRight className="w-3.5 h-3.5 ml-1.5 transform group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </div>
@@ -133,8 +154,8 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                   <Icons.Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-black text-sm md:text-xl tracking-tight uppercase leading-none">Event Detail</h3>
-                  <p className="text-[10px] text-blue-400 font-bold mt-1 uppercase tracking-widest hidden md:block">NSS Unit Activities</p>
+                  <h3 className="font-black text-sm md:text-xl tracking-tight uppercase leading-none">{t("activities.viewDetails")}</h3>
+                  <p className="text-[10px] text-blue-400 font-bold mt-1 uppercase tracking-widest hidden md:block">{t("activities.badge")}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedEvent(null)} className="text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition-all focus:outline-none cursor-pointer">
@@ -162,13 +183,13 @@ export default function ActivitiesPage({ prefetchedEvents }) {
 
                 <div className="inline-flex items-center gap-2 mb-5 bg-blue-50 border border-blue-100 text-blue-800 font-bold px-3 py-1.5 rounded-lg text-xs">
                   <Icons.Calendar className="w-4 h-4" />
-                  {selectedEvent.start_date} {selectedEvent.start_date !== selectedEvent.end_date && ` to ${selectedEvent.end_date}`}
+                  {formatDate(selectedEvent.start_date)}{selectedEvent.start_date !== selectedEvent.end_date && `${t("activities.dateTo")}${formatDate(selectedEvent.end_date)}`}
                 </div>
 
                 {selectedEvent.description && (
                   <div className="mb-6">
                     <h4 className="font-bold text-slate-800 text-sm md:text-base mb-2 flex items-center gap-2 border-b border-slate-100 pb-1.5">
-                      <Icons.Document className="w-4 h-4 text-blue-700" /> Description
+                      <Icons.Document className="w-4 h-4 text-blue-700" /> {t("activities.description")}
                     </h4>
                     <p className="text-slate-600 whitespace-pre-line leading-relaxed text-xs md:text-sm">
                       {selectedEvent.description}
@@ -179,18 +200,18 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <h4 className="font-extrabold text-blue-800 mb-1.5 flex items-center gap-2 text-xs md:text-sm">
-                      <Icons.Users className="w-4 h-4" /> Volunteers ({getCount(selectedEvent.volunteers_present)})
+                      <Icons.Users className="w-4 h-4" /> {t("activities.volunteers")} ({getCount(selectedEvent.volunteers_present)})
                     </h4>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {selectedEvent.volunteers_present || <span className="text-slate-400 italic">Participation details pending.</span>}
+                      {selectedEvent.volunteers_present || <span className="text-slate-400 italic">{t("activities.noVolunteers")}</span>}
                     </p>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <h4 className="font-extrabold text-purple-800 mb-1.5 flex items-center gap-2 text-xs md:text-sm">
-                      <Icons.AcademicCap className="w-4 h-4" /> Teachers ({getCount(selectedEvent.teachers_present)})
+                      <Icons.AcademicCap className="w-4 h-4" /> {t("activities.teachers")} ({getCount(selectedEvent.teachers_present)})
                     </h4>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {selectedEvent.teachers_present || <span className="text-slate-400 italic">Teacher details pending.</span>}
+                      {selectedEvent.teachers_present || <span className="text-slate-400 italic">{t("activities.noTeachers")}</span>}
                     </p>
                   </div>
                 </div>
@@ -198,7 +219,7 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                 {selectedEvent.gallery_urls && selectedEvent.gallery_urls.length > 0 && (
                   <div>
                     <h4 className="font-bold text-slate-800 text-sm md:text-base mb-2 flex items-center gap-2 border-b border-slate-100 pb-1.5">
-                      <Icons.Photo className="w-4 h-4 text-blue-700" /> Event Gallery
+                      <Icons.Photo className="w-4 h-4 text-blue-700" /> {t("activities.gallery")}
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {selectedEvent.gallery_urls.map((url, i) => (

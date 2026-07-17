@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Icons } from "@/components/Icons";
+import { useLanguage } from "@/context/LanguageContext";
 
 const decodeDesignation = (raw) => {
   if (!raw) return { category: 'Teacher', designation: '' };
@@ -50,6 +51,7 @@ const TeacherCard = ({ member, onCardClick }) => {
 };
 
 export default function TeachersSection({ members = [] }) {
+  const { t } = useLanguage();
   const [selectedMember, setSelectedMember] = useState(null);
 
   useEffect(() => {
@@ -61,19 +63,19 @@ export default function TeachersSection({ members = [] }) {
   if (!members || members.length === 0) return null;
 
   return (
-    <section className="pt-10 pb-10 md:pt-16 md:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-white">
+    <section className="pt-8 pb-10 md:pt-12 md:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-white">
       {/* Background Decor */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center max-w-2xl mx-auto mb-8 md:mb-14">
+        <div className="text-center max-w-2xl mx-auto mb-6 md:mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-3 border border-indigo-100">
-            <Icons.Team className="w-3.5 h-3.5" /> Leadership
+            <Icons.Team className="w-3.5 h-3.5" /> {t("teachers.badge")}
           </div>
           <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-none">
-            Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700">Leadership</span>
+            {t("teachers.heading")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700">{t("teachers.headingAccent")}</span>
           </h2>
-          <p className="text-slate-500 font-medium text-xs md:text-base leading-relaxed">The guiding lights and educators who lead our NSS unit with dedication and excellence.</p>
+          <p className="text-slate-500 font-medium text-xs md:text-base leading-relaxed">{t("teachers.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8 items-stretch">
@@ -109,11 +111,11 @@ export default function TeachersSection({ members = [] }) {
                 
                 {selectedMember.about ? (
                   <div className="bg-slate-50 rounded-2xl p-4 md:p-5 text-sm text-slate-700 leading-relaxed text-left border border-slate-100 max-h-60 overflow-y-auto custom-scrollbar">
-                    <h4 className="font-black text-slate-800 mb-2 uppercase tracking-wide text-xs">About</h4>
+                    <h4 className="font-black text-slate-800 mb-2 uppercase tracking-wide text-xs">{t("teachers.about")}</h4>
                     <div className="whitespace-pre-wrap">{selectedMember.about}</div>
                   </div>
                 ) : (
-                  <p className="text-slate-400 italic text-sm">No additional details available.</p>
+                  <p className="text-slate-400 italic text-sm">{t("teachers.noDetails")}</p>
                 )}
               </div>
             </div>

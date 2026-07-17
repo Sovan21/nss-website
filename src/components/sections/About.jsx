@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Icons } from "@/components/Icons";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function AboutPage({ onNavigate, siteData }) {
+  const { t } = useLanguage();
   const finalData = siteData || {
     about_heading: "About Us",
     about_text: "Welcome to our NSS Unit.",
@@ -34,11 +36,11 @@ export default function AboutPage({ onNavigate, siteData }) {
           {/* TEXT & VALUATION COLUMN */}
           <div className="w-full lg:col-span-7 flex flex-col justify-center text-center lg:text-left">
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-extrabold text-[10px] md:text-xs uppercase tracking-widest w-max mb-6 mx-auto lg:mx-0 shadow-sm">
-              <Icons.Info className="w-3.5 h-3.5 animate-pulse" /> Our Mission & Vision
+              <Icons.Info className="w-3.5 h-3.5 animate-pulse" /> {t("about.badge")}
             </div>
             
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight tracking-tight">
-              {finalData.about_heading}
+              {finalData.about_heading === "About Us" ? t("nav.about") : finalData.about_heading}
             </h2>
             
             <div className="h-1 w-16 bg-blue-600 rounded-full mb-8 mx-auto lg:mx-0"></div>
@@ -48,15 +50,15 @@ export default function AboutPage({ onNavigate, siteData }) {
             </p>
 
             <h3 className="text-base md:text-lg font-black text-slate-900 mb-5 text-left uppercase tracking-wider">
-              Core Objectives
+              {t("about.objectives")}
             </h3>
 
             {/* Redesigned Objectives Grid */}
             <div className="grid grid-cols-1 gap-4 mb-2 text-left">
               {[
-                { text: "Acquire leadership qualities and democratic attitudes.", title: "Leadership Development", icon: Icons.AcademicCap, color: "text-blue-600 bg-blue-50 border-blue-100/50" },
-                { text: "Develop competence required for group-living and sharing of responsibilities.", title: "Collective Responsibility", icon: Icons.Team, color: "text-indigo-600 bg-indigo-50 border-indigo-100/50" },
-                { text: "Gain practical skills in mobilizing community participation.", title: "Community Mobilization", icon: Icons.Users, color: "text-purple-600 bg-purple-50 border-purple-100/50" }
+                { text: t("about.obj1Text"), title: t("about.obj1Title"), icon: Icons.AcademicCap, color: "text-blue-600 bg-blue-50 border-blue-100/50" },
+                { text: t("about.obj2Text"), title: t("about.obj2Title"), icon: Icons.Team, color: "text-indigo-600 bg-indigo-50 border-indigo-100/50" },
+                { text: t("about.obj3Text"), title: t("about.obj3Title"), icon: Icons.Users, color: "text-purple-600 bg-purple-50 border-purple-100/50" }
               ].map((item, index) => (
                 <div key={index} className="flex gap-4 bg-white border border-slate-200/50 p-5 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.01)] hover:shadow-[0_12px_35px_rgb(37,99,235,0.04)] hover:border-slate-300 transition-all duration-300 group">
                   <div className={`p-3 rounded-xl ${item.color} border shrink-0 transition-transform duration-500 group-hover:scale-110`}>
@@ -74,7 +76,7 @@ export default function AboutPage({ onNavigate, siteData }) {
               onClick={() => onNavigate && onNavigate('activities')} 
               className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-blue-700 transition-all duration-300 w-full sm:w-max shadow-lg hover:shadow-blue-600/20 text-xs md:text-sm hover:-translate-y-0.5 cursor-pointer uppercase tracking-widest mt-8 mx-auto lg:mx-0"
             >
-              See Our Impact <Icons.ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+              {t("about.seeImpact")} <Icons.ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
             </button>
           </div>
 
@@ -146,9 +148,9 @@ export default function AboutPage({ onNavigate, siteData }) {
         {/* TRUST & STATS BANNER */}
         <div className="mt-16 md:mt-24 grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
           {[
-            { value: "150+", label: "Active Volunteers", desc: "Dedicated student change-makers on campus.", color: "from-blue-600 to-indigo-600 bg-blue-50 text-blue-700 border-blue-100" },
-            { value: "50+", label: "Yearly Activities", desc: "Camps, blood donations & community drives.", color: "from-indigo-600 to-purple-600 bg-indigo-50 text-indigo-700 border-indigo-100" },
-            { value: "1944", label: "College Heritage", desc: "80+ years of institutional excellence & service.", color: "from-purple-600 to-blue-600 bg-purple-50 text-purple-700 border-purple-100" }
+            { value: t("about.stat1Value"), label: t("about.stat1Label"), desc: t("about.stat1Desc"), color: "from-blue-600 to-indigo-600 bg-blue-50 text-blue-700 border-blue-100" },
+            { value: t("about.stat2Value"), label: t("about.stat2Label"), desc: t("about.stat2Desc"), color: "from-indigo-600 to-purple-600 bg-indigo-50 text-indigo-700 border-indigo-100" },
+            { value: t("about.stat3Value"), label: t("about.stat3Label"), desc: t("about.stat3Desc"), color: "from-purple-600 to-blue-600 bg-purple-50 text-purple-700 border-purple-100" }
           ].map((stat, idx) => (
             <div key={idx} className="bg-white border border-slate-200/80 rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_15px_35px_rgb(37,99,235,0.06)] hover:border-blue-500/20 transition-all duration-500 group">
               <div className="flex justify-between items-start mb-4">

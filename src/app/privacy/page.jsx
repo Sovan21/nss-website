@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 md:p-12">
           <div className="mb-10 text-center">
             <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">Privacy Policy</h1>
-            <p className="text-slate-500 font-medium">Last Updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-slate-500 font-medium">Last Updated: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
           </div>
 
           <div className="prose prose-slate max-w-none text-slate-700 space-y-6">

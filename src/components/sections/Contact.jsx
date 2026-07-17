@@ -1,8 +1,10 @@
 "use client";
 import React from "react";
 import { Icons } from "@/components/Icons";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ContactPage({ siteData }) {
+  const { t } = useLanguage();
   const finalData = siteData || {
     contact_email: "",
     contact_phone: "",
@@ -31,12 +33,12 @@ export default function ContactPage({ siteData }) {
       <div className="max-w-5xl w-full mx-auto relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 border border-blue-100">
-            <Icons.Mail className="w-3.5 h-3.5" /> Communication
+            <Icons.Mail className="w-3.5 h-3.5" /> {t("contact.badge")}
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight leading-none">
-            Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">Touch</span>
+            {t("contact.heading")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">{t("contact.headingAccent")}</span>
           </h2>
-          <p className="text-slate-500 font-medium text-sm md:text-lg leading-relaxed">Have questions or want to collaborate? Reach out to us through any of the channels below.</p>
+          <p className="text-slate-500 font-medium text-sm md:text-lg leading-relaxed">{t("contact.subtitle")}</p>
         </div>
  
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -45,7 +47,7 @@ export default function ContactPage({ siteData }) {
             <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.MapPin className="w-7 h-7" />
             </div>
-            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">Location</h4>
+            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">{t("contact.location")}</h4>
             <span className="text-blue-600 text-xs md:text-sm font-black group-hover:underline decoration-2 underline-offset-4">
               B.B. College Campus<br />Asansol, WB, India
             </span>
@@ -56,7 +58,7 @@ export default function ContactPage({ siteData }) {
             <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Mail className="w-7 h-7" />
             </div>
-            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">Email Us</h4>
+            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">{t("contact.emailUs")}</h4>
             <span className="text-blue-600 text-[13px] md:text-sm font-black break-words group-hover:underline decoration-2 underline-offset-4">
               {finalData.contact_email || "bbcollege1944@gmail.com"}
             </span>
@@ -67,7 +69,7 @@ export default function ContactPage({ siteData }) {
             <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Phone className="w-7 h-7" />
             </div>
-            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">Call Us</h4>
+            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">{t("contact.callUs")}</h4>
             <div className="flex flex-col gap-1.5 w-full">
               {phone1 ? (
                 <a href={`tel:${phone1}`} className="text-emerald-600 text-[13px] md:text-[13px] font-black hover:underline decoration-2 underline-offset-4 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors inline-block w-full whitespace-nowrap overflow-hidden text-ellipsis">
@@ -81,7 +83,7 @@ export default function ContactPage({ siteData }) {
               ) : null}
               {!phone1 && !phone2 && (
                 <span className="text-emerald-600 text-xs md:text-sm font-black">
-                  Unavailable
+                  {t("contact.unavailable")}
                 </span>
               )}
             </div>
@@ -92,9 +94,9 @@ export default function ContactPage({ siteData }) {
             <div className="w-14 h-14 bg-[#25D366] text-white rounded-2xl flex items-center justify-center shadow-xl shadow-green-500/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Whatsapp className="w-7 h-7" />
             </div>
-            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">WhatsApp</h4>
+            <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">{t("contact.whatsapp")}</h4>
             <span className="text-green-600 text-xs md:text-sm font-black group-hover:underline decoration-2 underline-offset-4">
-              Send a Message
+              {t("contact.sendMessage")}
             </span>
           </div>
         </div>

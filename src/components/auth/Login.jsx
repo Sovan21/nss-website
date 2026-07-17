@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Professional SVG icon components for fact cards
 const FactIconBuilding = () => (
@@ -42,6 +43,7 @@ const NSSFacts = [
 ];
 
 export default function Login({ onClose, onSwitch }) {
+  const { t } = useLanguage();
   // Prevent background scrolling when modal is active
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -52,6 +54,10 @@ export default function Login({ onClose, onSwitch }) {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [activeFact, setActiveFact] = useState(0);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Forgot Password Flow States
   const [view, setView] = useState('login'); // 'login', 'forgot_email', 'forgot_otp', 'forgot_password'
@@ -132,7 +138,7 @@ export default function Login({ onClose, onSwitch }) {
           localStorage.removeItem('nss_admin_mode');
           localStorage.setItem('nss_user', JSON.stringify(finalProfile));
           window.dispatchEvent(new Event('nss_user_logged_in'));
-          
+
           // Only close automatically if we are not in the middle of a password reset flow
           // because we need the modal to stay open for them to set a new password.
           if (document.getElementById('password-reset-active') === null) {
@@ -169,6 +175,10 @@ export default function Login({ onClose, onSwitch }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (credentials.password.length < 6 || credentials.password.length > 16) {
+      toast.error("Password must be between 6 and 16 characters.");
+      return;
+    }
     setLoading(true);
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -240,28 +250,28 @@ export default function Login({ onClose, onSwitch }) {
   const handleSetNewPassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) return toast.error("Passwords do not match.");
-    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters.");
-    
+    if (newPassword.length < 6 || newPassword.length > 16) return toast.error("Password must be between 6 and 16 characters.");
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
-      
+
       if (error) {
         throw error;
       }
-      
+
       // Successfully updated password!
       toast.success("Password changed successfully! Please login with your new password.");
-      
+
       // Sign out to clear the temporary recovery session
       await supabase.auth.signOut();
-      
+
       // Redirect to login form
       setView('login');
       setNewPassword('');
       setConfirmPassword('');
       setForgotOtp('');
-      
+
     } catch (err) {
       console.error("Password Update Error:", err);
       toast.error(err.message || "Failed to update password.");
@@ -279,7 +289,7 @@ export default function Login({ onClose, onSwitch }) {
       <div className="relative z-10 w-full max-w-5xl bg-white shadow-2xl rounded-3xl animate-fade-in-up border border-blue-100 overflow-hidden max-h-[92dvh] md:max-h-[90vh] flex flex-col md:flex-row">
 
         {/* Close Button */}
-        <button onClick={onClose} className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 flex items-center justify-center bg-white/80 md:bg-white/20 hover:bg-white md:hover:bg-white/30 rounded-full text-slate-400 md:text-white/70 hover:text-slate-700 md:hover:text-white transition-colors border border-slate-200 md:border-white/20 shadow-sm focus:outline-none z-30 cursor-pointer backdrop-blur-sm">
+        <button onClick={onClose} className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-500 hover:text-slate-800 transition-all duration-200 border border-slate-200/80 shadow-sm focus:outline-none z-30 cursor-pointer backdrop-blur-sm">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
@@ -362,6 +372,16 @@ export default function Login({ onClose, onSwitch }) {
               — Swami Vivekananda
             </p>
           </div>
+
+          <div className="relative z-10 mt-8 text-center bg-black/10 px-4 py-3 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner">
+            <p className="text-white/95 text-[12px] font-medium italic leading-relaxed drop-shadow-sm">
+              &ldquo;Leader in Education. Guide to the Youth. Architect of Tomorrow.&rdquo;
+            </p>
+            <p className="text-blue-200/90 text-[10px] font-bold mt-1.5 uppercase tracking-widest drop-shadow-sm">
+              — Dr. Amitava Basu
+            </p>
+          </div>
+
         </div>
 
         {/* ===== RIGHT PANEL: Login Form ===== */}
@@ -378,30 +398,57 @@ export default function Login({ onClose, onSwitch }) {
 
             <div className="text-center mb-8">
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">
-                {view === 'login' ? 'Welcome Back' : view === 'forgot_email' ? 'Reset Password' : view === 'forgot_otp' ? 'Enter OTP' : 'New Password'}
+                {view === 'login' ? t("auth.login.title") : view === 'forgot_email' ? t("auth.login.resetTitle") : view === 'forgot_otp' ? 'Enter OTP' : 'New Password'}
               </h2>
               <p className="text-slate-500 text-[14px] sm:text-[15px] font-medium">
-                {view === 'login' ? 'Sign in to your NSS account' : view === 'forgot_email' ? 'Enter your email to receive an OTP' : view === 'forgot_otp' ? 'Check your email for the 6-digit code' : 'Set a new secure password'}
+                {view === 'login' ? t("auth.login.subtitle") : view === 'forgot_email' ? t("auth.login.resetSubtitle") : view === 'forgot_otp' ? 'Check your email for the 6-digit code' : 'Set a new secure password'}
               </p>
             </div>
 
             {view === 'login' && (
               <form onSubmit={handleLogin} className="space-y-5 animate-fade-in-up">
                 <div>
-                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Email Address</label>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.login.email")}</label>
                   <input name="email" type="email" placeholder="Enter your email" onChange={handleChange} className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" required />
                 </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-2 ml-1 mr-1">
-                    <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider">Password</label>
-                    <button type="button" onClick={() => setView('forgot_email')} className="text-blue-600 text-xs font-bold hover:text-blue-800 transition-colors">Forgot Password?</button>
+                    <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider">{t("auth.login.password")}</label>
+                    <button type="button" onClick={() => setView('forgot_email')} className="text-blue-600 text-xs font-bold hover:text-blue-800 transition-colors">{t("auth.login.forgotPassword")}</button>
                   </div>
-                  <input name="password" type="password" placeholder="Enter password" onChange={handleChange} className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" required />
+                  <div className="relative">
+                    <input 
+                      name="password" 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Enter password" 
+                      onChange={handleChange} 
+                      minLength="6"
+                      maxLength="16"
+                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" 
+                      required 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-1 z-10"
+                    >
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all duration-300 text-[17px] mt-2 shadow-lg cursor-pointer ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98]'}`}>
-                  {loading ? 'Verifying...' : 'Login Now'}
+                  {loading ? t("auth.login.signingIn") : t("auth.login.signIn")}
                 </button>
               </form>
             )}
@@ -409,13 +456,13 @@ export default function Login({ onClose, onSwitch }) {
             {view === 'forgot_email' && (
               <form onSubmit={handleSendResetOTP} className="space-y-5 animate-fade-in-up">
                 <div>
-                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Email Address</label>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.login.email")}</label>
                   <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="Enter your registered email" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" required />
                 </div>
                 <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all text-[17px] mt-2 shadow-lg ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02]'}`}>
-                  {loading ? 'Sending...' : 'Send OTP'}
+                  {loading ? t("auth.login.sending") : t("auth.login.sendResetLink")}
                 </button>
-                <button type="button" onClick={() => setView('login')} className="w-full text-slate-500 font-semibold text-sm hover:text-slate-800 mt-3">Back to Login</button>
+                <button type="button" onClick={() => setView('login')} className="w-full text-slate-500 font-semibold text-sm hover:text-slate-800 mt-3">{t("auth.login.backToLogin")}</button>
               </form>
             )}
 
@@ -437,11 +484,65 @@ export default function Login({ onClose, onSwitch }) {
                 <input type="hidden" id="password-reset-active" value="true" />
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">New Password</label>
-                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 6 characters" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" required minLength={6} />
+                  <div className="relative">
+                    <input 
+                      type={showNewPassword ? "text" : "password"} 
+                      value={newPassword} 
+                      onChange={(e) => setNewPassword(e.target.value)} 
+                      placeholder="6 to 16 characters" 
+                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" 
+                      required 
+                      minLength={6} 
+                      maxLength={16} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-1 z-10"
+                    >
+                      {showNewPassword ? (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Confirm Password</label>
-                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" required minLength={6} />
+                  <div className="relative">
+                    <input 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      value={confirmPassword} 
+                      onChange={(e) => setConfirmPassword(e.target.value)} 
+                      placeholder="Re-enter password" 
+                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" 
+                      required 
+                      minLength={6} 
+                      maxLength={16} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-1 z-10"
+                    >
+                      {showConfirmPassword ? (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all text-[17px] mt-2 shadow-lg ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02]'}`}>
                   {loading ? 'Updating...' : 'Update Password'}
@@ -453,15 +554,15 @@ export default function Login({ onClose, onSwitch }) {
               <>
                 <div className="mt-6 text-center border-t border-blue-100 pt-5">
                   <p className="text-slate-500 text-[14px] sm:text-[15px]">
-                    New volunteer?{' '}
+                    {t("auth.login.noAccount")}{' '}
                     <button type="button" onClick={() => onSwitch('register')} className="text-blue-600 font-semibold hover:text-blue-800 transition-colors ml-1 cursor-pointer">
-                      Register here
+                      {t("auth.login.registerHere")}
                     </button>
                   </p>
                 </div>
 
                 <div className="mt-5 flex flex-col items-center">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-5">Or continue with</p>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-5">{t("auth.login.orContinueWith")}</p>
                   <div className="flex justify-center items-center gap-4">
                     <button type="button" disabled={loading} onClick={() => handleSocialLogin('google')} className={socialBtnClass} title="Google">
                       <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" className="w-6 h-6" alt="Google" />

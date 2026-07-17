@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Icons } from "../Icons";
 import UserAvatar, { getInitials } from "../UserAvatar";
 import { ProfileCardContent } from "../ProfileModals";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const NAV_ITEMS = [
   { key: 'home', label: 'Home', icon: Icons.Home },
@@ -13,11 +14,13 @@ export const NAV_ITEMS = [
 ];
 
 const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
+  const { t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showMobileProfile, setShowMobileProfile] = useState(false);
   const [showDesktopProfile, setShowDesktopProfile] = useState(false);
   const [showAdminWarning, setShowAdminWarning] = useState(false);
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
 
   useEffect(() => {
     const checkSession = () => {
@@ -38,9 +41,32 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         const { data: profileData } = await supabase.from('registrations').select('*').eq('id', user.id).maybeSingle();
         let userDataToSave = profileData;
         if (!profileData) {
-          const newProfile = { id: user.id, full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || "Volunteer", email: user.email, photo_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null };
+          const m = user.user_metadata || {};
+          const newProfile = {
+            id: user.id,
+            full_name: m.full_name || user.email?.split('@')[0] || "Volunteer",
+            email: user.email,
+            fathers_name: m.fathers_name || null,
+            mothers_name: m.mothers_name || null,
+            aadhaar_no: m.aadhaar_no || null,
+            phone: m.phone || null,
+            whatsapp: m.whatsapp || null,
+            dob: m.dob || null,
+            gender: m.gender || null,
+            blood_group: m.blood_group || null,
+            current_address: m.current_address || null,
+            department: m.department || null,
+            semester: m.semester || null,
+            college_application_id: m.college_application_id || null,
+            extra_curriculum: m.extra_curriculum || null,
+            prev_experience: m.prev_experience || null,
+            bio: m.bio || null,
+            photo_url: m.photo_url || null,
+            role: 'volunteer'
+          };
           const { data: insertedData } = await supabase.from('registrations').insert([newProfile]).select().maybeSingle();
           userDataToSave = insertedData || newProfile;
+          setShowWhatsAppPopup(true);
         }
         localStorage.setItem('nss_user', JSON.stringify(userDataToSave));
         setCurrentUser(userDataToSave);
@@ -50,7 +76,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     window.addEventListener('nss_user_logged_in', checkSession);
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session && localStorage.getItem('nss_admin_mode') !== 'true') { syncSessionData(session); }
-    }).catch(() => {});
+    }).catch(() => { });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') { localStorage.removeItem('nss_user'); localStorage.removeItem('nss_admin_mode'); setCurrentUser(null); return; }
       if (localStorage.getItem('nss_admin_mode') === 'true') return;
@@ -60,29 +86,29 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   }, []);
 
   useEffect(() => {
-    const isAnyModalOpen = isMobileMenuOpen || showMobileProfile || showDesktopProfile || showAdminWarning;
+    const isAnyModalOpen = isMobileMenuOpen || showMobileProfile || showDesktopProfile || showAdminWarning || showWhatsAppPopup;
     const navbar = document.getElementById('fixed-navbar');
-    if (isAnyModalOpen) { 
-      const sw = window.innerWidth - document.documentElement.clientWidth; 
-      document.body.style.paddingRight = `${sw}px`; 
-      document.body.style.overflow = 'hidden'; 
+    if (isAnyModalOpen) {
+      const sw = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = `${sw}px`;
+      document.body.style.overflow = 'hidden';
       if (navbar) navbar.style.paddingRight = `${sw}px`;
     }
-    else { 
-      document.body.style.paddingRight = '0px'; 
-      document.body.style.overflow = 'unset'; 
-      if (navbar) navbar.style.paddingRight = '0px';
+    else {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+      if (navbar) navbar.style.paddingRight = '';
     }
-    return () => { 
-      document.body.style.paddingRight = '0px'; 
-      document.body.style.overflow = 'unset'; 
-      if (navbar) navbar.style.paddingRight = '0px';
+    return () => {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+      if (navbar) navbar.style.paddingRight = '';
     };
-  }, [isMobileMenuOpen, showMobileProfile, showDesktopProfile, showAdminWarning]);
+  }, [isMobileMenuOpen, showMobileProfile, showDesktopProfile, showAdminWarning, showWhatsAppPopup]);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeAllMenus = () => { setIsMobileMenuOpen(false); setShowMobileProfile(false); setShowDesktopProfile(false); };
-  
+
   const handleNavClick = (key) => {
     if (activeTab === key) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -102,10 +128,10 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   return (
     <>
       <div id="fixed-navbar" className="fixed top-0 left-0 right-0 z-50 pt-3 md:pt-4 px-3 md:px-4 pointer-events-none box-border">
-        <nav className="pointer-events-auto max-w-5xl mx-auto bg-white/92 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/90 rounded-full transition-all duration-300 overflow-hidden">
+        <nav className="pointer-events-auto w-full max-w-6xl mx-auto bg-white/92 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/90 rounded-full transition-all duration-300 overflow-hidden">
           <div className="px-4 md:px-6">
             <div className="flex justify-between items-center h-14 md:h-18 gap-2 w-full">
-              <div className="flex items-center gap-2.5 md:gap-3 flex-1 min-w-0 cursor-pointer select-none group active:scale-95 transition-transform"
+              <div className="flex items-center gap-2.5 md:gap-3 shrink-0 cursor-pointer select-none group active:scale-95 transition-transform"
                 onClick={() => handleNavClick('home')}
                 onContextMenu={(e) => e.preventDefault()}
                 onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}
@@ -119,32 +145,34 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
                     <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain select-none" draggable="false" />
                   </div>
                 </div>
-                <div className="flex flex-col justify-center flex-1 min-w-0 pointer-events-none">
-                  <h1 className="text-[11px] sm:text-xs md:text-sm font-black text-slate-800 leading-tight truncate tracking-tight uppercase">National Service Scheme</h1>
-                  <p className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-blue-600/80 truncate uppercase tracking-wider md:tracking-widest"><span className="md:hidden">B.B. College, Asansol</span><span className="hidden md:inline">Banwarilal Bhalotia College, Asansol</span></p>
+                <div className="flex flex-col justify-center shrink-0 pointer-events-none">
+                  <h1 className="text-[10px] sm:text-[11px] md:text-[12px] lg:text-[13px] xl:text-sm font-black text-slate-800 leading-tight whitespace-nowrap tracking-tight uppercase">{t("hero.badge")}</h1>
+                  <p className="text-[7px] sm:text-[8px] md:text-[9px] lg:text-[10px] xl:text-[11px] font-bold text-blue-600/80 whitespace-nowrap uppercase tracking-wider lg:tracking-widest">
+                    Banwarilal Bhalotia College, Asansol
+                  </p>
                 </div>
               </div>
 
-              <div className="hidden md:flex items-center gap-1 lg:gap-2 font-semibold text-slate-600 shrink-0">
+              <div className="hidden lg:flex items-center gap-1 lg:gap-1.5 xl:gap-2.5 font-bold text-slate-700 shrink-0">
                 {NAV_ITEMS.map((item) => (
                   <button key={item.key} onClick={() => handleNavClick(item.key)}
-                    className={`relative px-4 py-2 rounded-full font-bold text-sm transition-all duration-300 capitalize cursor-pointer ${activeTab === item.key ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-blue-50 hover:text-blue-700'}`}>
-                    {item.label}
+                    className={`relative px-3 lg:px-3.5 xl:px-4.5 py-2 lg:py-2.5 xl:py-3 rounded-full font-outfit font-bold tracking-wide text-[12px] lg:text-[13px] xl:text-[15px] transition-all duration-300 capitalize cursor-pointer ${activeTab === item.key ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-blue-50 hover:text-blue-700'}`}>
+                    {t(`nav.${item.key}`)}
                   </button>
                 ))}
                 {currentUser ? (
-                  <div className="relative ml-3 pl-3 border-l border-slate-200">
+                  <div className="relative ml-1.5 pl-1.5 lg:ml-3 lg:pl-3 border-l border-slate-200">
                     <div className="hover:scale-105 transition transform cursor-pointer"><UserAvatar user={currentUser} onClick={() => setShowDesktopProfile(!showDesktopProfile)} /></div>
                   </div>
                 ) : (
-                  <button onClick={onOpenLogin} className="bg-slate-900 text-white px-6 py-2.5 rounded-full hover:bg-blue-700 hover:shadow-lg transition-all duration-300 font-bold text-sm ml-2 focus:outline-none cursor-pointer">LOGIN</button>
+                  <button onClick={onOpenLogin} className="bg-slate-900 text-white px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 rounded-full font-outfit font-bold tracking-wide text-[12px] lg:text-[13px] xl:text-[15px] ml-1.5 lg:ml-2 focus:outline-none cursor-pointer">{t("nav.login")}</button>
                 )}
               </div>
 
-              <div className="md:hidden flex items-center shrink-0 ml-2">
+              <div className="lg:hidden flex items-center shrink-0 ml-2">
                 {currentUser ? (<UserAvatar user={currentUser} onClick={toggleMenu} />) : (
-                  <button onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-2 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-colors backdrop-blur-sm">
-                    {isMobileMenuOpen ? (<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>) : (<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg>)}
+                  <button onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-2 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-colors backdrop-blur-sm">
+                    {isMobileMenuOpen ? (<svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>) : (<svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg>)}
                   </button>
                 )}
               </div>
@@ -154,10 +182,10 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
       </div>
 
       {/* Mobile backdrop */}
-      <div className={`fixed inset-0 bg-slate-900/70 z-[60] md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={closeAllMenus}></div>
+      <div className={`fixed inset-0 bg-slate-900/70 z-[60] lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={closeAllMenus}></div>
 
       {/* Mobile menu */}
-      <div className={`fixed top-0 right-0 w-[280px] h-fit max-h-[100dvh] z-[70] md:hidden flex flex-col transform transition-all duration-300 rounded-bl-3xl overflow-hidden will-change-transform ${isMobileMenuOpen ? 'opacity-100 translate-x-0 visible' : 'opacity-0 translate-x-full invisible'}`}
+      <div className={`fixed top-0 right-0 w-[280px] h-fit max-h-[100dvh] z-[70] lg:hidden flex flex-col transform transition-all duration-300 rounded-bl-3xl overflow-hidden will-change-transform ${isMobileMenuOpen ? 'opacity-100 translate-x-0 visible' : 'opacity-0 translate-x-full invisible'}`}
         style={{ background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(32px) saturate(180%)', WebkitBackdropFilter: 'blur(32px) saturate(180%)', border: '1px solid rgba(255,255,255,0.12)' }}>
         {currentUser ? (
           <button onClick={(e) => { e.preventDefault(); closeAllMenus(); setShowMobileProfile(true); }} className="w-full bg-white/5 hover:bg-white/10 transition-colors p-6 flex flex-col items-center text-center shrink-0 relative group focus:outline-none border-b border-white/10 cursor-pointer">
@@ -168,11 +196,11 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
               </div>
             </div>
             <p className="font-extrabold text-white text-lg leading-tight truncate w-full">{currentUser.full_name}</p>
-            <p className="text-[10px] text-blue-400 mt-2 font-black flex items-center justify-center gap-1.5 bg-blue-500/10 py-1.5 px-4 rounded-full border border-blue-500/20 uppercase tracking-widest">View Profile <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg></p>
+            <p className="text-[10px] text-blue-400 mt-2 font-black flex items-center justify-center gap-1.5 bg-blue-500/10 py-1.5 px-4 rounded-full border border-blue-500/20 uppercase tracking-widest">{t("nav.viewProfile")} <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg></p>
           </button>
         ) : (
           <div className="px-5 pt-5 pb-3 flex justify-between items-center">
-            <span className="font-bold text-white/90 text-xs uppercase tracking-[0.2em]">Menu</span>
+            <span className="font-bold text-white/90 text-xs uppercase tracking-[0.2em]">{t("nav.menu")}</span>
             <button onClick={closeAllMenus} className="text-white bg-white/15 hover:bg-white/25 rounded-full p-2.5 transition-colors cursor-pointer"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
           </div>
         )}
@@ -183,14 +211,14 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
             return (
               <button key={item.key} onClick={() => handleNavClick(item.key)}
                 className={`flex items-center gap-3 w-full px-5 py-3.5 rounded-full font-bold text-sm transition-colors duration-200 border cursor-pointer ${activeTab === item.key ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/25' : 'bg-white/10 text-white border-white/20 hover:bg-white hover:text-slate-900 active:scale-[0.97]'}`}>
-                <IconComp className={`w-5 h-5 shrink-0 ${activeTab === item.key ? 'text-white' : ''}`} /> {item.label}
+                <IconComp className={`w-5 h-5 shrink-0 ${activeTab === item.key ? 'text-white' : ''}`} /> {t(`nav.${item.key}`)}
               </button>
             );
           })}
           {!currentUser && (
             <div className="pt-3 mt-2 border-t border-white/10">
               <button onClick={() => { closeAllMenus(); onOpenLogin(); }} className="flex items-center justify-center gap-2 bg-white text-slate-900 py-3 rounded-full font-bold text-sm w-full transition-colors duration-200 cursor-pointer active:scale-[0.97] hover:bg-blue-50">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg> Login / Join
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg> {t("nav.loginJoin")}
               </button>
             </div>
           )}
@@ -198,7 +226,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         {currentUser && (
           <div className="p-5 shrink-0 bg-transparent border-t border-white/10">
             <button onClick={handleLogout} className="w-full py-3 bg-red-500/10 hover:bg-red-500/25 text-red-300 font-bold text-sm rounded-full transition-colors duration-200 flex items-center justify-center gap-2 border border-red-500/20 shadow-sm cursor-pointer active:scale-[0.97]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg> Logout
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg> {t("nav.logout")}
             </button>
           </div>
         )}
@@ -206,7 +234,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
       {/* Mobile Profile Modal */}
       {showMobileProfile && currentUser && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:hidden">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 lg:hidden">
           <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={closeAllMenus}></div>
           <div className="relative z-10 w-full max-w-sm bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[88dvh] md:max-h-[90vh] animate-fade-in-up border border-blue-100">
             <ProfileCardContent user={currentUser} onClose={closeAllMenus} onLogout={handleLogout} />
@@ -216,7 +244,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
       {/* Desktop Profile Modal */}
       {showDesktopProfile && currentUser && (
-        <div className="fixed inset-0 z-[100] hidden md:flex justify-center pointer-events-none">
+        <div className="fixed inset-0 z-[100] hidden lg:flex justify-center pointer-events-none">
           <div className="absolute inset-0 pointer-events-auto" onClick={() => setShowDesktopProfile(false)}></div>
           <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative">
             <div className="absolute right-4 sm:right-6 lg:right-8 top-[72px] w-[380px] bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-3xl overflow-hidden flex flex-col overscroll-contain animate-fade-in-up pointer-events-auto border border-blue-100">
@@ -234,13 +262,58 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" onClick={() => setShowAdminWarning(false)}></div>
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 md:p-8 text-center animate-fade-in-up">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
-              <svg className="w-8 h-8 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              <svg className="w-8 h-8 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
             </div>
-            <h3 className="font-extrabold text-xl text-slate-900 mb-2">Admin Access</h3>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Are you sure you want to leave the public site and proceed to the Admin Panel?</p>
+            <h3 className="font-extrabold text-xl text-slate-900 mb-2">{t("nav.adminConfirmTitle")}</h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">{t("nav.adminConfirmText")}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowAdminWarning(false)} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition text-sm shadow-sm cursor-pointer">Cancel</button>
-              <button onClick={confirmAdminAccess} className="flex-1 py-3 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition text-sm shadow-md cursor-pointer">Proceed</button>
+              <button onClick={() => setShowAdminWarning(false)} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition text-sm shadow-sm cursor-pointer">{t("nav.cancel")}</button>
+              <button onClick={confirmAdminAccess} className="flex-1 py-3 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition text-sm shadow-md cursor-pointer">{t("nav.proceed")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* WhatsApp Confirmation Group Invitation Modal */}
+      {showWhatsAppPopup && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[250] p-4 animate-fade-in pointer-events-auto">
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-center transform scale-100 transition-all duration-300 animate-fade-in-up">
+            
+            {/* Success checkmark badge */}
+            <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-500/20">
+              <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            {/* Content */}
+            <h3 className="text-2xl font-black text-slate-900 mb-2 leading-tight tracking-wide">
+              {t("nav.whatsapp.title")}
+            </h3>
+            <p className="text-slate-600 text-[14px] sm:text-[15px] font-medium mb-6 leading-relaxed">
+              {t("nav.whatsapp.text")}
+            </p>
+
+            {/* Buttons */}
+            <div className="flex flex-col gap-3">
+              <a 
+                href="https://chat.whatsapp.com/CVhiRk37OzC3tVCVdUv5wR" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => setShowWhatsAppPopup(false)}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl transition duration-300 shadow-md shadow-emerald-600/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[16px] no-underline"
+              >
+                <svg className="w-5 h-5 fill-current shrink-0" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.426.002 9.842-4.414 9.845-9.843.002-2.63-1.023-5.101-2.886-6.968C16.366 1.94 13.9 .916 11.999.916 6.574.916 2.16 5.334 2.158 10.766c-.001 1.503.402 2.974 1.168 4.29l-.993 3.627 3.724-.977 1.01.6c1.479.88 3.011 1.342 4.63 1.343h.001zm10.435-7.234c-.267-.134-1.58-.779-1.824-.868-.244-.09-.422-.134-.6.134-.178.267-.689.868-.844 1.047-.156.178-.311.2-.578.067-.267-.134-1.127-.416-2.148-1.327-.795-.71-1.332-1.587-1.488-1.854-.156-.267-.017-.411.116-.544.12-.12.267-.312.4-.467.133-.156.178-.267.267-.445.09-.178.044-.334-.022-.467-.067-.134-.6-1.446-.822-1.98-.217-.522-.455-.45-.6-.458-.138-.008-.297-.01-.456-.01-.159 0-.418.06-.637.29-.219.23-.837.818-.837 1.995 0 1.178.857 2.316.975 2.478.118.162 1.686 2.574 4.084 3.607.57.246 1.016.393 1.363.503.573.182 1.094.156 1.506.095.459-.069 1.58-.646 1.802-1.238.223-.593.223-1.102.156-1.238-.067-.134-.244-.214-.511-.348z" />
+                </svg>
+                {t("nav.whatsapp.join")}
+              </a>
+              <button 
+                type="button" 
+                onClick={() => setShowWhatsAppPopup(false)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-6 rounded-2xl transition duration-200 cursor-pointer text-[15px]"
+              >
+                {t("nav.whatsapp.later")}
+              </button>
             </div>
           </div>
         </div>

@@ -24,6 +24,7 @@ if (typeof window !== 'undefined') {
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    flowType: 'implicit',
     storageKey: 'nss-public-token',
     persistSession: true,
     autoRefreshToken: true,
@@ -36,6 +37,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  */
 export const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    flowType: 'implicit',
     storageKey: 'nss-admin-token',
     persistSession: true,
     autoRefreshToken: true,

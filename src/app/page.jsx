@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import LoadingScreen from "@/components/layout/LoadingScreen";
+import { useLanguage } from "@/context/LanguageContext";
 
 // Layout components
 import Navbar from "@/components/layout/Navbar";
@@ -16,6 +17,7 @@ import Committee from "@/components/sections/Committee";
 import About from "@/components/sections/About";
 import Contact from "@/components/sections/Contact";
 import TeachersSection from "@/components/sections/TeachersSection";
+import NSSStory from "@/components/sections/NSSStoryNew";
 
 const VALID_TABS = ['home', 'activities', 'committee', 'about', 'contact'];
 const getTabFromHash = () => {
@@ -25,6 +27,7 @@ const getTabFromHash = () => {
 };
 
 export default function Home() {
+  const { t } = useLanguage();
   const [siteData, setSiteData] = useState(null);
   const [eventsData, setEventsData] = useState(null);
   const [committeeData, setCommitteeData] = useState(null);
@@ -143,11 +146,12 @@ export default function Home() {
       <main className="flex-grow flex flex-col relative w-full">
         <div className={activeTab === 'home' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <HeroSection
-            title={finalData.hero_title}
-            subtitle={finalData.hero_subtitle}
+            title={finalData.hero_title === "Banwarilal Bhalotia College NSS Unit" ? t("hero.title") : finalData.hero_title}
+            subtitle={finalData.hero_subtitle === "Youth Power for Service" ? t("hero.subtitle") : finalData.hero_subtitle}
             sliderUrls={finalData.hero_slider_urls}
             onNavigate={setActiveTab}
           />
+          <NSSStory onNavigate={setActiveTab} />
           <TeachersSection 
             members={committeeData?.filter(m => !m.designation || !m.designation.includes('::') || m.designation.startsWith('Teacher::')) || []} 
           />

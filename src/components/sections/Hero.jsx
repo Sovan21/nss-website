@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Icons } from "@/components/Icons";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function HeroSection({ title, subtitle, sliderUrls, onNavigate }) {
+  const { t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartX = useRef(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -42,7 +44,7 @@ export default function HeroSection({ title, subtitle, sliderUrls, onNavigate })
 
   const onTouchEndEvent = (e) => {
     if (touchStartX.current === null) return;
-    
+
     const touchEndX = e.changedTouches[0].clientX;
     const swipeDistance = touchStartX.current - touchEndX;
     const minSwipeDistance = 50;
@@ -52,13 +54,13 @@ export default function HeroSection({ title, subtitle, sliderUrls, onNavigate })
     } else if (swipeDistance < -minSwipeDistance) {
       prevSlide();
     }
-    
+
     touchStartX.current = null;
   };
 
   return (
-    <header 
-      className="relative w-full h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] flex flex-col items-center justify-center text-center text-white overflow-hidden bg-slate-900 flex-grow" 
+    <header
+      className="relative w-full h-[640px] sm:h-[700px] md:h-[760px] lg:h-[800px] flex flex-col items-center justify-center text-center text-white overflow-hidden bg-slate-900 flex-grow"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEndEvent}
     >
@@ -78,43 +80,88 @@ export default function HeroSection({ title, subtitle, sliderUrls, onNavigate })
       ))}
 
       {/* Modern Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/50 to-slate-900/90 z-20 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/70 to-slate-900/90 z-20 pointer-events-none"></div>
 
       {/* Floating Animated Orbs */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob z-20 pointer-events-none"></div>
       <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-indigo-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000 z-20 pointer-events-none"></div>
 
       {/* Content Area */}
-      <div className="relative z-30 px-6 sm:px-12 flex flex-col items-center w-full max-w-5xl mx-auto mt-20 md:mt-0 pb-20 md:pb-0">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 md:py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg mb-6 md:mb-8 animate-fade-in-up">
-          <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-          <span className="text-[10px] md:text-sm font-bold text-white uppercase tracking-[0.2em]">National Service Scheme</span>
+      <div className="relative z-30 px-6 sm:px-12 flex flex-col items-center w-full max-w-5xl mx-auto mt-28 lg:mt-0 pb-28 lg:pb-0">
+
+        {/* Top Directorate & Ministry Panel */}
+        <div className="flex flex-col items-center text-center px-4 py-4 md:px-6 md:py-6 rounded-3xl bg-slate-950/40 backdrop-blur-[8px] border border-white/10 shadow-2xl mb-6 md:mb-10 animate-fade-in-up max-w-2xl w-full">
+          <div className="inline-flex items-center gap-1.5 mb-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span className="text-xs sm:text-sm md:text-base lg:text-2xl font-black text-amber-400 uppercase tracking-[0.25em] drop-shadow-md">
+              {t("hero.badge")}
+            </span>
+          </div>
+          <span className="text-[10px] sm:text-xs md:text-sm lg:text-lg font-extrabold text-white uppercase tracking-widest leading-relaxed drop-shadow-sm text-center">
+            {t("hero.directorate")}
+          </span>
+          <span className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-bold text-slate-200 uppercase tracking-wider mt-1.5 drop-shadow-sm text-center">
+            {t("hero.ministry")}
+          </span>
         </div>
-        
-        <h1 className="hero-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 md:mb-6 drop-shadow-2xl whitespace-pre-line tracking-tight animate-fade-in-up [animation-delay:100ms]">
-          {title}
+
+        {/* College & NSS Unit Header */}
+        <h1
+          className="hero-title font-black uppercase mb-4 md:mb-5 text-center animate-fade-in-up [animation-delay:100ms] px-2 w-full whitespace-nowrap"
+          style={{
+            fontFamily: "var(--font-outfit), sans-serif",
+            color: "#ffffff",
+            fontSize: "clamp(0.75rem, 4.5vw, 3.75rem)",
+            letterSpacing: "0.02em",
+            wordSpacing: "0.15em",
+            textShadow: `
+              -1.2px -1.2px 0 rgba(0, 0, 0, 0.7),  
+               1.2px -1.2px 0 rgba(0, 0, 0, 0.7),
+              -1.2px  1.2px 0 rgba(0, 0, 0, 0.7),
+               1.2px  1.2px 0 rgba(0, 0, 0, 0.7),
+               0px 5px 15px rgba(0, 0, 0, 0.5)
+            `
+          }}
+        >
+          {t("hero.college")}
         </h1>
-        
-        <p className="hero-subtitle text-xs sm:text-base md:text-xl font-semibold mb-8 md:mb-10 max-w-3xl leading-relaxed animate-fade-in-up [animation-delay:200ms]">
-          {subtitle}
+
+        <h2
+          className="font-black tracking-widest text-blue-400 uppercase mb-4 md:mb-5 drop-shadow-md animate-fade-in-up [animation-delay:150ms] text-center"
+          style={{
+            fontFamily: "var(--font-outfit), sans-serif",
+            fontSize: "clamp(1.15rem, 3.5vw, 3rem)",
+            textShadow: "0 0 25px rgba(96, 165, 250, 0.45)"
+          }}
+        >
+          {t("hero.unit")}
+        </h2>
+
+        <p
+          className="hero-subtitle text-[11px] sm:text-sm md:text-base lg:text-lg font-semibold tracking-wide text-slate-200 italic mb-6 md:mb-16 max-w-3xl leading-relaxed animate-fade-in-up [animation-delay:200ms] text-center"
+          style={{
+            fontFamily: "var(--font-playfair), Georgia, serif"
+          }}
+        >
+          {t("hero.affiliation")}
         </p>
-        
+
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-fade-in-up [animation-delay:300ms]">
           {!isLoggedIn && (
             <button
               onClick={() => {
-                 window.dispatchEvent(new Event('open_nss_register'));
+                window.dispatchEvent(new Event('open_nss_register'));
               }}
               className="flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-3.5 md:px-10 md:py-4 rounded-full text-sm md:text-base font-bold hover:bg-blue-700 hover:scale-105 transition-all duration-300 shadow-xl border border-blue-500/50 w-full sm:w-auto cursor-pointer group"
             >
-              Join as Volunteer <Icons.ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
+              {t("hero.join")} <Icons.ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           )}
           <button
             onClick={() => onNavigate('activities')}
             className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-md text-white px-8 py-3.5 md:px-10 md:py-4 rounded-full text-sm md:text-base font-bold hover:bg-white hover:text-slate-900 hover:scale-105 transition-all duration-300 shadow-lg border border-white/20 w-full sm:w-auto cursor-pointer"
           >
-            Explore Activities
+            {t("hero.explore")}
           </button>
         </div>
       </div>

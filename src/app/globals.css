@@ -70,9 +70,10 @@ body::-webkit-scrollbar-thumb:hover { background: #94a3b8; border-color: #f1f5f9
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-playfair: var(--font-playfair);
+  --font-sans: var(--font-geist-sans), var(--font-noto-bengali), var(--font-noto-devanagari), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --font-playfair: var(--font-playfair), serif;
+  --font-outfit: var(--font-outfit), sans-serif;
 }
 
 /* Hero Title — Premium elegant serif font with strong readability */
@@ -111,8 +112,82 @@ button[disabled] {
   cursor: not-allowed;
 }
 
-/* Custom scrollbar for admin panel */
 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ─── NSS Story Section: Scroll Reveal Animations ─── */
+@keyframes scroll-reveal {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px) scale(0.97);
+}
+.scroll-reveal.revealed {
+  animation: scroll-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scroll-reveal-left {
+  0%   { opacity: 0; transform: translateX(-40px); }
+  100% { opacity: 1; transform: translateX(0);     }
+}
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+.scroll-reveal-left.revealed {
+  animation: scroll-reveal-left 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scroll-reveal-right {
+  0%   { opacity: 0; transform: translateX(40px); }
+  100% { opacity: 1; transform: translateX(0);    }
+}
+.scroll-reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+}
+.scroll-reveal-right.revealed {
+  animation: scroll-reveal-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger delays for grid children */
+.reveal-delay-1 { animation-delay: 80ms !important; }
+.reveal-delay-2 { animation-delay: 160ms !important; }
+.reveal-delay-3 { animation-delay: 240ms !important; }
+.reveal-delay-4 { animation-delay: 320ms !important; }
+.reveal-delay-5 { animation-delay: 400ms !important; }
+.reveal-delay-6 { animation-delay: 480ms !important; }
+
+/* ─── Subtle dot pattern background ─── */
+.bg-dot-pattern {
+  background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ─── Timeline connector line ─── */
+.timeline-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, #6366f1, #3b82f6, transparent);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 767px) {
+  .timeline-line {
+    left: 20px;
+  }
+}
+
+/* ─── Counter animation ─── */
+@keyframes count-up {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
