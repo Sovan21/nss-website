@@ -37,8 +37,8 @@ export default function Home() {
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    let isMounted = true; 
-    
+    let isMounted = true;
+
     // Restore tab from URL hash (client-only, avoids hydration mismatch)
     const tabFromHash = getTabFromHash();
     if (tabFromHash !== 'home') {
@@ -76,7 +76,7 @@ export default function Home() {
       }
     };
     fetchAllData();
-    
+
     // Global event listeners for modal toggling
     const handleOpenRegister = () => setAuthModal('register');
     const handleOpenLogin = () => setAuthModal('login');
@@ -87,9 +87,9 @@ export default function Home() {
     const timer = setTimeout(() => {
       if (isMounted) setLoading(false);
     }, 3500);
-    
-    return () => { 
-      isMounted = false; 
+
+    return () => {
+      isMounted = false;
       clearTimeout(timer);
       window.removeEventListener('open_nss_register', handleOpenRegister);
       window.removeEventListener('open_nss_login', handleOpenLogin);
@@ -137,12 +137,12 @@ export default function Home() {
 
   return (
     <div className="font-sans text-slate-800 bg-[#faf9f6] min-h-screen flex flex-col">
-      <Navbar 
-        onOpenLogin={() => setAuthModal('login')} 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+      <Navbar
+        onOpenLogin={() => setAuthModal('login')}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
-      
+
       <main className="flex-grow flex flex-col relative w-full">
         <div className={activeTab === 'home' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <HeroSection
@@ -152,16 +152,16 @@ export default function Home() {
             onNavigate={setActiveTab}
           />
           <NSSStory onNavigate={setActiveTab} />
-          <TeachersSection 
-            members={committeeData?.filter(m => !m.designation || !m.designation.includes('::') || m.designation.startsWith('Teacher::')) || []} 
+          <TeachersSection
+            members={committeeData?.filter(m => !m.designation || !m.designation.includes('::') || m.designation.startsWith('Teacher::')) || []}
           />
         </div>
         <div className={activeTab === 'activities' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <Activities prefetchedEvents={eventsData} />
         </div>
         <div className={activeTab === 'committee' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
-          <Committee 
-            prefetchedMembers={committeeData?.filter(m => m.designation && m.designation.includes('::') && !m.designation.startsWith('Teacher::')) || []} 
+          <Committee
+            prefetchedMembers={committeeData?.filter(m => m.designation && m.designation.includes('::') && !m.designation.startsWith('Teacher::')) || []}
           />
         </div>
         <div className={activeTab === 'about' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>

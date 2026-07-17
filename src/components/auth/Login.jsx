@@ -418,15 +418,15 @@ export default function Login({ onClose, onSwitch }) {
                     <button type="button" onClick={() => setView('forgot_email')} className="text-blue-600 text-xs font-bold hover:text-blue-800 transition-colors">{t("auth.login.forgotPassword")}</button>
                   </div>
                   <div className="relative">
-                    <input 
-                      name="password" 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="Enter password" 
-                      onChange={handleChange} 
+                    <input
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter password"
+                      onChange={handleChange}
                       minLength="6"
                       maxLength="16"
-                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" 
-                      required 
+                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]"
+                      required
                     />
                     <button
                       type="button"
@@ -485,15 +485,15 @@ export default function Login({ onClose, onSwitch }) {
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">New Password</label>
                   <div className="relative">
-                    <input 
-                      type={showNewPassword ? "text" : "password"} 
-                      value={newPassword} 
-                      onChange={(e) => setNewPassword(e.target.value)} 
-                      placeholder="6 to 16 characters" 
-                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" 
-                      required 
-                      minLength={6} 
-                      maxLength={16} 
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="6 to 16 characters"
+                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]"
+                      required
+                      minLength={6}
+                      maxLength={16}
                     />
                     <button
                       type="button"
@@ -516,15 +516,15 @@ export default function Login({ onClose, onSwitch }) {
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Confirm Password</label>
                   <div className="relative">
-                    <input 
-                      type={showConfirmPassword ? "text" : "password"} 
-                      value={confirmPassword} 
-                      onChange={(e) => setConfirmPassword(e.target.value)} 
-                      placeholder="Re-enter password" 
-                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]" 
-                      required 
-                      minLength={6} 
-                      maxLength={16} 
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter password"
+                      className="w-full p-4 pr-12 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px]"
+                      required
+                      minLength={6}
+                      maxLength={16}
                     />
                     <button
                       type="button"
