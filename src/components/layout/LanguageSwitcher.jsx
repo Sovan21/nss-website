@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { trackVisitor, fetchVisitorCount, getOrCreateVisitorId } from "@/lib/visitorTracking";
+import { supabase } from "@/lib/supabase";
 
 export default function LanguageSwitcher() {
   const { locale, setLocale, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const switcherRef = useRef(null);
+  const [stats, setStats] = useState({ live: 1, total: null });
 
   // Close dropdown on clicking outside
   useEffect(() => {
@@ -19,6 +22,73 @@ export default function LanguageSwitcher() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Track visitor, fetch total count, and sync WebSocket presence for live visitors
+  useEffect(() => {
+    let statsInterval;
+    let presenceChannel;
+
+    async function initStats() {
+      // 1. Increment total count in DB if new unique visitor
+      await trackVisitor();
+
+      // 2. Fetch the current total count
+      const countData = await fetchVisitorCount();
+      setStats(prev => ({ ...prev, total: countData.total }));
+
+      // 3. Connect to Supabase Presence to track live users in real time via WebSockets
+      const visitorId = getOrCreateVisitorId();
+      if (!visitorId) return;
+
+      try {
+        presenceChannel = supabase.channel('online-visitors', {
+          config: {
+            presence: {
+              key: visitorId, // Deduplicate multiple tabs by using the same visitorId key
+            },
+          },
+        });
+
+        presenceChannel
+          .on('presence', { event: 'sync' }, () => {
+            const presenceState = presenceChannel.presenceState();
+            // Count unique visitorIds currently connected
+            const uniqueOnlineCount = Object.keys(presenceState).length;
+            setStats(prev => ({
+              ...prev,
+              live: uniqueOnlineCount || 1
+            }));
+          })
+          .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+              await presenceChannel.track({ online_at: new Date().toISOString() });
+            }
+          });
+      } catch (e) {
+        console.warn('Realtime Presence subscription failed:', e.message);
+      }
+    }
+
+    initStats();
+
+    // Refresh total count from database every 60 seconds
+    statsInterval = setInterval(async () => {
+      if (document.visibilityState === "visible") {
+        const countData = await fetchVisitorCount();
+        setStats(prev => ({
+          ...prev,
+          total: countData.total
+        }));
+      }
+    }, 60000);
+
+    return () => {
+      clearInterval(statsInterval);
+      if (presenceChannel) {
+        supabase.removeChannel(presenceChannel);
+      }
+    };
+  }, []);
+
   const languages = [
     { code: "en", label: t("lang.english"), short: t("lang.en") },
     { code: "bn", label: t("lang.bengali"), short: t("lang.bn") },
@@ -28,72 +98,118 @@ export default function LanguageSwitcher() {
   const currentLanguage = languages.find((lang) => lang.code === locale) || languages[0];
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999]" ref={switcherRef}>
-      {/* Floating Menu Pop-up (above the button) */}
-      {isOpen && (
-        <div
-          className="absolute bottom-16 right-0 w-36 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden mb-2 z-[10000] flex flex-col"
-          style={{ 
-            animation: "confirm-pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-            boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)"
-          }}
-        >
-          <div className="py-1.5 flex flex-col">
-            {languages.map((lang) => {
-              const isActive = lang.code === locale;
-              return (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    setLocale(lang.code);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 text-xs font-bold transition-all flex items-center justify-between border-b border-white/[0.03] last:border-0 ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-white/80 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <span>{lang.label}</span>
-                  {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Floating Circular Action Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 flex items-center justify-center cursor-pointer active:scale-95 focus:outline-none border-2 border-white/90 group"
-        aria-label="Change Language"
-        title="Change Language"
+    <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 select-none pointer-events-auto">
+      {/* Visitor Counter Capsule */}
+      <div 
+        className="flex items-center gap-3 bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-full py-2.5 px-4 shadow-xl text-white text-xs transition-all hover:border-white/20"
+        style={{ 
+          boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)",
+          animation: "confirm-pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)"
+        }}
       >
-        <div className="flex flex-col items-center justify-center gap-0.5">
-          {/* Modern Translation Globe Icon */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.2}
-            stroke="currentColor"
-            className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918"
-            />
-          </svg>
-          {/* Short language code indicator below the icon */}
-          <span className="text-[9px] font-black uppercase tracking-wider leading-none">
-            {currentLanguage.short}
+        {/* Live Count */}
+        <div className="flex items-center gap-2" title="Users currently online">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="flex items-baseline gap-1">
+            <span className="font-bold text-emerald-400 tracking-tight">{stats.live !== null ? stats.live : "..."}</span>
+            <span className="text-[9px] text-white/50 font-black uppercase tracking-wider leading-none">{t("stats.live")}</span>
           </span>
         </div>
-      </button>
+
+        {/* Vertical Divider */}
+        <div className="h-3.5 w-[1px] bg-white/20"></div>
+
+        {/* Total Count */}
+        <div className="flex items-center gap-1.5" title="Total unique visitors">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            strokeWidth={2.2} 
+            stroke="currentColor" 
+            className="w-3.5 h-3.5 text-blue-400"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          <span className="flex items-baseline gap-1">
+            <span className="font-bold text-white tracking-tight">{stats.total !== null ? stats.total.toLocaleString() : "..."}</span>
+            <span className="text-[9px] text-white/50 font-black uppercase tracking-wider leading-none">{t("stats.visitors")}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Floating Language Switcher Wrapper */}
+      <div className="relative" ref={switcherRef}>
+        {/* Floating Menu Pop-up (above the button) */}
+        {isOpen && (
+          <div
+            className="absolute bottom-16 right-0 w-36 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden mb-2 z-[10000] flex flex-col"
+            style={{ 
+              animation: "confirm-pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+              boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)"
+            }}
+          >
+            <div className="py-1.5 flex flex-col">
+              {languages.map((lang) => {
+                const isActive = lang.code === locale;
+                return (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setLocale(lang.code);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-3 text-xs font-bold transition-all flex items-center justify-between border-b border-white/[0.03] last:border-0 ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-white/80 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span>{lang.label}</span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Floating Circular Action Button */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 flex items-center justify-center cursor-pointer active:scale-95 focus:outline-none border-2 border-white/90 group"
+          aria-label="Change Language"
+          title="Change Language"
+        >
+          <div className="flex flex-col items-center justify-center gap-0.5">
+            {/* Modern Translation Globe Icon */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.2}
+              stroke="currentColor"
+              className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918"
+              />
+            </svg>
+            {/* Short language code indicator below the icon */}
+            <span className="text-[9px] font-black uppercase tracking-wider leading-none">
+              {currentLanguage.short}
+            </span>
+          </div>
+        </button>
+      </div>
     </div>
   );
 }

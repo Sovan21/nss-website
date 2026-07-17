@@ -677,31 +677,50 @@ const formatDate = (dateStr) => {
   }
 };
 
-const MONTHS = [
-  { year: 2026, month: 0, name: "January 2026" },
-  { year: 2026, month: 1, name: "February 2026" },
-  { year: 2026, month: 2, name: "March 2026" },
-  { year: 2026, month: 3, name: "April 2026" },
-  { year: 2026, month: 4, name: "May 2026" },
-  { year: 2026, month: 5, name: "June 2026" },
-  { year: 2026, month: 6, name: "July 2026" },
-  { year: 2026, month: 7, name: "August 2026" },
-  { year: 2026, month: 8, name: "September 2026" },
-  { year: 2026, month: 9, name: "October 2026" },
-  { year: 2026, month: 10, name: "November 2026" },
-  { year: 2026, month: 11, name: "December 2026" }
-];
+const getAcademicYearMonths = () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed (3 is April)
+
+  let startYear = currentYear;
+  if (currentMonth < 3) {
+    startYear = currentYear - 1;
+  }
+
+  const months = [];
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  for (let i = 0; i < 12; i++) {
+    const mIdx = (3 + i) % 12;
+    const y = mIdx < 3 ? startYear + 1 : startYear;
+    months.push({
+      year: y,
+      month: mIdx,
+      name: `${monthNames[mIdx]} ${y}`,
+      localeKey: monthNames[mIdx].toLowerCase().substring(0, 3)
+    });
+  }
+
+  return months;
+};
 
 function NSSCalendar() {
   const { t } = useLanguage();
   const [viewMode, setViewMode] = useState("calendar"); // calendar | agenda
+  
+  const MONTHS = useMemo(() => getAcademicYearMonths(), []);
+  
   const [currentMonthIdx, setCurrentMonthIdx] = useState(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
     const idx = MONTHS.findIndex(m => m.year === currentYear && m.month === currentMonth);
-    return idx !== -1 ? idx : 0; // Default to January index 0 if current date is not in 2026
+    return idx !== -1 ? idx : 0;
   });
+  
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useChildReveal();
@@ -710,12 +729,49 @@ function NSSCalendar() {
   const daysInMonth = new Date(activeMonth.year, activeMonth.month + 1, 0).getDate();
   const firstDayIndex = new Date(activeMonth.year, activeMonth.month, 1).getDay();
 
+  // Project events to matching session years dynamically
+  const projectedEvents = useMemo(() => {
+    return CALENDAR_EVENTS.map(evt => {
+      const dateParts = evt.date.split("-");
+      const endParts = evt.endDate ? evt.endDate.split("-") : null;
+      const evtMonth = parseInt(dateParts[1], 10) - 1;
+      
+      const matchingMonth = MONTHS.find(m => m.month === evtMonth);
+      const projectedYear = matchingMonth ? matchingMonth.year : activeMonth.year;
+      
+      const dateStr = `${projectedYear}-${dateParts[1]}-${dateParts[2]}`;
+      
+      let endDateStr = null;
+      if (endParts) {
+        const endMonth = parseInt(endParts[1], 10) - 1;
+        let endYear = projectedYear;
+        if (endMonth < evtMonth) {
+          endYear = projectedYear + 1;
+        }
+        endDateStr = `${endYear}-${endParts[1]}-${endParts[2]}`;
+      }
+
+      return {
+        ...evt,
+        date: dateStr,
+        endDate: endDateStr
+      };
+    });
+  }, [activeMonth.year, MONTHS]);
+
   const monthEvents = useMemo(() => {
-    return CALENDAR_EVENTS.filter(evt => {
+    return projectedEvents.filter(evt => {
       const evtDate = new Date(evt.date);
       return evtDate.getFullYear() === activeMonth.year && evtDate.getMonth() === activeMonth.month;
     });
-  }, [activeMonth]);
+  }, [activeMonth, projectedEvents]);
+
+  const academicYearSession = useMemo(() => {
+    if (MONTHS && MONTHS.length > 0) {
+      return `${MONTHS[0].year}-${MONTHS[11].year}`;
+    }
+    return "2026-2027";
+  }, [MONTHS]);
 
   useEffect(() => {
     if (monthEvents.length > 0) {
@@ -737,7 +793,7 @@ function NSSCalendar() {
     const monthStr = String(activeMonth.month + 1).padStart(2, '0');
     const dayStr = String(day).padStart(2, '0');
     const dateStr = `${activeMonth.year}-${monthStr}-${dayStr}`;
-    return CALENDAR_EVENTS.find(evt => {
+    return projectedEvents.find(evt => {
       if (evt.endDate) {
         return dateStr >= evt.date && dateStr <= evt.endDate;
       }
@@ -759,13 +815,13 @@ function NSSCalendar() {
   };
 
   const filteredAgendaEvents = useMemo(() => {
-    return CALENDAR_EVENTS.filter(evt => {
+    return projectedEvents.filter(evt => {
       const translatedTitle = t(evt.titleKey || evt.title).toLowerCase();
       const translatedDesc = t(evt.descKey || evt.desc).toLowerCase();
       const q = searchQuery.toLowerCase();
       return translatedTitle.includes(q) || translatedDesc.includes(q);
     });
-  }, [searchQuery, t]);
+  }, [searchQuery, t, projectedEvents]);
 
   const blanks = Array(firstDayIndex).fill(null);
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -781,7 +837,7 @@ function NSSCalendar() {
           label={t("nss.calendar.label")}
           labelIcon={Icons.Calendar}
           heading={t("nss.calendar.title")}
-          headingAccent="2026"
+          headingAccent={academicYearSession}
           subtitle={t("nss.calendar.subtitle")}
           light
         />
@@ -825,7 +881,7 @@ function NSSCalendar() {
                 &larr;
               </button>
               <span className="text-sm sm:text-base font-black text-white uppercase tracking-wider text-center min-w-[140px] truncate">
-                {t(`nss.calendar.months.${activeMonth.name.split(" ")[0].toLowerCase().substring(0, 3)}`)}
+                {t(`nss.calendar.months.${activeMonth.localeKey}`)} {activeMonth.year}
               </span>
               <button
                 onClick={handleNextMonth}
@@ -861,6 +917,9 @@ function NSSCalendar() {
                   const hasEvent = getEventForDay(slot);
                   const isSelected = selectedEvent && hasEvent && (selectedEvent.date === hasEvent.date || (hasEvent.endDate && selectedEvent.date >= hasEvent.date && selectedEvent.date <= hasEvent.endDate));
                   const style = hasEvent ? getTypeStyle(hasEvent.type) : null;
+                  
+                  const today = new Date();
+                  const isCurrentDay = today.getDate() === slot && today.getMonth() === activeMonth.month && today.getFullYear() === activeMonth.year;
 
                   return (
                     <button
@@ -873,9 +932,16 @@ function NSSCalendar() {
                           : "border-white/5 bg-white/[0.01] text-slate-600 cursor-default"
                       } ${
                         isSelected ? `ring-2 ring-blue-500 border-blue-500` : ""
+                      } ${
+                        isCurrentDay ? "border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/30" : ""
                       }`}
                     >
-                      <span className={`text-xs sm:text-sm md:text-base font-black ${hasEvent ? "text-white" : ""}`}>{slot}</span>
+                      {isCurrentDay && (
+                        <span className="absolute top-1 text-[7px] font-black uppercase tracking-wider text-amber-500">
+                          Today
+                        </span>
+                      )}
+                      <span className={`text-xs sm:text-sm md:text-base font-black ${hasEvent ? "text-white" : ""} ${isCurrentDay ? "text-amber-400 font-extrabold" : ""}`}>{slot}</span>
                       {hasEvent && (
                         <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${style.bg} mt-1 animate-pulse`}></span>
                       )}

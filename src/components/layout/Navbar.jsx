@@ -86,10 +86,10 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   }, []);
 
   useEffect(() => {
-    const isAnyModalOpen = isMobileMenuOpen || showMobileProfile || showDesktopProfile || showAdminWarning || showWhatsAppPopup;
+    const isAnyModalOpen = showMobileProfile || showDesktopProfile || showAdminWarning || showWhatsAppPopup;
     const navbar = document.getElementById('fixed-navbar');
     if (isAnyModalOpen) {
-      const sw = window.innerWidth - document.documentElement.clientWidth;
+      const sw = window.innerWidth >= 1024 ? (window.innerWidth - document.documentElement.clientWidth) : 0;
       document.body.style.paddingRight = `${sw}px`;
       document.body.style.overflow = 'hidden';
       if (navbar) navbar.style.paddingRight = `${sw}px`;
@@ -104,7 +104,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
       document.body.style.overflow = '';
       if (navbar) navbar.style.paddingRight = '';
     };
-  }, [isMobileMenuOpen, showMobileProfile, showDesktopProfile, showAdminWarning, showWhatsAppPopup]);
+  }, [showMobileProfile, showDesktopProfile, showAdminWarning, showWhatsAppPopup]);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeAllMenus = () => { setIsMobileMenuOpen(false); setShowMobileProfile(false); setShowDesktopProfile(false); };
@@ -171,8 +171,12 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
               <div className="lg:hidden flex items-center shrink-0 ml-2">
                 {currentUser ? (<UserAvatar user={currentUser} onClick={toggleMenu} />) : (
-                  <button onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-2 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-colors backdrop-blur-sm">
-                    {isMobileMenuOpen ? (<svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>) : (<svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg>)}
+                  <button onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-2 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-all duration-300 backdrop-blur-sm relative w-10 h-10 flex items-center justify-center">
+                    <div className="relative w-5 h-3.5 flex flex-col justify-between origin-center transform transition-all duration-300">
+                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? 'rotate-45 translate-y-[6px]' : ''}`}></span>
+                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0 scale-0' : ''}`}></span>
+                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? '-rotate-45 -translate-y-[6px]' : ''}`}></span>
+                    </div>
                   </button>
                 )}
               </div>
@@ -182,14 +186,26 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
       </div>
 
       {/* Mobile backdrop */}
-      <div className={`fixed inset-0 bg-slate-900/70 z-[60] lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={closeAllMenus}></div>
+      <div className={`fixed inset-0 bg-slate-900/40 z-[60] lg:hidden transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={closeAllMenus}></div>
 
       {/* Mobile menu */}
-      <div className={`fixed top-0 right-0 w-[280px] h-fit max-h-[100dvh] z-[70] lg:hidden flex flex-col transform transition-all duration-300 rounded-bl-3xl overflow-hidden will-change-transform ${isMobileMenuOpen ? 'opacity-100 translate-x-0 visible' : 'opacity-0 translate-x-full invisible'}`}
-        style={{ background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(32px) saturate(180%)', WebkitBackdropFilter: 'blur(32px) saturate(180%)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className={`fixed top-0 right-0 w-[280px] h-fit max-h-[100dvh] z-[70] lg:hidden flex flex-col transform transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] rounded-bl-[28px] overflow-hidden will-change-transform ${isMobileMenuOpen ? 'opacity-100 translate-x-0 visible' : 'opacity-0 translate-x-full invisible'}`}
+        style={{ background: 'rgba(15, 23, 42, 0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        
+        {/* Unified Pixel-Aligned Close Button */}
+        <button
+          onClick={closeAllMenus}
+          className="fixed top-[20px] right-[28px] md:top-[32px] md:right-[40px] w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-300 border border-white/10 shadow-sm cursor-pointer z-[80] focus:outline-none"
+        >
+          <div className="relative w-5 h-3.5 flex flex-col justify-between origin-center transform transition-all duration-300">
+            <span className="h-[2px] w-full bg-white rounded-full rotate-45 translate-y-[6px]"></span>
+            <span className="h-[2px] w-full bg-white rounded-full opacity-0 scale-0"></span>
+            <span className="h-[2px] w-full bg-white rounded-full -rotate-45 -translate-y-[6px]"></span>
+          </div>
+        </button>
+
         {currentUser ? (
           <button onClick={(e) => { e.preventDefault(); closeAllMenus(); setShowMobileProfile(true); }} className="w-full bg-white/5 hover:bg-white/10 transition-colors p-6 flex flex-col items-center text-center shrink-0 relative group focus:outline-none border-b border-white/10 cursor-pointer">
-            <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); closeAllMenus(); }} className="absolute top-4 right-4 text-white bg-white/15 hover:bg-white/25 rounded-full p-2 transition-colors cursor-pointer"><svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></span>
             <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-xl mb-4 shrink-0 p-1 bg-white/5">
               <div className="w-full h-full rounded-full overflow-hidden">
                 {currentUser.photo_url ? <img src={currentUser.photo_url} alt="Profile" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-blue-600 text-white font-bold text-2xl flex items-center justify-center tracking-widest">{getInitials(currentUser.full_name)}</div>}
@@ -199,9 +215,8 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
             <p className="text-[10px] text-blue-400 mt-2 font-black flex items-center justify-center gap-1.5 bg-blue-500/10 py-1.5 px-4 rounded-full border border-blue-500/20 uppercase tracking-widest">{t("nav.viewProfile")} <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg></p>
           </button>
         ) : (
-          <div className="px-5 pt-5 pb-3 flex justify-between items-center">
+          <div className="px-5 pt-5 pb-3 flex justify-between items-center h-14 md:h-18">
             <span className="font-bold text-white/90 text-xs uppercase tracking-[0.2em]">{t("nav.menu")}</span>
-            <button onClick={closeAllMenus} className="text-white bg-white/15 hover:bg-white/25 rounded-full p-2.5 transition-colors cursor-pointer"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
           </div>
         )}
 
@@ -210,7 +225,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
             const IconComp = item.icon;
             return (
               <button key={item.key} onClick={() => handleNavClick(item.key)}
-                className={`flex items-center gap-3 w-full px-5 py-3.5 rounded-full font-bold text-sm transition-colors duration-200 border cursor-pointer ${activeTab === item.key ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/25' : 'bg-white/10 text-white border-white/20 hover:bg-white hover:text-slate-900 active:scale-[0.97]'}`}>
+                className={`flex items-center gap-3 w-full px-5 py-3.5 rounded-full font-bold text-sm transition-all duration-300 border cursor-pointer hover:translate-x-1 ${activeTab === item.key ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-500 shadow-[0_4px_15px_rgba(37,99,235,0.35)]' : 'bg-white/5 text-slate-200 border-transparent hover:bg-white/10 hover:border-white/10 active:scale-[0.98]'}`}>
                 <IconComp className={`w-5 h-5 shrink-0 ${activeTab === item.key ? 'text-white' : ''}`} /> {t(`nav.${item.key}`)}
               </button>
             );

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Icons } from "@/components/Icons";
 import { useLanguage } from "@/context/LanguageContext";
+import { supabase } from "@/lib/supabase";
 
 export default function AboutPage({ onNavigate, siteData }) {
   const { t } = useLanguage();
@@ -14,6 +15,41 @@ export default function AboutPage({ onNavigate, siteData }) {
   const images = finalData.about_image_url ? finalData.about_image_url.split(',').filter(Boolean) : ["https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80"];
 
   const [activeImgIdx, setActiveImgIdx] = useState(0);
+  const [camps, setCamps] = useState([]);
+  const [alumni, setAlumni] = useState([]);
+  const [achievementsTab, setAchievementsTab] = useState("camps"); // "camps" | "alumni"
+  const [achievementsLoading, setAchievementsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchAchievements() {
+      try {
+        const [campsRes, alumniRes] = await Promise.all([
+          supabase.from("nss_camps").select("*").order("year", { ascending: false }),
+          supabase.from("nss_alumni").select("*").order("passing_year", { ascending: false })
+        ]);
+        if (isMounted) {
+          if (campsRes.data) setCamps(campsRes.data);
+          if (alumniRes.data) setAlumni(alumniRes.data);
+        }
+      } catch (err) {
+        console.error("Error fetching achievements:", err);
+      } finally {
+        if (isMounted) setAchievementsLoading(false);
+      }
+    }
+    fetchAchievements();
+    return () => { isMounted = false; };
+  }, []);
+
+  const getCampBadgeColor = (type) => {
+    const tLower = type.toLowerCase();
+    if (tLower.includes("nic")) return "bg-blue-50 text-blue-700 border-blue-100";
+    if (tLower.includes("pre") || tLower.includes("rd")) return "bg-purple-50 text-purple-700 border-purple-100";
+    if (tLower.includes("adven")) return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    if (tLower.includes("youth") || tLower.includes("fest")) return "bg-amber-50 text-amber-700 border-amber-100";
+    return "bg-slate-50 text-slate-700 border-slate-100";
+  };
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -165,6 +201,173 @@ export default function AboutPage({ onNavigate, siteData }) {
               <p className="text-xs text-slate-500 font-medium leading-relaxed">{stat.desc}</p>
             </div>
           ))}
+        </div>
+
+        {/* ACHIEVEMENTS SECTION */}
+        <div className="mt-20 md:mt-28 w-full border-t border-slate-200/60 pt-16 md:pt-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-extrabold text-[10px] md:text-xs uppercase tracking-widest mb-4 shadow-sm">
+              <Icons.AcademicCap className="w-3.5 h-3.5" /> {t("about.achievements.title")}
+            </div>
+            <h3 className="text-2xl md:text-4xl font-black text-slate-900 mb-4 tracking-tight">
+              {t("about.achievements.title")}
+            </h3>
+            <p className="text-xs md:text-sm text-slate-500 font-semibold leading-relaxed">
+              {t("about.achievements.subtitle")}
+            </p>
+          </div>
+
+          {/* TAB SELECTOR */}
+          <div className="flex justify-center mb-10">
+            <div className="bg-slate-100 border border-slate-200/50 p-1.5 rounded-2xl flex gap-1.5 shadow-inner max-w-md w-full sm:w-auto">
+              <button
+                onClick={() => setAchievementsTab("camps")}
+                className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all duration-300 cursor-pointer ${
+                  achievementsTab === "camps"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                {t("about.achievements.tabCamps")}
+              </button>
+              <button
+                onClick={() => setAchievementsTab("alumni")}
+                className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all duration-300 cursor-pointer ${
+                  achievementsTab === "alumni"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                {t("about.achievements.tabAlumni")}
+              </button>
+            </div>
+          </div>
+
+          {/* CONTENT GRID */}
+          {achievementsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div>
+            </div>
+          ) : achievementsTab === "camps" ? (
+            camps.length === 0 ? (
+              <div className="text-center py-12 bg-white border border-slate-200/50 rounded-2xl p-8 max-w-md mx-auto shadow-sm">
+                <Icons.AcademicCap className="w-8 h-8 text-slate-400 mx-auto mb-3" />
+                <p className="font-extrabold text-slate-800 text-sm">{t("about.achievements.noCamps")}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                {camps.map((camp) => (
+                  <div
+                    key={camp.id}
+                    className="bg-white border border-slate-200/50 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-3 mb-5">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border text-[10px] md:text-xs font-black uppercase tracking-wider shadow-sm ${getCampBadgeColor(camp.camp_type)}`}>
+                          <Icons.AcademicCap className="w-3.5 h-3.5" />
+                          {camp.camp_type}
+                        </span>
+                        <span className="text-xs md:text-sm font-extrabold text-slate-400">
+                          {camp.year}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
+                            {t("about.achievements.volunteers")}
+                          </span>
+                          <p className="text-sm font-extrabold text-slate-800 leading-relaxed">
+                            {camp.volunteers}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
+                              {t("about.achievements.location")}
+                            </span>
+                            <p className="text-xs md:text-sm font-bold text-slate-700">
+                              {camp.location}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
+                              {t("about.achievements.po")}
+                            </span>
+                            <p className="text-xs md:text-sm font-bold text-slate-700">
+                              {camp.po_name}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            alumni.length === 0 ? (
+              <div className="text-center py-12 bg-white border border-slate-200/50 rounded-2xl p-8 max-w-md mx-auto shadow-sm">
+                <Icons.Users className="w-8 h-8 text-slate-400 mx-auto mb-3" />
+                <p className="font-extrabold text-slate-800 text-sm">{t("about.achievements.noAlumni")}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                {alumni.map((alum) => (
+                  <div
+                    key={alum.id}
+                    className="bg-white border border-slate-200/50 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 flex gap-5 group"
+                  >
+                    <div className="shrink-0">
+                      {alum.photo_url ? (
+                        <img
+                          src={alum.photo_url}
+                          alt={alum.name}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                          <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex-grow">
+                      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                        <h4 className="text-base font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {alum.name}
+                        </h4>
+                        <span className="text-[10px] bg-slate-50 border border-slate-200 text-slate-500 font-extrabold px-2 py-0.5 rounded-lg shrink-0">
+                          {t("about.achievements.alumniPassingBatch")}: {alum.passing_year}
+                        </span>
+                      </div>
+
+                      <div className="mb-3">
+                        <p className="text-xs font-extrabold text-slate-800">
+                          {alum.current_position}
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-bold">
+                          {alum.organization}
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-3.5">
+                        <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
+                          {t("about.achievements.alumniSuccess")}
+                        </span>
+                        <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                          {alum.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </div>
 
       </div>

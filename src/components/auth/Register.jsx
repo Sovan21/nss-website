@@ -41,6 +41,7 @@ export const DEPARTMENTS = [
   "Chemistry",
   "Computer Science",
   "Commerce",
+  "B.Com (Hindi Shift)",
   "Economics",
   "Education",
   "Electronics",
@@ -49,6 +50,7 @@ export const DEPARTMENTS = [
   "Geography (Hindi Shift)",
   "Hindi",
   "History",
+  "History (Hindi Shift)",
   "Mathematics",
   "Microbiology",
   "Philosophy",
@@ -62,6 +64,8 @@ export const DEPARTMENTS = [
   "BBA",
   "BCA"
 ];
+
+export const YEARS = Array.from({ length: 101 }, (_, i) => 2100 - i);
 
 export default function Register({ onClose, onSwitch }) {
   const { t } = useLanguage();
@@ -81,6 +85,7 @@ export default function Register({ onClose, onSwitch }) {
 
   const { toast } = useToast();
   const [photoFile, setPhotoFile] = useState(null);
+  const [passoutYear, setPassoutYear] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -89,6 +94,7 @@ export default function Register({ onClose, onSwitch }) {
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const registeredCredsRef = useRef(null); // {email, password} for polling
   const pollRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Poll via signInWithPassword to detect email confirmation (works cross-device)
   useEffect(() => {
@@ -125,11 +131,15 @@ export default function Register({ onClose, onSwitch }) {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.size > 1024 * 1024) {
-      toast.error("Passport size photo must be under 1 MB.");
-      e.target.value = null; // Reset file input
-      setPhotoFile(null);
-      return;
+    if (file) {
+      const minSize = 500 * 1024;
+      const maxSize = 1024 * 1024;
+      if (file.size < minSize || file.size > maxSize) {
+        toast.error("Passport size photo must be between 500 KB and 1 MB.");
+        e.target.value = null; // Reset file input
+        setPhotoFile(null);
+        return;
+      }
     }
     setPhotoFile(file);
   };
@@ -187,7 +197,7 @@ export default function Register({ onClose, onSwitch }) {
             blood_group: formData.blood_group,
             current_address: formData.current_address,
             department: formData.department,
-            semester: formData.semester,
+            semester: formData.semester === "Pass Out" ? `Pass Out - ${passoutYear}` : formData.semester,
             college_application_id: formData.college_application_id,
             extra_curriculum: formData.extra_curriculum,
             prev_experience: formData.prev_experience,
@@ -242,12 +252,12 @@ export default function Register({ onClose, onSwitch }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 font-sans antialiased">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 md:p-6 font-sans antialiased">
       <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={showConfirmModal ? undefined : onClose}></div>
 
       {showConfirmModal ? (
         /* ── Email Confirmation / WhatsApp Modal ── */
-        <div className="relative z-10 max-w-md w-full mx-auto bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-3xl p-8 md:p-12 border border-blue-100 animate-fade-in-up">
+        <div className="relative z-10 max-w-md w-full mx-auto bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-3xl p-5 sm:p-8 md:p-12 border border-blue-100 animate-fade-in-up">
           <div className="text-center">
             {!emailConfirmed ? (
               <>
@@ -312,7 +322,7 @@ export default function Register({ onClose, onSwitch }) {
         /* ── Registration Form ── */
         <div
           ref={scrollRef}
-          className="relative z-10 max-w-4xl w-full mx-auto bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-3xl p-5 md:p-10 border border-blue-100 overflow-y-auto max-h-[88dvh] md:max-h-[90vh] animate-fade-in-up will-change-transform [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="relative z-10 max-w-4xl w-full mx-auto bg-gradient-to-br from-sky-50 to-blue-50 shadow-2xl rounded-[22px] sm:rounded-3xl p-3.5 sm:p-6 md:p-10 border border-blue-100 overflow-y-auto max-h-[96dvh] sm:max-h-[90dvh] md:max-h-[90vh] animate-fade-in-up will-change-transform [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -328,7 +338,7 @@ export default function Register({ onClose, onSwitch }) {
           </div>
 
           <form onSubmit={handleRegister} className="space-y-8">
-            <div className="bg-white p-5 sm:p-8 rounded-3xl border border-blue-100 shadow-sm">
+            <div className="bg-white p-3.5 sm:p-8 rounded-2xl sm:rounded-3xl border border-blue-100 shadow-sm">
               <h3 className="text-xl font-semibold text-blue-900 mb-6 tracking-tight">{t("auth.register.personalDetails")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -415,7 +425,7 @@ export default function Register({ onClose, onSwitch }) {
               </div>
             </div>
 
-            <div className="bg-white p-5 sm:p-8 rounded-3xl border border-blue-100 shadow-sm">
+            <div className="bg-white p-3.5 sm:p-8 rounded-2xl sm:rounded-3xl border border-blue-100 shadow-sm">
               <h3 className="text-xl font-semibold text-blue-900 mb-6 tracking-tight">{t("auth.register.academicDetails")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -439,10 +449,27 @@ export default function Register({ onClose, onSwitch }) {
                     <option value="6th">6th Sem</option>
                     <option value="7th">7th Sem</option>
                     <option value="8th">8th Sem</option>
+                    <option value="Pass Out">Pass Out</option>
                   </select>
                 </div>
+                {formData.semester === "Pass Out" && (
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Pass Out Year *</label>
+                    <select
+                      required
+                      value={passoutYear}
+                      onChange={(e) => setPassoutYear(e.target.value)}
+                      className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] bg-white"
+                    >
+                      <option value="">{t("auth.register.select")}</option>
+                      {YEARS.map(yr => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
-                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.collegeApplicationId")} *</label>
+                  <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider ml-1 md:h-10 md:flex md:items-end mb-2">{t("auth.register.collegeApplicationId")} *</label>
                   <input name="college_application_id" type="text" onChange={handleChange} required maxLength="15" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterApplicationId")} />
                 </div>
                 <div>
@@ -453,14 +480,14 @@ export default function Register({ onClose, onSwitch }) {
                     <option value="No">{t("auth.register.no")}</option>
                   </select>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider ml-1 md:h-10 md:flex md:items-end mb-2">{t("auth.register.extraCurriculum")} ({t("auth.register.optional")})</label>
-                  <input name="extra_curriculum" type="text" onChange={handleChange} className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterExtraCurriculum")} />
+                <div className={`col-span-1 ${formData.semester === "Pass Out" ? "md:col-span-1" : "md:col-span-2"}`}>
+                  <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider ml-1 md:h-10 md:flex md:items-end mb-2">{t("auth.register.extraCurriculum")} *</label>
+                  <input name="extra_curriculum" type="text" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterExtraCurriculum")} />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-5 sm:p-8 rounded-3xl border border-blue-100 shadow-sm">
+            <div className="bg-white p-3.5 sm:p-8 rounded-2xl sm:rounded-3xl border border-blue-100 shadow-sm">
               <h3 className="text-xl font-semibold text-blue-900 mb-6 tracking-tight">{t("auth.register.profileSetup")}</h3>
               <div className="space-y-4">
                 <div>
@@ -468,17 +495,38 @@ export default function Register({ onClose, onSwitch }) {
                   <textarea name="bio" rows="3" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterBio")}></textarea>
                 </div>
                 <div>
-                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.photo")} (Max 1 MB) *</label>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.photo")} (500 KB - 1 MB) *</label>
                   <div className="flex items-center justify-center w-full">
                     <label className="flex flex-col items-center justify-center w-full h-32 border border-blue-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-white transition-all duration-200">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <svg className="w-8 h-8 mb-3 text-blue-400" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" /></svg>
                         <p className="mb-1 text-[15px] text-slate-600"><span className="font-semibold text-blue-600">{t("auth.register.uploadClick")}</span></p>
                       </div>
-                      <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} required />
+                      <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} required />
                     </label>
                   </div>
-                  {photoFile && <p className="text-[13px] text-slate-700 mt-2 font-medium bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg w-fit">{t("auth.register.selected")}: {photoFile.name}</p>}
+                  {photoFile && (
+                    <div className="mt-4 flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-3 rounded-2xl w-fit">
+                      <img
+                        src={URL.createObjectURL(photoFile)}
+                        alt="Profile Preview"
+                        className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md bg-slate-100 shrink-0"
+                      />
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <p className="text-[13px] text-slate-700 font-extrabold max-w-[200px] truncate">{photoFile.name}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPhotoFile(null);
+                            if (fileInputRef.current) fileInputRef.current.value = "";
+                          }}
+                          className="text-xs text-red-600 font-extrabold hover:text-red-800 transition-colors w-fit cursor-pointer uppercase tracking-wider"
+                        >
+                          Remove Photo
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

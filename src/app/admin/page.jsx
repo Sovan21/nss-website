@@ -11,6 +11,7 @@ const DEPARTMENTS = [
   "Chemistry",
   "Computer Science",
   "Commerce",
+  "B.Com (Hindi Shift)",
   "Economics",
   "Education",
   "Electronics",
@@ -19,6 +20,7 @@ const DEPARTMENTS = [
   "Geography (Hindi Shift)",
   "Hindi",
   "History",
+  "History (Hindi Shift)",
   "Mathematics",
   "Microbiology",
   "Philosophy",
@@ -32,6 +34,8 @@ const DEPARTMENTS = [
   "BBA",
   "BCA"
 ];
+
+const YEARS = Array.from({ length: 101 }, (_, i) => 2100 - i);
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -350,7 +354,7 @@ const VolunteersManager = ({ setIsDirty }) => {
  </td>
  <td className="py-3 px-4">
  <p className="font-medium">{vol.department}</p>
- <p className="text-xs text-blue-600 font-semibold">{vol.semester} Sem</p>
+ <p className="text-xs text-blue-600 font-semibold">{vol.semester && vol.semester.includes('Pass Out') ? vol.semester : `${vol.semester} Sem`}</p>
  </td>
  <td className="py-3 px-4">
  <p className="font-medium text-gray-800">{vol.phone}</p>
@@ -458,7 +462,7 @@ const VolunteersManager = ({ setIsDirty }) => {
  </div>
  <div className="text-center sm:text-left flex-1 w-full">
  <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">{selectedVol.full_name}</h2>
- <p className="text-blue-600 font-bold bg-blue-50 inline-block px-3 py-1 rounded-lg text-xs sm:text-sm mb-2">{selectedVol.department} • {selectedVol.semester} Sem</p>
+ <p className="text-blue-600 font-bold bg-blue-50 inline-block px-3 py-1 rounded-lg text-xs sm:text-sm mb-2">{selectedVol.department} • {selectedVol.semester && selectedVol.semester.includes('Pass Out') ? selectedVol.semester : `${selectedVol.semester} Sem`}</p>
  <p className="text-gray-500 text-xs sm:text-sm font-semibold mb-3">College Application ID: <span className="text-gray-800">{selectedVol.college_application_id}</span></p>
  <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
  <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center">
@@ -549,7 +553,14 @@ const VolunteersManager = ({ setIsDirty }) => {
   </div>
   <div>
   <label className="block text-xs font-bold text-gray-700 mb-1">Semester</label>
-  <select required name="semester" value={editFormData.semester || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
+  <select required name="semester" value={editFormData.semester && editFormData.semester.includes('Pass Out') ? 'Pass Out' : editFormData.semester || ''} onChange={(e) => {
+    const val = e.target.value;
+    if (val === 'Pass Out') {
+      setEditFormData({ ...editFormData, semester: 'Pass Out - 2026' });
+    } else {
+      setEditFormData({ ...editFormData, semester: val });
+    }
+  }} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
   <option value="">Select</option>
   <option value="1st">1st Sem</option>
   <option value="2nd">2nd Sem</option>
@@ -559,7 +570,26 @@ const VolunteersManager = ({ setIsDirty }) => {
   <option value="6th">6th Sem</option>
   <option value="7th">7th Sem</option>
   <option value="8th">8th Sem</option>
+  <option value="Pass Out">Pass Out</option>
   </select>
+  {(editFormData.semester && editFormData.semester.includes('Pass Out')) && (
+    <div className="mt-2">
+      <label className="block text-[11px] font-bold text-gray-500 mb-0.5">Pass Out Year</label>
+      <select
+        required
+        value={editFormData.semester.includes('-') ? editFormData.semester.split('-')[1].trim() : '2026'}
+        onChange={(e) => {
+          setEditFormData({ ...editFormData, semester: `Pass Out - ${e.target.value}` });
+        }}
+        className="w-full p-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-xs shadow-sm"
+      >
+        <option value="">Select Year</option>
+        {YEARS.map(yr => (
+          <option key={yr} value={yr}>{yr}</option>
+        ))}
+      </select>
+    </div>
+  )}
   </div>
   <div>
   <label className="block text-xs font-bold text-gray-700 mb-1">Father's Name</label>
@@ -1689,6 +1719,7 @@ const SidebarIcons = {
  Events: () => <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
  Committee: () => <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
  Settings: () => <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+ Award: () => <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>,
  Logout: () => <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
  Public: () => <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
  Menu: () => <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg>,
@@ -1778,6 +1809,557 @@ const CustomScrollbarStyles = () => (
 );
 
 
+// ==========================================
+// ACHIEVEMENTS MANAGER
+// ==========================================
+const AchievementsManager = ({ setIsDirty }) => {
+  const { toast, confirm } = useToast();
+  const [subTab, setSubTab] = useState("camps"); // "camps" | "alumni"
+
+  // Camps states
+  const [camps, setCamps] = useState([]);
+  const [campsLoading, setCampsLoading] = useState(true);
+  const [showCampForm, setShowCampForm] = useState(false);
+  const [editingCamp, setEditingCamp] = useState(null);
+  const [campFormData, setCampFormData] = useState({
+    camp_type: "NIC",
+    volunteers: "",
+    location: "",
+    po_name: "",
+    year: ""
+  });
+
+  // Alumni states
+  const [alumni, setAlumni] = useState([]);
+  const [alumniLoading, setAlumniLoading] = useState(true);
+  const [showAlumniForm, setShowAlumniForm] = useState(false);
+  const [editingAlumni, setEditingAlumni] = useState(null);
+  const [alumniFormData, setAlumniFormData] = useState({
+    name: "",
+    passing_year: "",
+    current_position: "",
+    organization: "",
+    description: ""
+  });
+  const [alumniPhotoFile, setAlumniPhotoFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setIsDirty(showCampForm || showAlumniForm || editingCamp !== null || editingAlumni !== null);
+  }, [showCampForm, showAlumniForm, editingCamp, editingAlumni, setIsDirty]);
+
+  const fetchCamps = async () => {
+    try {
+      const { data, error } = await supabase.from("nss_camps").select("*").order("year", { ascending: false });
+      if (error) throw error;
+      setCamps(data || []);
+    } catch (err) {
+      console.error("Error fetching camps:", err);
+      toast.error("Failed to fetch camps achievements");
+    } finally {
+      setCampsLoading(false);
+    }
+  };
+
+  const fetchAlumni = async () => {
+    try {
+      const { data, error } = await supabase.from("nss_alumni").select("*").order("passing_year", { ascending: false });
+      if (error) throw error;
+      setAlumni(data || []);
+    } catch (err) {
+      console.error("Error fetching alumni:", err);
+      toast.error("Failed to fetch alumni achievements");
+    } finally {
+      setAlumniLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCamps();
+    fetchAlumni();
+  }, []);
+
+  const handleCampInputChange = (e) => {
+    setCampFormData({ ...campFormData, [e.target.name]: e.target.value });
+  };
+
+  const handleAlumniInputChange = (e) => {
+    setAlumniFormData({ ...alumniFormData, [e.target.name]: e.target.value });
+  };
+
+  const handleCampSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      if (editingCamp) {
+        const { error } = await supabase.from("nss_camps").update(campFormData).eq("id", editingCamp.id);
+        if (error) throw error;
+        toast.success("Camp achievement updated successfully!");
+      } else {
+        const { error } = await supabase.from("nss_camps").insert([campFormData]);
+        if (error) throw error;
+        toast.success("Camp achievement added successfully!");
+      }
+      setCampFormData({ camp_type: "NIC", volunteers: "", location: "", po_name: "", year: "" });
+      setEditingCamp(null);
+      setShowCampForm(false);
+      fetchCamps();
+    } catch (err) {
+      console.error("Error saving camp:", err);
+      toast.error("Failed to save camp achievement");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditCamp = (camp) => {
+    setEditingCamp(camp);
+    setCampFormData({
+      camp_type: camp.camp_type,
+      volunteers: camp.volunteers,
+      location: camp.location,
+      po_name: camp.po_name,
+      year: camp.year
+    });
+    setShowCampForm(true);
+  };
+
+  const handleDeleteCamp = async (id) => {
+    const confirmed = await confirm("Are you sure you want to delete this camp achievement? This action cannot be undone.", {
+      title: "Delete Camp Achievement",
+      type: "danger",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
+    try {
+      const { error } = await supabase.from("nss_camps").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Camp achievement deleted successfully");
+      fetchCamps();
+    } catch (err) {
+      console.error("Error deleting camp:", err);
+      toast.error("Failed to delete camp achievement");
+    }
+  };
+
+  const handleAlumniSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      let photoUrl = editingAlumni ? editingAlumni.photo_url : null;
+      if (alumniPhotoFile) {
+        const compressedFile = await compressImage(alumniPhotoFile, 5, 600);
+        const fileExt = compressedFile.name.split('.').pop();
+        const fileName = `alumni-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from("nss-images").upload(fileName, compressedFile);
+        if (uploadError) throw uploadError;
+        const { data: publicUrlData } = supabase.storage.from("nss-images").getPublicUrl(fileName);
+        photoUrl = publicUrlData.publicUrl;
+      }
+
+      const postData = { ...alumniFormData, photo_url: photoUrl };
+
+      if (editingAlumni) {
+        const { error } = await supabase.from("nss_alumni").update(postData).eq("id", editingAlumni.id);
+        if (error) throw error;
+        toast.success("Alumni profile updated successfully!");
+      } else {
+        const { error } = await supabase.from("nss_alumni").insert([postData]);
+        if (error) throw error;
+        toast.success("Alumni profile added successfully!");
+      }
+      setAlumniFormData({ name: "", passing_year: "", current_position: "", organization: "", description: "" });
+      setAlumniPhotoFile(null);
+      setEditingAlumni(null);
+      setShowAlumniForm(false);
+      fetchAlumni();
+    } catch (err) {
+      console.error("Error saving alumni:", err);
+      toast.error("Failed to save alumni profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditAlumni = (alum) => {
+    setEditingAlumni(alum);
+    setAlumniFormData({
+      name: alum.name,
+      passing_year: alum.passing_year,
+      current_position: alum.current_position,
+      organization: alum.organization,
+      description: alum.description
+    });
+    setShowAlumniForm(true);
+  };
+
+  const handleDeleteAlumni = async (alum) => {
+    const confirmed = await confirm(`Are you sure you want to delete ${alum.name}'s profile? This action cannot be undone.`, {
+      title: "Delete Alumni Profile",
+      type: "danger",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
+    try {
+      if (alum.photo_url && alum.photo_url.includes("nss-images")) {
+        const fileName = alum.photo_url.split("/").pop();
+        await supabase.storage.from("nss-images").remove([fileName]);
+      }
+      const { error } = await supabase.from("nss_alumni").delete().eq("id", alum.id);
+      if (error) throw error;
+      toast.success("Alumni profile deleted successfully");
+      fetchAlumni();
+    } catch (err) {
+      console.error("Error deleting alumni:", err);
+      toast.error("Failed to delete alumni profile");
+    }
+  };
+
+  const handleCancelCamp = () => {
+    setCampFormData({ camp_type: "NIC", volunteers: "", location: "", po_name: "", year: "" });
+    setEditingCamp(null);
+    setShowCampForm(false);
+  };
+
+  const handleCancelAlumni = () => {
+    setAlumniFormData({ name: "", passing_year: "", current_position: "", organization: "", description: "" });
+    setAlumniPhotoFile(null);
+    setEditingAlumni(null);
+    setShowAlumniForm(false);
+  };
+
+  const PlusIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
+  const EditIcon = () => <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
+  const TrashIcon = () => <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
+
+  return (
+    <div className="bg-white p-4 md:p-6 lg:p-8 rounded-2xl shadow-sm border border-gray-100">
+      {/* Section Tabs switcher */}
+      <div className="flex gap-4 border-b border-gray-100 pb-4 mb-6">
+        <button
+          onClick={() => setSubTab("camps")}
+          className={`pb-2 px-1 font-bold text-sm md:text-base border-b-2 transition-all cursor-pointer ${
+            subTab === "camps"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Camps Achievements
+        </button>
+        <button
+          onClick={() => setSubTab("alumni")}
+          className={`pb-2 px-1 font-bold text-sm md:text-base border-b-2 transition-all cursor-pointer ${
+            subTab === "alumni"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Alumni Success Stories
+        </button>
+      </div>
+
+      {subTab === "camps" ? (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <h4 className="text-lg font-bold text-gray-800">Special Camps Achievements</h4>
+            <button
+              onClick={() => setShowCampForm(!showCampForm)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-xs md:text-sm"
+            >
+              {showCampForm ? "Cancel" : <><PlusIcon /> Add Camp</>}
+            </button>
+          </div>
+
+          {showCampForm && (
+            <form onSubmit={handleCampSubmit} className="bg-blue-50/30 p-6 rounded-2xl border border-blue-100 mb-8">
+              <h5 className="font-bold text-slate-800 mb-4">{editingCamp ? "Edit Camp Achievement" : "Add New Camp Achievement"}</h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Camp Type *</label>
+                  <select
+                    name="camp_type"
+                    value={campFormData.camp_type}
+                    onChange={handleCampInputChange}
+                    required
+                    className="w-full p-2 border rounded-lg bg-white text-sm"
+                  >
+                    <option value="NIC">NIC (National Integration Camp)</option>
+                    <option value="Pre-RD">Pre-RD (Pre-Republic Day Camp)</option>
+                    <option value="Adventure Camp">Adventure Camp</option>
+                    <option value="Youth Festival">Youth Festival</option>
+                    <option value="Other">Other Camp</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Year * (e.g. 2026)</label>
+                  <input
+                    name="year"
+                    value={campFormData.year}
+                    onChange={handleCampInputChange}
+                    required
+                    placeholder="e.g. 2026"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Location *</label>
+                  <input
+                    name="location"
+                    value={campFormData.location}
+                    onChange={handleCampInputChange}
+                    required
+                    placeholder="e.g. Kolkata, West Bengal"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Program Officer (PO) *</label>
+                  <input
+                    name="po_name"
+                    value={campFormData.po_name}
+                    onChange={handleCampInputChange}
+                    required
+                    placeholder="e.g. Dr. Amit Dey"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold mb-1 block">Volunteers Involved *</label>
+                  <textarea
+                    name="volunteers"
+                    value={campFormData.volunteers}
+                    onChange={handleCampInputChange}
+                    required
+                    placeholder="e.g. Rahul Dev, Anjali Sharma"
+                    rows="2"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-lg text-xs md:text-sm"
+                >
+                  {saving ? "Saving..." : editingCamp ? "Update Camp" : "Add Camp"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelCamp}
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-5 py-2.5 rounded-lg text-xs md:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {campsLoading ? (
+            <div className="text-center py-6 text-slate-400">Loading camps achievements...</div>
+          ) : camps.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl border border-dashed">No camp achievements recorded yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse bg-white whitespace-nowrap text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-gray-100 text-slate-500 font-bold">
+                    <th className="p-3">Camp Type</th>
+                    <th className="p-3">Year</th>
+                    <th className="p-3">Location</th>
+                    <th className="p-3">PO Name</th>
+                    <th className="p-3">Volunteers</th>
+                    <th className="p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {camps.map((camp) => (
+                    <tr key={camp.id} className="hover:bg-slate-50/50">
+                      <td className="p-3 font-semibold text-slate-800">{camp.camp_type}</td>
+                      <td className="p-3 text-slate-600">{camp.year}</td>
+                      <td className="p-3 text-slate-600">{camp.location}</td>
+                      <td className="p-3 text-slate-600">{camp.po_name}</td>
+                      <td className="p-3 text-slate-600 truncate max-w-xs" title={camp.volunteers}>{camp.volunteers}</td>
+                      <td className="p-3 flex gap-2">
+                        <button
+                          onClick={() => handleEditCamp(camp)}
+                          className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg flex items-center font-semibold text-xs"
+                        >
+                          <EditIcon /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCamp(camp.id)}
+                          className="text-red-600 hover:bg-red-50 p-1.5 rounded-lg flex items-center font-semibold text-xs"
+                        >
+                          <TrashIcon /> Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <h4 className="text-lg font-bold text-gray-800">Alumni Success Stories</h4>
+            <button
+              onClick={() => setShowAlumniForm(!showAlumniForm)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-xs md:text-sm"
+            >
+              {showAlumniForm ? "Cancel" : <><PlusIcon /> Add Alumni</>}
+            </button>
+          </div>
+
+          {showAlumniForm && (
+            <form onSubmit={handleAlumniSubmit} className="bg-blue-50/30 p-6 rounded-2xl border border-blue-100 mb-8">
+              <h5 className="font-bold text-slate-800 mb-4">{editingAlumni ? "Edit Alumni Profile" : "Add New Alumni Profile"}</h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Full Name *</label>
+                  <input
+                    name="name"
+                    value={alumniFormData.name}
+                    onChange={handleAlumniInputChange}
+                    required
+                    placeholder="e.g. Sanjay Dutta"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">NSS Batch * (Passing Year)</label>
+                  <input
+                    name="passing_year"
+                    value={alumniFormData.passing_year}
+                    onChange={handleAlumniInputChange}
+                    required
+                    placeholder="e.g. 2023"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Current Position *</label>
+                  <input
+                    name="current_position"
+                    value={alumniFormData.current_position}
+                    onChange={handleAlumniInputChange}
+                    required
+                    placeholder="e.g. Software Engineer"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Organization/Company *</label>
+                  <input
+                    name="organization"
+                    value={alumniFormData.organization}
+                    onChange={handleAlumniInputChange}
+                    required
+                    placeholder="e.g. TCS / Google"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold mb-1 block">Success Details * (What they are doing / their achievement)</label>
+                  <textarea
+                    name="description"
+                    value={alumniFormData.description}
+                    onChange={handleAlumniInputChange}
+                    required
+                    placeholder="e.g. Currently leading community volunteer programs in West Bengal and managing IT operations."
+                    rows="3"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold mb-1 text-blue-700">Profile Photo (Optional)</label>
+                  <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-blue-200 rounded-lg bg-white cursor-pointer hover:bg-blue-50 transition text-sm font-semibold text-blue-600">
+                    {alumniPhotoFile ? alumniPhotoFile.name : "+ Click to Upload Photo"}
+                    <input type="file" accept="image/*" onChange={(e) => setAlumniPhotoFile(e.target.files[0])} className="hidden" />
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-lg text-xs md:text-sm"
+                >
+                  {saving ? "Saving..." : editingAlumni ? "Update Profile" : "Add Alumni"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelAlumni}
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-5 py-2.5 rounded-lg text-xs md:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {alumniLoading ? (
+            <div className="text-center py-6 text-slate-400">Loading alumni profiles...</div>
+          ) : alumni.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl border border-dashed">No alumni records found.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse bg-white whitespace-nowrap text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-gray-100 text-slate-500 font-bold">
+                    <th className="p-3">Photo</th>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">NSS Batch</th>
+                    <th className="p-3">Position</th>
+                    <th className="p-3">Organization</th>
+                    <th className="p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {alumni.map((alum) => (
+                    <tr key={alum.id} className="hover:bg-slate-50/50">
+                      <td className="p-3">
+                        {alum.photo_url ? (
+                          <img src={alum.photo_url} alt={alum.name} className="w-10 h-10 rounded-full object-cover border" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-slate-100 border flex items-center justify-center text-slate-400">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3 font-semibold text-slate-800">{alum.name}</td>
+                      <td className="p-3 text-slate-600">{alum.passing_year}</td>
+                      <td className="p-3 text-slate-600">{alum.current_position}</td>
+                      <td className="p-3 text-slate-600">{alum.organization}</td>
+                      <td className="p-3 flex gap-2">
+                        <button
+                          onClick={() => handleEditAlumni(alum)}
+                          className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg flex items-center font-semibold text-xs"
+                        >
+                          <EditIcon /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAlumni(alum)}
+                          className="text-red-600 hover:bg-red-50 p-1.5 rounded-lg flex items-center font-semibold text-xs"
+                        >
+                          <TrashIcon /> Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 
 // MAIN DASHBOARD COMPONENT - RECOMPILED
@@ -1909,6 +2491,7 @@ export default function AdminDashboard() {
  <button onClick={() => handleTabChange('events')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold ${activeTab === 'events' ? 'bg-blue-600' : 'text-slate-400 hover:bg-slate-800'}`}><SidebarIcons.Events /> Events</button>
  <button onClick={() => handleTabChange('committee')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold ${activeTab === 'committee' ? 'bg-blue-600' : 'text-slate-400 hover:bg-slate-800'}`}><SidebarIcons.Committee /> Committee</button>
  <button onClick={() => handleTabChange('settings')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold ${activeTab === 'settings' ? 'bg-blue-600' : 'text-slate-400 hover:bg-slate-800'}`}><SidebarIcons.Settings /> Site Settings</button>
+ <button onClick={() => handleTabChange('achievements')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold ${activeTab === 'achievements' ? 'bg-blue-600' : 'text-slate-400 hover:bg-slate-800'}`}><SidebarIcons.Award /> Achievements</button>
  </nav>
  <div className="p-4 border-t border-slate-800">
  {adminUser && (
@@ -1937,9 +2520,9 @@ export default function AdminDashboard() {
  {activeTab === 'events' && <EventsManager setIsDirty={setIsDirty} />}
  {activeTab === 'committee' && <CommitteeManager setIsDirty={setIsDirty} />}
  {activeTab === 'settings' && <SettingsManager isDirty={isDirty} setIsDirty={setIsDirty} />}
+ {activeTab === 'achievements' && <AchievementsManager setIsDirty={setIsDirty} />}
  </div></div>
  </main>
  </div>
  );
 }
-

@@ -53,10 +53,14 @@ const TeacherCard = ({ member, onCardClick }) => {
 export default function TeachersSection({ members = [] }) {
   const { t } = useLanguage();
   const [selectedMember, setSelectedMember] = useState(null);
+  const [showFullPhoto, setShowFullPhoto] = useState(false);
 
   useEffect(() => {
     if (selectedMember) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "unset";
+    else {
+      document.body.style.overflow = "unset";
+      setShowFullPhoto(false);
+    }
     return () => { document.body.style.overflow = "unset"; };
   }, [selectedMember]);
 
@@ -95,28 +99,72 @@ export default function TeachersSection({ members = [] }) {
             </div>
             
             <div className="px-6 md:px-8 pb-8 -mt-16 relative">
-              <div className="w-28 h-28 md:w-32 md:h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-50 flex items-center justify-center mb-4">
+              <div 
+                onClick={() => selectedMember.image_url && setShowFullPhoto(true)}
+                className={`w-28 h-28 md:w-32 md:h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-50 flex items-center justify-center mb-4 relative group ${selectedMember.image_url ? 'cursor-pointer hover:scale-105 transition-all duration-300' : ''}`}
+                title={selectedMember.image_url ? "Click to view full photo" : ""}
+              >
                 {selectedMember.image_url ? (
-                  <img src={selectedMember.image_url} alt={selectedMember.name} className="w-full h-full object-cover" />
+                  <>
+                    <img src={selectedMember.image_url} alt={selectedMember.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center rounded-full text-white text-[10px] font-black uppercase tracking-wider gap-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span>View Photo</span>
+                    </div>
+                  </>
                 ) : (
                   <Icons.Users className="w-16 h-16 text-slate-300" />
                 )}
               </div>
               
-              <div className="text-center">
+              <div className="text-center mt-2">
                 <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-1">{selectedMember.name}</h3>
                 <p className="text-xs md:text-sm text-indigo-600 font-bold uppercase tracking-widest mb-6 px-2 break-words">
                   {decodeDesignation(selectedMember.designation).designation}
                 </p>
                 
                 {selectedMember.about ? (
-                  <div className="bg-slate-50 rounded-2xl p-4 md:p-5 text-sm text-slate-700 leading-relaxed text-left border border-slate-100 max-h-60 overflow-y-auto custom-scrollbar">
+                  <div className="bg-slate-50 rounded-2xl p-4 md:p-5 text-sm text-slate-700 leading-relaxed text-left border border-slate-100 h-60 overflow-y-auto custom-scrollbar">
                     <h4 className="font-black text-slate-800 mb-2 uppercase tracking-wide text-xs">{t("teachers.about")}</h4>
                     <div className="whitespace-pre-wrap">{selectedMember.about}</div>
                   </div>
                 ) : (
-                  <p className="text-slate-400 italic text-sm">{t("teachers.noDetails")}</p>
+                  <div className="bg-slate-50 rounded-2xl p-4 md:p-5 text-sm text-slate-700 leading-relaxed text-center border border-slate-100 h-60 flex items-center justify-center">
+                    <p className="text-slate-400 italic text-sm">{t("teachers.noDetails")}</p>
+                  </div>
                 )}
+              </div>
+            </div>
+
+            {/* Absolute Full Photo Overlay (Floating inside with small inset border & scale origin centering) */}
+            <div 
+              onClick={() => setShowFullPhoto(false)}
+              className={`absolute inset-3 rounded-2xl bg-slate-950/98 flex items-center justify-center cursor-pointer z-50 transform transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform border border-slate-800 ${showFullPhoto ? 'scale-100 opacity-100 visible pointer-events-auto' : 'scale-0 opacity-0 invisible pointer-events-none'}`}
+              style={{ transformOrigin: '50% 80px' }}
+            >
+              {selectedMember.image_url && (
+                <img 
+                  src={selectedMember.image_url} 
+                  alt={selectedMember.name} 
+                  className="w-full h-full object-contain p-2" 
+                />
+              )}
+              
+              {/* Image Close Button */}
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowFullPhoto(false); }}
+                className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors cursor-pointer z-50 border border-white/10 focus:outline-none"
+                title="Close photo"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1.5 rounded-full text-[10px] text-white/90 font-bold uppercase tracking-wider whitespace-nowrap">
+                Click photo to go back
               </div>
             </div>
           </div>
