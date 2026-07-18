@@ -1400,23 +1400,118 @@ const CommitteeManager = ({ setIsDirty }) => {
               </button>
             </div>
             <form onSubmit={handleUpdateMember} className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-gray-50 space-y-4">
-              {editFormData.category !== 'Teacher' && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Committee Category *</label>
-                  <select name="category" value={editFormData.category} onChange={handleEditInputChange} required className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="Student">Student Committee</option>
-                    <option value="Cultural">Cultural Committee</option>
-                    <option value="Environment">Environment Committee</option>
-                  </select>
-                </div>
+              {editFormData.category === 'Teacher' ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Full Name *</label>
+                    <input
+                      name="name"
+                      value={editFormData.name}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="e.g. Dr. John Doe"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Designation *</label>
+                    <input
+                      name="designation"
+                      value={editFormData.designation}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="e.g. Program Officer, Mentor"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">About / Bio *</label>
+                    <textarea
+                      name="about"
+                      value={editFormData.about}
+                      onChange={handleEditInputChange}
+                      required
+                      rows="3"
+                      className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Write a short bio..."
+                    ></textarea>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Profile Picture</label>
+                    {editFormData.photo_url && !removeImage && (
+                      <div className="mb-2 flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-200">
+                        <img src={editFormData.photo_url} alt="Current" className="w-12 h-12 rounded-full object-cover border" />
+                        <button
+                          type="button"
+                          onClick={() => setRemoveImage(true)}
+                          className="text-xs font-bold text-red-600 hover:text-red-800 transition"
+                        >
+                          Remove Photo
+                        </button>
+                      </div>
+                    )}
+                    <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-blue-200 rounded-lg bg-white cursor-pointer hover:bg-blue-50 transition text-xs font-semibold text-blue-600">
+                      {editImageFile ? editImageFile.name : '+ Upload New Photo'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          setEditImageFile(e.target.files[0]);
+                          setRemoveImage(false);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Committee Category *</label>
+                    <select
+                      name="category"
+                      value={editFormData.category}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="Student">Student Committee</option>
+                      <option value="Cultural">Cultural Committee</option>
+                      <option value="Environment">Environment Committee</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Designation / Role *</label>
+                    <input
+                      name="designation"
+                      value={editFormData.designation}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </>
               )}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Designation / Role *</label>
-                <input name="designation" value={editFormData.designation} onChange={handleEditInputChange} required className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
-              </div>
+
               <div className="flex gap-3 shrink-0 pt-3 border-t border-gray-200">
-                <button type="button" onClick={() => setEditingMember(null)} className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm text-sm">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-md text-sm">{saving ? 'Saving...' : 'Save Updates'}</button>
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-md text-sm"
+                >
+                  {saving ? 'Saving...' : 'Save Updates'}
+                </button>
               </div>
             </form>
           </div>
