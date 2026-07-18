@@ -161,7 +161,7 @@ export default function Home() {
         </div>
         <div className={activeTab === 'committee' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <Committee
-            prefetchedMembers={committeeData?.filter(m => m.designation && m.designation.includes('::') && !m.designation.startsWith('Teacher::')) || []}
+            prefetchedMembers={committeeData?.filter(m => m.designation && !m.designation.startsWith('Teacher::')) || []}
           />
         </div>
         <div className={activeTab === 'about' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>

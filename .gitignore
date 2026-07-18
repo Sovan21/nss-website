@@ -1,6 +1,23 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Database Schema & SQL Scripts (DO NOT UPLOAD TO GITHUB)
+*.sql
+supabase_schema.sql
+
+# Agent & Prompt Config
+AGENTS.md
+
+# Environment & Sensitive Credentials (CRITICAL - DO NOT UPLOAD TO GITHUB)
+.env
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,33 +27,41 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Testing & Coverage
 /coverage
 
-# next.js
+# Next.js build output
 /.next/
 /out/
 
-# production
+# Production build
 /build
 
-# misc
+# IDE & System Files
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
-*.pem
+Thumbs.db
 
-# debug
+# Logs & Debugging
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
-.env*
+# Scratch & Temporary Scripts
+scratch_*.js
+*.tmp
+*.temp
 
-# vercel
+# Vercel & Netlify build artifacts
 .vercel
+.netlify
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
 

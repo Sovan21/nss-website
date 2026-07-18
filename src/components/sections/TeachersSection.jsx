@@ -7,8 +7,18 @@ import { useLanguage } from "@/context/LanguageContext";
 const decodeDesignation = (raw) => {
   if (!raw) return { category: 'Teacher', designation: '' };
   if (raw.includes('::')) {
-    const [cat, des] = raw.split('::');
-    return { category: cat, designation: des };
+    const firstColon = raw.indexOf('::');
+    const cat = raw.substring(0, firstColon);
+    const rest = raw.substring(firstColon + 2);
+    if (rest.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(rest);
+        return { category: cat, designation: parsed.designation || '' };
+      } catch (e) {
+        return { category: cat, designation: rest };
+      }
+    }
+    return { category: cat, designation: rest };
   }
   return { category: 'Teacher', designation: raw };
 };
