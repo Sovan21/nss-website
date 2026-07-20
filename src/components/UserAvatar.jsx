@@ -3,42 +3,9 @@
  * Purpose: Shared avatar display and helper utilities for the NSS website.
  */
 
-export const compressImage = (file, maxSizeMB = 2, maxWidth = 800) => {
-  return new Promise((resolve) => {
-    if (!file || !file.type.startsWith('image/')) { resolve(file); return; }
-    const reader = new FileReader(); reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image(); img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width; let height = img.height;
-        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        const maxSizeBytes = maxSizeMB * 1024 * 1024; let quality = 0.9;
-        const attemptCompress = () => {
-          ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, height); ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (!blob) { resolve(file); return; }
-            if (blob.size > maxSizeBytes && quality > 0.1) { quality -= 0.1; attemptCompress(); } 
-            else {
-              const newFileName = file.name.replace(/\.[^/.]+$/, ".jpg");
-              resolve(new File([blob], newFileName, { type: 'image/jpeg', lastModified: Date.now() }));
-            }
-          }, 'image/jpeg', quality);
-        };
-        attemptCompress();
-      }; img.onerror = () => resolve(file);
-    }; reader.onerror = () => resolve(file);
-  });
-};
+import { compressImage, getInitials } from '@/lib/utils';
 
-export const getInitials = (name) => {
-  if (!name) return "U";
-  const parts = name.trim().split(" ");
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-};
+export { compressImage, getInitials };
 
 const UserAvatar = ({ user, onClick }) => {
   return (

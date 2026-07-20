@@ -65,6 +65,33 @@ export default function Login({ onClose, onSwitch }) {
   const [forgotOtp, setForgotOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resendTimer, setResendTimer] = useState(90);
+
+  // 90-second resend countdown timer for OTP reset modal
+  useEffect(() => {
+    let interval = null;
+    if (view === 'forgot_otp' && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [view, resendTimer]);
+
+  const handleResendOTP = async () => {
+    if (resendTimer > 0 || loading || !forgotEmail) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail);
+      if (error) throw error;
+      toast.success("OTP has been resent to your email!");
+      setResendTimer(90);
+    } catch (err) {
+      toast.error(err.message || "Failed to resend OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Auto-cycle through facts
   useEffect(() => {
@@ -74,28 +101,22 @@ export default function Login({ onClose, onSwitch }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Reset loading state when user returns from an aborted OAuth redirect.
   useEffect(() => {
-    const handlePageShow = (event) => { if (event.persisted) setLoading(false); };
-    const handleVisibilityChange = () => { if (document.visibilityState === 'visible') setLoading(false); };
-    const handleFocus = () => { setLoading(false); };
-    window.addEventListener('pageshow', handlePageShow);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('pageshow', handlePageShow);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
+    // Check active session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // We have a user!
+      }
+    });
 
-  /**
-   * Listen for Auth State Changes (Social Providers)
-   */
-  useEffect(() => {
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Only process SIGNED_IN events to prevent UI freezing during password updates
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'PASSWORD_RECOVERY') {
+        // User clicked a password recovery link! Show the 'New Password' view.
+        setView('forgot_password');
+        toast.info("Please set your new password below.");
+      } else if (session?.user) {
+        // Signed in! Now fetch or create profile
         const user = session.user;
 
         // 1. Check if the user profile already exists
@@ -181,24 +202,36 @@ export default function Login({ onClose, onSwitch }) {
     }
     setLoading(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
-        password: credentials.password
+        password: credentials.password,
       });
-      if (authError || !authData.user) {
-        toast.error(authError?.message || "Invalid credentials provided.");
+
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Incorrect email or password.");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Please confirm your email address before logging in.");
+        } else {
+          toast.error(error.message);
+        }
+        setLoading(false);
         return;
       }
+
+      // Fetch user profile from registrations table
       const { data: profileData } = await supabase
         .from('registrations')
         .select('*')
-        .eq('id', authData.user.id)
+        .eq('id', data.user.id)
         .single();
-      if (!profileData) {
-        toast.warning("Authentication successful, but profile record was not found.");
-        return;
+
+      toast.success("Signed in successfully!");
+      if (profileData && profileData.role === 'admin') {
+        localStorage.setItem('nss_admin_mode', 'true');
+      } else {
+        localStorage.removeItem('nss_admin_mode');
       }
-      localStorage.removeItem('nss_admin_mode');
       localStorage.setItem('nss_user', JSON.stringify(profileData));
       window.dispatchEvent(new Event('nss_user_logged_in'));
       if (onClose) onClose();
@@ -218,7 +251,8 @@ export default function Login({ onClose, onSwitch }) {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail);
       if (error) throw error;
-      toast.success("OTP / Reset link sent to your email.");
+      toast.success("OTP sent to your email.");
+      setResendTimer(90);
       setView('forgot_otp');
     } catch (err) {
       toast.error(err.message || "Failed to send reset email.");
@@ -472,6 +506,19 @@ export default function Login({ onClose, onSwitch }) {
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">6-Digit OTP Code</label>
                   <input type="text" value={forgotOtp} onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Enter 6-digit OTP" className="w-full p-4 bg-white border border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-[15px] text-center tracking-[0.5em] font-bold" required minLength={6} maxLength={6} pattern="\d{6}" title="Please enter exactly 6 digits" />
                 </div>
+
+                <div className="flex items-center justify-between text-xs font-semibold px-1">
+                  <span className="text-slate-500">Didn't receive the OTP code?</span>
+                  <button
+                    type="button"
+                    disabled={resendTimer > 0 || loading}
+                    onClick={handleResendOTP}
+                    className={`font-bold transition-colors cursor-pointer ${resendTimer > 0 || loading ? 'text-slate-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
+                  >
+                    {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
+                  </button>
+                </div>
+
                 <button type="submit" disabled={loading} className={`w-full font-semibold py-4 rounded-2xl transition-all text-[17px] mt-2 shadow-lg ${loading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/30 hover:scale-[1.02]'}`}>
                   {loading ? 'Verifying...' : 'Verify OTP'}
                 </button>

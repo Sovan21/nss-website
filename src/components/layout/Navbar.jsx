@@ -66,10 +66,15 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
           };
           const { data: insertedData } = await supabase.from('registrations').insert([newProfile]).select().maybeSingle();
           userDataToSave = insertedData || newProfile;
-          setShowWhatsAppPopup(true);
         }
         localStorage.setItem('nss_user', JSON.stringify(userDataToSave));
         setCurrentUser(userDataToSave);
+
+        // Show WhatsApp popup ONLY for newly registered volunteers on initial signup
+        const isJustRegistered = sessionStorage.getItem('nss_just_registered') === 'true';
+        if (isJustRegistered && userDataToSave?.role === 'volunteer' && localStorage.getItem(`nss_whatsapp_dismissed_${user.id}`) !== 'true') {
+          setShowWhatsAppPopup(true);
+        }
       } catch (err) { console.error("Session sync error:", err); }
     };
     checkSession();
@@ -86,25 +91,16 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   }, []);
 
   useEffect(() => {
-    const isAnyModalOpen = showMobileProfile || showDesktopProfile || showAdminWarning || showWhatsAppPopup;
-    const navbar = document.getElementById('fixed-navbar');
-    if (isAnyModalOpen) {
-      const sw = window.innerWidth >= 1024 ? (window.innerWidth - document.documentElement.clientWidth) : 0;
-      document.body.style.paddingRight = `${sw}px`;
+    const isScrollLocked = showAdminWarning || showWhatsAppPopup;
+    if (isScrollLocked) {
       document.body.style.overflow = 'hidden';
-      if (navbar) navbar.style.paddingRight = `${sw}px`;
-    }
-    else {
-      document.body.style.paddingRight = '';
+    } else {
       document.body.style.overflow = '';
-      if (navbar) navbar.style.paddingRight = '';
     }
     return () => {
-      document.body.style.paddingRight = '';
       document.body.style.overflow = '';
-      if (navbar) navbar.style.paddingRight = '';
     };
-  }, [showMobileProfile, showDesktopProfile, showAdminWarning, showWhatsAppPopup]);
+  }, [showAdminWarning, showWhatsAppPopup]);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeAllMenus = () => { setIsMobileMenuOpen(false); setShowMobileProfile(false); setShowDesktopProfile(false); };
@@ -120,6 +116,14 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
   const handleLogout = async () => { await supabase.auth.signOut(); localStorage.removeItem('nss_user'); setCurrentUser(null); closeAllMenus(); window.dispatchEvent(new Event('nss_user_logged_out')); };
 
+  const handleDismissWhatsApp = () => {
+    if (currentUser?.id) {
+      localStorage.setItem(`nss_whatsapp_dismissed_${currentUser.id}`, 'true');
+    }
+    sessionStorage.removeItem('nss_just_registered');
+    setShowWhatsAppPopup(false);
+  };
+
   let adminPressTimer;
   const handlePressStart = () => { adminPressTimer = setTimeout(() => { setShowAdminWarning(true); }, 6000); };
   const handlePressEnd = () => { clearTimeout(adminPressTimer); };
@@ -127,27 +131,27 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
   return (
     <>
-      <div id="fixed-navbar" className="fixed top-0 left-0 right-0 z-50 pt-3 md:pt-4 px-3 md:px-4 pointer-events-none box-border">
+      <div id="fixed-navbar" className="fixed top-0 left-0 right-0 z-50 pt-2.5 sm:pt-3 md:pt-4 px-2 sm:px-3 md:px-4 pointer-events-none box-border">
         <nav className="pointer-events-auto w-full max-w-6xl mx-auto bg-white/92 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/90 rounded-full transition-all duration-300 overflow-hidden">
-          <div className="px-4 md:px-6">
-            <div className="flex justify-between items-center h-14 md:h-18 gap-2 w-full">
-              <div className="flex items-center gap-2.5 md:gap-3 shrink-0 cursor-pointer select-none group active:scale-95 transition-transform"
+          <div className="px-2.5 sm:px-4 md:px-6">
+            <div className="flex justify-between items-center h-13 sm:h-14 md:h-18 gap-1.5 sm:gap-2 w-full">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink min-w-0 cursor-pointer select-none group active:scale-95 transition-transform"
                 onClick={() => handleNavClick('home')}
                 onContextMenu={(e) => e.preventDefault()}
                 onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}
                 style={{ WebkitTouchCallout: 'none' }}>
                 {/* Unified Logo Badge */}
-                <div className="flex items-center gap-1.5 shrink-0 bg-white rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-all duration-300 pointer-events-none">
-                  <div className="w-10 h-10 md:w-12 md:h-12 overflow-hidden shrink-0">
+                <div className="flex items-center gap-1 shrink-0 bg-white rounded-xl sm:rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-all duration-300 pointer-events-none">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 overflow-hidden shrink-0">
                     <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-full h-full object-contain select-none" draggable="false" />
                   </div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden shrink-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full overflow-hidden shrink-0">
                     <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain select-none" draggable="false" />
                   </div>
                 </div>
-                <div className="flex flex-col justify-center shrink-0 pointer-events-none">
-                  <h1 className="text-[10px] sm:text-[11px] md:text-[12px] lg:text-[13px] xl:text-sm font-black text-slate-800 leading-tight whitespace-nowrap tracking-tight uppercase">{t("hero.badge")}</h1>
-                  <p className="text-[7px] sm:text-[8px] md:text-[9px] lg:text-[10px] xl:text-[11px] font-bold text-blue-600/80 whitespace-nowrap uppercase tracking-wider lg:tracking-widest">
+                <div className="flex flex-col justify-center shrink min-w-0 pointer-events-none">
+                  <h1 className="text-[9px] min-[360px]:text-[9.5px] min-[400px]:text-[10.5px] sm:text-[11px] md:text-[12px] lg:text-[13px] xl:text-sm font-black text-slate-800 leading-tight whitespace-nowrap tracking-tight uppercase">{t("hero.badge")}</h1>
+                  <p className="text-[6.5px] min-[360px]:text-[7px] min-[400px]:text-[8px] sm:text-[8px] md:text-[9px] lg:text-[10px] xl:text-[11px] font-bold text-blue-600/80 whitespace-nowrap uppercase tracking-wider lg:tracking-widest">
                     Banwarilal Bhalotia College, Asansol
                   </p>
                 </div>
@@ -169,13 +173,13 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
                 )}
               </div>
 
-              <div className="lg:hidden flex items-center shrink-0 ml-2">
+              <div className="lg:hidden flex items-center shrink-0 ml-1 sm:ml-2">
                 {currentUser ? (<UserAvatar user={currentUser} onClick={toggleMenu} />) : (
-                  <button onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-2 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-all duration-300 backdrop-blur-sm relative w-10 h-10 flex items-center justify-center">
-                    <div className="relative w-5 h-3.5 flex flex-col justify-between origin-center transform transition-all duration-300">
-                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? 'rotate-45 translate-y-[6px]' : ''}`}></span>
+                  <button onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-1.5 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-all duration-300 backdrop-blur-sm relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center">
+                    <div className="relative w-4.5 sm:w-5 h-3 sm:h-3.5 flex flex-col justify-between origin-center transform transition-all duration-300">
+                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? 'rotate-45 translate-y-[5px] sm:translate-y-[6px]' : ''}`}></span>
                       <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0 scale-0' : ''}`}></span>
-                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? '-rotate-45 -translate-y-[6px]' : ''}`}></span>
+                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? '-rotate-45 -translate-y-[5px] sm:-translate-y-[6px]' : ''}`}></span>
                     </div>
                   </button>
                 )}
@@ -314,7 +318,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
                 href="https://chat.whatsapp.com/CVhiRk37OzC3tVCVdUv5wR" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                onClick={() => setShowWhatsAppPopup(false)}
+                onClick={handleDismissWhatsApp}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl transition duration-300 shadow-md shadow-emerald-600/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[16px] no-underline"
               >
                 <svg className="w-5 h-5 fill-current shrink-0" viewBox="0 0 24 24">
@@ -324,7 +328,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
               </a>
               <button 
                 type="button" 
-                onClick={() => setShowWhatsAppPopup(false)}
+                onClick={handleDismissWhatsApp}
                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-6 rounded-2xl transition duration-200 cursor-pointer text-[15px]"
               >
                 {t("nav.whatsapp.later")}

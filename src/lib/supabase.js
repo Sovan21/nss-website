@@ -4,8 +4,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://nfmgklkenucufkqlsohu.supabase.co'; 
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWdrbGtlbnVjdWZrcWxzb2h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxOTQwMjAsImV4cCI6MjA4OTc3MDAyMH0.I9ufaMFIOFKrUpvpilILRdNEIFiUp0NYHbSjX4nKUto';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nfmgklkenucufkqlsohu.supabase.co'; 
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWdrbGtlbnVjdWZrcWxzb2h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxOTQwMjAsImV4cCI6MjA4OTc3MDAyMH0.I9ufaMFIOFKrUpvpilILRdNEIFiUp0NYHbSjX4nKUto';
 
 if (typeof window !== 'undefined') {
   // Clean up error hash fragments from aborted OAuth (but preserve tab hashes like #about)

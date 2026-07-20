@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Custom Styles for NSS Website */
 body::-webkit-scrollbar { width: 8px; }
 body::-webkit-scrollbar-track { background: #f8fafc; }
@@ -48,146 +52,68 @@ body::-webkit-scrollbar-thumb:hover { background: #94a3b8; border-color: #f1f5f9
 }
 
 /* Glassmorphism Utilities */
-.glass {
+.glass-panel {
   background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.glass-dark {
-  background: rgba(15, 23, 42, 0.7);
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-card-dark {
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-:root {
-  --background: #fcfcfd;
-  --foreground: #0f172a;
+/* Custom Utilities for line clamping */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), var(--font-noto-bengali), var(--font-noto-devanagari), sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
-  --font-playfair: var(--font-playfair), serif;
-  --font-outfit: var(--font-outfit), sans-serif;
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* Hero Title — Premium elegant serif font with strong readability */
-.hero-title {
-  font-family: var(--font-playfair), Georgia, 'Times New Roman', serif;
-  color: #ffffff;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5), 0 4px 32px rgba(0, 0, 0, 0.3);
-  line-height: 1.15;
-  letter-spacing: -0.01em;
+/* Custom Scrollbar Styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
 }
 
-/* Hero Subtitle — Clear, legible with soft glow */
-.hero-subtitle {
-  color: #e2e8f0;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5), 0 2px 24px rgba(0, 0, 0, 0.25);
-  letter-spacing: 0.01em;
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  overflow-x: hidden;
-}
-
-/* ─── Global cursor fix: ensure all buttons/links show pointer ─── */
-button:not([disabled]),
-a,
-[role="button"],
-label[for],
-label.cursor-pointer,
-select {
+/* Date input styling fix */
+input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
+  filter: invert(0.4);
 }
-button[disabled] {
-  cursor: not-allowed;
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(0.2);
 }
-
-.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* ─── NSS Story Section: Scroll Reveal Animations ─── */
-@keyframes scroll-reveal {
-  0%   { opacity: 0; transform: translateY(40px) scale(0.97); }
-  100% { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-.scroll-reveal {
-  opacity: 0;
-  transform: translateY(40px) scale(0.97);
-}
-.scroll-reveal.revealed {
-  animation: scroll-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes scroll-reveal-left {
-  0%   { opacity: 0; transform: translateX(-40px); }
-  100% { opacity: 1; transform: translateX(0);     }
-}
-.scroll-reveal-left {
-  opacity: 0;
-  transform: translateX(-40px);
-}
-.scroll-reveal-left.revealed {
-  animation: scroll-reveal-left 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes scroll-reveal-right {
-  0%   { opacity: 0; transform: translateX(40px); }
-  100% { opacity: 1; transform: translateX(0);    }
-}
-.scroll-reveal-right {
-  opacity: 0;
-  transform: translateX(40px);
-}
-.scroll-reveal-right.revealed {
-  animation: scroll-reveal-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Stagger delays for grid children */
-.reveal-delay-1 { animation-delay: 80ms !important; }
-.reveal-delay-2 { animation-delay: 160ms !important; }
-.reveal-delay-3 { animation-delay: 240ms !important; }
-.reveal-delay-4 { animation-delay: 320ms !important; }
-.reveal-delay-5 { animation-delay: 400ms !important; }
-.reveal-delay-6 { animation-delay: 480ms !important; }
-
-/* ─── Subtle dot pattern background ─── */
-.bg-dot-pattern {
-  background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* ─── Timeline connector line ─── */
-.timeline-line {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, transparent, #6366f1, #3b82f6, transparent);
-  transform: translateX(-50%);
-}
-
-@media (max-width: 767px) {
-  .timeline-line {
-    left: 20px;
-  }
-}
-
-/* ─── Counter animation ─── */
-@keyframes count-up {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-

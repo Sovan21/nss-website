@@ -106,24 +106,24 @@ export const ProfileCardContent = ({ user, onClose, onLogout }) => {
           <div>
             <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-3 border-b border-blue-100 pb-1.5">Academic Info</p>
             <div className="grid grid-cols-2 gap-y-4 gap-x-3 px-1">
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Department</span><span className="text-[14px] font-extrabold text-slate-800">{user.department || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Semester</span><span className="text-[14px] font-extrabold text-slate-800">{user.semester || 'N/A'}</span></div>
-              <div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">College Application ID</span><span className="text-[14px] font-extrabold text-slate-800 uppercase tracking-wider">{user.college_application_id || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Prev Experience</span><span className="text-[14px] font-extrabold text-slate-800">{user.prev_experience || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Extra Curriculum</span><span className="text-[14px] font-extrabold text-slate-800">{user.extra_curriculum || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Department</span><span className="text-[14px] font-bold text-slate-800">{user.department || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Semester</span><span className="text-[14px] font-bold text-slate-800">{user.semester || 'N/A'}</span></div>
+              <div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">College Application ID</span><span className="text-[14px] font-bold text-slate-800 uppercase tracking-wider">{user.college_application_id || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Prev Experience</span><span className="text-[14px] font-bold text-slate-800">{user.prev_experience || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Extra Curriculum</span><span className="text-[14px] font-bold text-slate-800">{user.extra_curriculum || 'N/A'}</span></div>
             </div>
           </div>
           <div>
             <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-3 border-b border-blue-100 pb-1.5">Personal Details</p>
             <div className="grid grid-cols-2 gap-y-4 gap-x-3 px-1">
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Father's Name</span><span className="text-[14px] font-extrabold text-slate-800">{user.fathers_name || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mother's Name</span><span className="text-[14px] font-extrabold text-slate-800">{user.mothers_name || 'N/A'}</span></div>
-              <div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Aadhaar Number</span><span className="text-[14px] font-extrabold text-slate-800 tracking-wider">{user.aadhaar_no || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Phone</span><span className="text-[14px] font-extrabold text-slate-800">{user.phone || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">WhatsApp</span><span className="text-[14px] font-extrabold text-slate-800">{user.whatsapp || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">DOB</span><span className="text-[14px] font-extrabold text-slate-800">{formatDate(user.dob) || 'N/A'}</span></div>
-              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Blood Group</span><span className="text-[14px] font-extrabold text-red-600 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.5c3.59 0 6.5-2.91 6.5-6.5 0-4-6.5-12-6.5-12S5.5 11 5.5 15c0 3.59 2.91 6.5 6.5 6.5z" /></svg>{user.blood_group || 'N/A'}</span></div>
-              {user.current_address && (<div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Address</span><span className="text-[13px] font-bold text-slate-700 leading-snug block">{user.current_address}</span></div>)}
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Father's Name</span><span className="text-[14px] font-bold text-slate-800">{user.fathers_name || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mother's Name</span><span className="text-[14px] font-bold text-slate-800">{user.mothers_name || 'N/A'}</span></div>
+              <div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Aadhaar Number</span><span className="text-[14px] font-bold text-slate-800 tracking-wider">{user.aadhaar_no || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Phone</span><span className="text-[14px] font-bold text-slate-800">{user.phone || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">WhatsApp</span><span className="text-[14px] font-bold text-slate-800">{user.whatsapp || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">DOB</span><span className="text-[14px] font-bold text-slate-800">{formatDate(user.dob) || 'N/A'}</span></div>
+              <div><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Blood Group</span><span className="text-[14px] font-bold text-red-600 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.5c3.59 0 6.5-2.91 6.5-6.5 0-4-6.5-12-6.5-12S5.5 11 5.5 15c0 3.59 2.91 6.5 6.5 6.5z" /></svg>{user.blood_group || 'N/A'}</span></div>
+              {user.current_address && (<div className="col-span-2"><span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Address</span><span className="text-[14px] font-bold text-slate-700 leading-snug block">{user.current_address}</span></div>)}
             </div>
           </div>
           {user.bio && (<div><p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-3 border-b border-blue-100 pb-1.5">About Me</p><p className="text-[13px] text-slate-700 font-medium italic leading-relaxed bg-white/60 p-3.5 rounded-xl border border-blue-100 px-3 mx-1">"{user.bio}"</p></div>)}

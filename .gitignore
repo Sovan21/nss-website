@@ -6,6 +6,7 @@ supabase_schema.sql
 
 # Agent & Prompt Config
 AGENTS.md
+CLAUDE.md
 
 # Environment & Sensitive Credentials (CRITICAL - DO NOT UPLOAD TO GITHUB)
 .env
@@ -53,6 +54,7 @@ yarn-error.log*
 *.log
 
 # Scratch & Temporary Scripts
+scratch_*
 scratch_*.js
 *.tmp
 *.temp

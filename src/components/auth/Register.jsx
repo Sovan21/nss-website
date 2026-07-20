@@ -5,67 +5,10 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 import { useLanguage } from '@/context/LanguageContext';
 
-export const compressImage = (file, maxSizeMB = 2, maxWidth = 800) => {
-  return new Promise((resolve) => {
-    if (!file || !file.type.startsWith('image/')) { resolve(file); return; }
-    const reader = new FileReader(); reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image(); img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width; let height = img.height;
-        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        const maxSizeBytes = maxSizeMB * 1024 * 1024; let quality = 0.9;
-        const attemptCompress = () => {
-          ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, height); ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (!blob) { resolve(file); return; }
-            if (blob.size > maxSizeBytes && quality > 0.1) { quality -= 0.1; attemptCompress(); }
-            else {
-              const newFileName = file.name.replace(/\.[^/.]+$/, ".jpg");
-              resolve(new File([blob], newFileName, { type: 'image/jpeg', lastModified: Date.now() }));
-            }
-          }, 'image/jpeg', quality);
-        };
-        attemptCompress();
-      }; img.onerror = () => resolve(file);
-    }; reader.onerror = () => resolve(file);
-  });
-};
+import { DEPARTMENTS, YEARS } from '@/lib/constants';
+import { compressImage } from '@/lib/utils';
 
-export const DEPARTMENTS = [
-  "Bengali",
-  "Botany",
-  "Chemistry",
-  "Computer Science",
-  "Commerce",
-  "B.Com (Hindi Shift)",
-  "Economics",
-  "Education",
-  "Electronics",
-  "English",
-  "Geography",
-  "Geography (Hindi Shift)",
-  "Hindi",
-  "History",
-  "History (Hindi Shift)",
-  "Mathematics",
-  "Microbiology",
-  "Philosophy",
-  "Physics",
-  "Political Science",
-  "Political Science (Hindi Shift)",
-  "Sanskrit",
-  "Statistics",
-  "Urdu",
-  "Zoology",
-  "BBA",
-  "BCA"
-];
-
-export const YEARS = Array.from({ length: 101 }, (_, i) => 2100 - i);
+export { DEPARTMENTS, YEARS, compressImage };
 
 export default function Register({ onClose, onSwitch }) {
   const { t } = useLanguage();
@@ -92,9 +35,43 @@ export default function Register({ onClose, onSwitch }) {
   // Post-submission confirmation modal states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [resendTimer, setResendTimer] = useState(90);
+  const [resendLoading, setResendLoading] = useState(false);
   const registeredCredsRef = useRef(null); // {email, password} for polling
   const pollRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // 90-second countdown timer for resend confirmation email
+  useEffect(() => {
+    let interval = null;
+    if (showConfirmModal && !emailConfirmed && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [showConfirmModal, emailConfirmed, resendTimer]);
+
+  const handleResendConfirmationEmail = async () => {
+    if (resendTimer > 0 || resendLoading || !formData.email) return;
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      toast.success("Confirmation email has been resent!");
+      setResendTimer(90);
+    } catch (err) {
+      toast.error(err?.message || "Failed to resend confirmation email.");
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   // Poll via signInWithPassword to detect email confirmation (works cross-device)
   useEffect(() => {
@@ -174,7 +151,9 @@ export default function Register({ onClose, onSwitch }) {
         const fileName = `volunteer-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage.from('nss-images').upload(fileName, compressedFile);
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          throw new Error(`Photo upload failed: ${uploadError.message || "Storage error"}`);
+        }
 
         const { data } = supabase.storage.from('nss-images').getPublicUrl(fileName);
         uploadedPhotoUrl = data.publicUrl;
@@ -212,11 +191,18 @@ export default function Register({ onClose, onSwitch }) {
 
       // Store credentials in ref for polling (never rendered, ref only)
       registeredCredsRef.current = { email: formData.email, password: formData.password };
+      sessionStorage.setItem('nss_just_registered', 'true');
       setShowConfirmModal(true);
 
     } catch (err) {
       console.error("Registration Error:", err);
-      toast.error("Registration failed. Please check your inputs and try again.");
+      let errorMsg = err?.message || "Registration failed. Please try again.";
+      if (errorMsg.toLowerCase().includes("user already registered") || errorMsg.toLowerCase().includes("already exists")) {
+        errorMsg = "This email is already registered! Please login or use a different email.";
+      } else if (errorMsg.toLowerCase().includes("rate limit") || errorMsg.toLowerCase().includes("over_email_send_rate_limit")) {
+        errorMsg = "Email rate limit exceeded. Please wait a few minutes before trying again.";
+      }
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -272,9 +258,28 @@ export default function Register({ onClose, onSwitch }) {
                   We have sent a confirmation link to your email address:
                 </p>
                 <p className="text-blue-700 font-bold text-[15px] mb-5 bg-blue-50 py-2 px-4 rounded-xl inline-block border border-blue-100">{formData.email}</p>
-                <p className="text-slate-500 text-[13px] leading-relaxed mb-6">
+                <p className="text-slate-500 text-[13px] leading-relaxed mb-4">
                   Please open your email inbox and click on the confirmation link to activate your volunteer account. You can confirm from any device.
                 </p>
+
+                {/* Resend Confirmation Email Button with 90s Timer */}
+                <div className="mb-6">
+                  <button
+                    type="button"
+                    disabled={resendTimer > 0 || resendLoading}
+                    onClick={handleResendConfirmationEmail}
+                    className={`w-full py-3 px-4 rounded-2xl font-bold text-xs transition-all duration-300 flex items-center justify-center gap-2 ${resendTimer > 0 || resendLoading ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 cursor-pointer active:scale-[0.98]'}`}
+                  >
+                    {resendLoading ? (
+                      <span>Resending Email...</span>
+                    ) : resendTimer > 0 ? (
+                      <span>Resend Email in {resendTimer}s</span>
+                    ) : (
+                      <span>Resend Confirmation Email</span>
+                    )}
+                  </button>
+                </div>
+
                 {/* Subtle waiting indicator */}
                 <div className="flex items-center justify-center gap-2 text-slate-400 text-[13px] font-medium">
                   <svg className="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
@@ -427,8 +432,8 @@ export default function Register({ onClose, onSwitch }) {
 
             <div className="bg-white p-3.5 sm:p-8 rounded-2xl sm:rounded-3xl border border-blue-100 shadow-sm">
               <h3 className="text-xl font-semibold text-blue-900 mb-6 tracking-tight">{t("auth.register.academicDetails")}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.department")} *</label>
                   <select name="department" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
                     <option value="">{t("auth.register.select")}</option>
@@ -437,7 +442,7 @@ export default function Register({ onClose, onSwitch }) {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.semester")} *</label>
                   <select name="semester" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
                     <option value="">{t("auth.register.select")}</option>
@@ -453,7 +458,7 @@ export default function Register({ onClose, onSwitch }) {
                   </select>
                 </div>
                 {formData.semester === "Pass Out" && (
-                  <div>
+                  <div className="flex flex-col justify-end">
                     <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Pass Out Year *</label>
                     <select
                       required
@@ -468,20 +473,20 @@ export default function Register({ onClose, onSwitch }) {
                     </select>
                   </div>
                 )}
-                <div>
-                  <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider ml-1 md:h-10 md:flex md:items-end mb-2">{t("auth.register.collegeApplicationId")} *</label>
+                <div className="flex flex-col justify-end">
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.collegeApplicationId")} *</label>
                   <input name="college_application_id" type="text" onChange={handleChange} required maxLength="15" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterApplicationId")} />
                 </div>
-                <div>
-                  <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider ml-1 md:h-10 md:flex md:items-end mb-2">{t("auth.register.prevExperience")} *</label>
+                <div className="flex flex-col justify-end">
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.prevExperience")} *</label>
                   <select name="prev_experience" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
                     <option value="">{t("auth.register.select")}</option>
                     <option value="Yes">{t("auth.register.yes")}</option>
                     <option value="No">{t("auth.register.no")}</option>
                   </select>
                 </div>
-                <div className={`col-span-1 ${formData.semester === "Pass Out" ? "md:col-span-1" : "md:col-span-2"}`}>
-                  <label className="block text-slate-600 font-bold text-[12px] uppercase tracking-wider ml-1 md:h-10 md:flex md:items-end mb-2">{t("auth.register.extraCurriculum")} *</label>
+                <div className={`flex flex-col justify-end col-span-1 ${formData.semester === "Pass Out" ? "md:col-span-1" : "md:col-span-2"}`}>
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.extraCurriculum")} *</label>
                   <input name="extra_curriculum" type="text" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterExtraCurriculum")} />
                 </div>
               </div>
