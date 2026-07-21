@@ -112,11 +112,22 @@ export const useDebounce = (value, delay) => {
  * Secure Supabase Image Deleter
  */
 export const deleteSupabaseImage = async (url) => {
-  if (!url || url.includes('placeholder.com')) return;
+  if (!url || typeof url !== 'string' || url.includes('placeholder.com')) return;
   try {
-    const fileName = url.split('/').pop();
-    await supabase.storage.from('nss-images').remove([fileName]);
+    const cleanUrl = url.split('?')[0];
+    let filePath = '';
+    if (cleanUrl.includes('/nss-images/')) {
+      filePath = decodeURIComponent(cleanUrl.split('/nss-images/')[1]);
+    } else {
+      filePath = decodeURIComponent(cleanUrl.split('/').pop());
+    }
+    if (filePath) {
+      const { error } = await supabase.storage.from('nss-images').remove([filePath]);
+      if (error) {
+        console.error("Client storage delete error:", error);
+      }
+    }
   } catch (error) {
-    console.error("Error deleting old image:", error);
+    console.error("Error deleting image from storage:", error);
   }
 };

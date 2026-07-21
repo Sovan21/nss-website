@@ -149,7 +149,7 @@ export default function AdminDashboard() {
         <nav className="flex-1 px-4 py-6 space-y-2.5 overflow-y-auto no-scrollbar sidebar-scroll">
           <button 
             onClick={() => handleTabChange('volunteers')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'volunteers' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
@@ -158,7 +158,7 @@ export default function AdminDashboard() {
           
           <button 
             onClick={() => handleTabChange('events')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'events' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
           
           <button 
             onClick={() => handleTabChange('committee')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'committee' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
 
           <button 
             onClick={() => handleTabChange('settings')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
 
           <button 
             onClick={() => handleTabChange('achievements')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'achievements' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
@@ -205,8 +205,8 @@ export default function AdminDashboard() {
             </div>
           )}
           <div className="space-y-2.5">
-            <button onClick={handleGoToPublicSite} className="w-full flex justify-center items-center gap-2 text-blue-400 font-bold py-3 bg-[#13284c] border border-blue-900/50 hover:bg-[#1a3566] transition rounded-2xl text-sm shadow-sm"><SidebarIcons.Public /> Return to Site</button>
-            <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 text-red-400 font-bold py-3 bg-[#2a1420] border border-red-900/50 hover:bg-[#3d1a2d] transition rounded-2xl text-sm shadow-sm"><SidebarIcons.Logout /> Logout</button>
+            <button onClick={handleGoToPublicSite} className="w-full flex justify-center items-center gap-2 text-blue-400 font-bold py-3 bg-[#13284c] border border-blue-900/50 hover:bg-[#1a3566] transition rounded-2xl text-sm shadow-sm cursor-pointer"><SidebarIcons.Public /> Return to Site</button>
+            <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 text-red-400 font-bold py-3 bg-[#2a1420] border border-red-900/50 hover:bg-[#3d1a2d] transition rounded-2xl text-sm shadow-sm cursor-pointer"><SidebarIcons.Logout /> Logout</button>
           </div>
         </div>
       </aside>

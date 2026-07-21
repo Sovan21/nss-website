@@ -4,6 +4,10 @@ html {
   scrollbar-gutter: stable;
 }
 
+button, [role="button"] {
+  cursor: pointer;
+}
+
 /* Custom Styles for NSS Website */
 body::-webkit-scrollbar { width: 8px; }
 body::-webkit-scrollbar-track { background: #f8fafc; }

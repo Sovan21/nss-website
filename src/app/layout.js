@@ -106,6 +106,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${notoBengali.variable} ${notoDevanagari.variable} ${outfit.variable} h-full antialiased`}
       suppressHydrationWarning
     >

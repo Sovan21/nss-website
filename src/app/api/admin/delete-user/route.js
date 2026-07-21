@@ -48,6 +48,33 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Forbidden: Admin privilege required' }, { status: 403 });
     }
 
+    // Find volunteer registration record to extract photo_url
+    const { data: volData } = await supabaseAdmin
+      .from('registrations')
+      .select('photo_url')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (volData?.photo_url) {
+      try {
+        const cleanUrl = volData.photo_url.split('?')[0];
+        let filePath = '';
+        if (cleanUrl.includes('/nss-images/')) {
+          filePath = decodeURIComponent(cleanUrl.split('/nss-images/')[1]);
+        } else {
+          filePath = decodeURIComponent(cleanUrl.split('/').pop());
+        }
+        if (filePath) {
+          await supabaseAdmin.storage.from('nss-images').remove([filePath]);
+        }
+      } catch (imgErr) {
+        console.error("Storage image deletion error:", imgErr);
+      }
+    }
+
+    // Delete record from registrations table if present
+    await supabaseAdmin.from('registrations').delete().eq('id', userId);
+
     // Delete user from Auth System
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
