@@ -152,7 +152,7 @@ export default function RootLayout({ children }) {
               "contactPoint": {
                 "@type": "ContactPoint",
                 "contactType": "NSS Program Officer",
-                "email": "bbcollege1944@gmail.com"
+                "email": "nssunitbbcollege@gmail.com"
               }
             })
           }}

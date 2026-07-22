@@ -54,13 +54,13 @@ export default function ContactPage({ siteData }) {
           </a>
  
           {/* Email */}
-          <div onClick={(e) => handleEmailClick(e, finalData.contact_email || "bbcollege1944@gmail.com")} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
+          <div onClick={(e) => handleEmailClick(e, finalData.contact_email || "nssunitbbcollege@gmail.com")} className="bg-white p-8 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgb(37,99,235,0.08)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center group cursor-pointer">
             <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-600/20 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
               <Icons.Mail className="w-7 h-7" />
             </div>
             <h4 className="text-slate-900 font-black text-lg mb-3 tracking-tight">{t("contact.emailUs")}</h4>
             <span className="text-blue-600 text-[13px] md:text-sm font-black break-words group-hover:underline decoration-2 underline-offset-4">
-              {finalData.contact_email || "bbcollege1944@gmail.com"}
+              {finalData.contact_email || "nssunitbbcollege@gmail.com"}
             </span>
           </div>
  

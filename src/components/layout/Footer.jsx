@@ -1,18 +1,56 @@
 'use client';
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Icons } from '../Icons';
 import { useLanguage } from '@/context/LanguageContext';
 
+const DEFAULT_EMAIL = "nssunitbbcollege@gmail.com";
+
 const Footer = ({ siteData, finalData: passedFinalData }) => {
   const { t } = useLanguage();
-  const finalData = siteData || passedFinalData || {};
+  const [fetchedData, setFetchedData] = useState(null);
+
+  // If siteData is not provided or empty, fetch live site_content from database
+  useEffect(() => {
+    const hasPropsData = Boolean(
+      (siteData && Object.keys(siteData).length > 0) || 
+      (passedFinalData && Object.keys(passedFinalData).length > 0)
+    );
+
+    if (!hasPropsData) {
+      let isMounted = true;
+      const loadSiteContent = async () => {
+        try {
+          const { data, error } = await supabase.from('site_content').select('*').limit(1).single();
+          if (data && !error && isMounted) {
+            setFetchedData(data);
+          }
+        } catch (err) {
+          console.warn("Footer background site_content fetch error:", err);
+        }
+      };
+      loadSiteContent();
+      return () => { isMounted = false; };
+    }
+  }, [siteData, passedFinalData]);
+
+  const finalData = (siteData && Object.keys(siteData).length > 0)
+    ? siteData
+    : (passedFinalData && Object.keys(passedFinalData).length > 0)
+    ? passedFinalData
+    : fetchedData || {};
+
+  const activeEmail = finalData.contact_email || DEFAULT_EMAIL;
 
   const handleEmailClick = (e, email) => {
     e.preventDefault();
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const targetEmail = email || activeEmail;
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile) {
-      window.location.href = `mailto:${email}`;
+      window.location.href = `mailto:${targetEmail}`;
     } else {
-      window.open(`https://mail.google.com/mail/?extsrc=mailto&url=mailto:${email}`, '_blank');
+      window.open(`https://mail.google.com/mail/?extsrc=mailto&url=mailto:${targetEmail}`, '_blank');
     }
   };
 
@@ -27,7 +65,7 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
         {/* Main Footer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 mb-10">
 
-          {/* Column 1: Branding & Intro (takes up more space) */}
+          {/* Column 1: Branding & Intro */}
           <div className="lg:col-span-4 xl:col-span-3 flex flex-col items-center sm:items-start text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mb-5">
               {/* College Logo */}
@@ -35,12 +73,12 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
                 <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="h-full w-auto object-contain" />
               </a>
 
-              {/* NSS Logo - Perfect Circle Link */}
+              {/* NSS Logo */}
               <a href="https://nss.gov.in" target="_blank" rel="noreferrer" className="block w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.1)] ring-2 ring-white/20 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 overflow-hidden shrink-0 cursor-pointer">
                 <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain p-0.5 bg-white" />
               </a>
 
-              {/* MY Bharat Logo - Tight Background Link */}
+              {/* MY Bharat Logo */}
               <a href="https://mybharat.gov.in" target="_blank" rel="noreferrer" className="block bg-white/5 px-2 py-1 rounded-lg backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-105">
                 <img src="/my bharat.png" alt="MY Bharat" className="h-11 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] brightness-110" />
               </a>
@@ -89,11 +127,11 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
             <h4 className="text-white text-sm font-bold mb-4 tracking-wide uppercase">{t("footer.getInTouch")}</h4>
             <ul className="space-y-3">
               <li>
-                <div onClick={(e) => handleEmailClick(e, finalData.contact_email || "bbcollege1944@gmail.com")} className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300 cursor-pointer">
+                <div onClick={(e) => handleEmailClick(e, activeEmail)} className="group flex items-start gap-3 text-slate-400 hover:text-blue-300 transition-colors duration-300 cursor-pointer">
                   <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors duration-300">
                     <Icons.Mail className="w-4 h-4 text-slate-300 group-hover:text-blue-400" />
                   </div>
-                  <span className="text-[14px] leading-tight pt-1.5 break-words">{finalData.contact_email || "bbcollege1944@gmail.com"}</span>
+                  <span className="text-[14px] leading-tight pt-1.5 break-words">{activeEmail}</span>
                 </div>
               </li>
               {finalData.contact_phone && (
@@ -138,11 +176,11 @@ const Footer = ({ siteData, finalData: passedFinalData }) => {
               ].map((social) => (
                 <a
                   key={social.name}
-                  href={social.url}
-                  target="_blank"
-                  rel="noreferrer"
+                  href={social.url && social.url !== '#' ? social.url : undefined}
+                  target={social.url && social.url !== '#' ? "_blank" : undefined}
+                  rel={social.url && social.url !== '#' ? "noreferrer" : undefined}
                   aria-label={social.name}
-                  className="relative flex items-center h-9 rounded-full bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 hover:shadow-[0_4px_15px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer"
+                  className={`relative flex items-center h-9 rounded-full bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 hover:shadow-[0_4px_15px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 transition-all duration-300 group ${social.url && social.url !== '#' ? 'cursor-pointer' : 'cursor-default opacity-75'}`}
                 >
                   <div className="flex items-center justify-center w-9 h-9 shrink-0">
                     <img
