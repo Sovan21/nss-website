@@ -67,9 +67,9 @@ export default function ActivitiesPage({ prefetchedEvents }) {
     const endDate = new Date(end);
     endDate.setHours(0, 0, 0, 0);
 
-    if (today < startDate) return { text: t("activities.upcoming"), color: "bg-amber-50 text-amber-800 border-amber-200" };
-    if (today > endDate) return { text: t("activities.past"), color: "bg-slate-100 text-slate-600 border-slate-200" };
-    return { text: t("activities.activeNow"), color: "bg-emerald-50 text-emerald-800 border-emerald-200 animate-pulse" };
+    if (today < startDate) return { text: t("activities.upcoming"), color: "bg-amber-400 text-slate-950 border-amber-300 font-extrabold" };
+    if (today > endDate) return { text: t("activities.past"), color: "bg-slate-800 text-slate-200 border-slate-700 font-bold" };
+    return { text: t("activities.activeNow"), color: "bg-emerald-400 text-slate-950 border-emerald-300 font-extrabold animate-pulse" };
   };
 
   const getCount = (text) => {
@@ -80,7 +80,7 @@ export default function ActivitiesPage({ prefetchedEvents }) {
   return (
     <section className="pt-28 pb-12 md:pt-36 md:pb-20 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] flex-grow">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20">
+        <div className="text-center max-w-2xl mx-auto mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 border border-blue-100">
             <Icons.Sparkles className="w-3.5 h-3.5" /> {t("activities.badge")}
           </div>
@@ -105,36 +105,39 @@ export default function ActivitiesPage({ prefetchedEvents }) {
               return (
                 <div
                   key={evt.id}
-                  className="group bg-slate-900 rounded-3xl md:rounded-[2.5rem] shadow-[0_10px_40px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(37,99,235,0.15)] overflow-hidden border border-white/10 transition-all duration-700 hover:-translate-y-2 flex flex-col cursor-pointer relative aspect-[2/1]"
+                  className="group bg-slate-950 rounded-3xl md:rounded-[2rem] shadow-lg hover:shadow-2xl overflow-hidden border border-slate-800/80 transition-all duration-500 hover:-translate-y-1.5 flex flex-col cursor-pointer relative min-h-[280px] sm:min-h-[310px] md:min-h-[340px] w-full"
                   onClick={() => setSelectedEvent(evt)}
                 >
-                  <div className="absolute inset-0 overflow-hidden">
+                  <div className="absolute inset-0 overflow-hidden bg-slate-950">
                     <img
                       src={evt.banner_url}
                       alt={evt.title}
                       loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                      className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-500"></div>
+                    {/* Deep High-Contrast Dark Gradient Backdrop for text visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/20 opacity-95 transition-opacity duration-300"></div>
                   </div>
                   
-                  <div className="relative z-10 p-4 md:p-6 flex-1 flex flex-col justify-between">
-                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                      <div className={`px-3 py-1.5 rounded-full text-[9px] md:text-[10px] font-black tracking-widest uppercase border shadow-2xl backdrop-blur-md transition-all duration-500 ${status.color} group-hover:scale-105`}>
+                  <div className="relative z-10 p-5 sm:p-6 md:p-7 flex-1 flex flex-col justify-between">
+                    {/* Top Row: Clear Status & Date Pills */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <div className={`px-3 py-1 rounded-full text-[10px] md:text-xs font-black tracking-wider uppercase border shadow-md ${status.color}`}>
                         {status.text}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-blue-100 bg-slate-900/60 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/20 shadow-lg">
-                        <Icons.Calendar className="w-4 h-4 text-blue-400" />
+                      <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-slate-100 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-slate-700 shadow-md">
+                        <Icons.Calendar className="w-3.5 h-3.5 text-blue-400" />
                         {formatDate(evt.start_date)}{evt.start_date !== evt.end_date && ` - ${formatDate(evt.end_date)}`}
                       </div>
                     </div>
                     
-                    <div className="transform transition-all duration-700 translate-y-8 md:translate-y-10 group-hover:translate-y-0">
-                      <h3 className="font-black text-white leading-tight drop-shadow-2xl mb-2 tracking-tight text-xl md:text-3xl">
+                    {/* Bottom Row: Clear Title & View Details Button */}
+                    <div className="mt-4">
+                      <h3 className="font-black text-white leading-snug drop-shadow-md mb-3 tracking-tight text-lg sm:text-xl md:text-2xl line-clamp-2">
                         {evt.title}
                       </h3>
-                      <div className="flex items-center gap-2 text-white font-black text-[10px] md:text-xs bg-white/10 hover:bg-blue-600 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 transition-all opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 w-max uppercase tracking-widest">
-                        {t("activities.viewDetails")} <Icons.ArrowRight className="w-3.5 h-3.5 ml-1.5 transform group-hover:translate-x-1 transition-transform" />
+                      <div className="inline-flex items-center gap-2 text-white font-extrabold text-[10px] md:text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-full border border-blue-400/40 transition-all duration-300 shadow-md uppercase tracking-wider">
+                        {t("activities.viewDetails")} <Icons.ArrowRight className="w-3.5 h-3.5 ml-1 transform group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </div>

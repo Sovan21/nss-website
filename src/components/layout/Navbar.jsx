@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Icons } from "../Icons";
 import UserAvatar, { getInitials } from "../UserAvatar";
@@ -21,6 +21,8 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   const [showDesktopProfile, setShowDesktopProfile] = useState(false);
   const [showAdminWarning, setShowAdminWarning] = useState(false);
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+  const hamburgerRef = useRef(null);
+  const [closeBtnPos, setCloseBtnPos] = useState(null);
 
   useEffect(() => {
     const checkSession = () => {
@@ -102,7 +104,13 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     };
   }, [showAdminWarning, showWhatsAppPopup]);
 
-  const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+  const toggleMenu = () => {
+    if (!isMobileMenuOpen && hamburgerRef.current) {
+      const rect = hamburgerRef.current.getBoundingClientRect();
+      setCloseBtnPos({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+    }
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
   const closeAllMenus = () => { setIsMobileMenuOpen(false); setShowMobileProfile(false); setShowDesktopProfile(false); };
 
   const handleNavClick = (key) => {
@@ -135,13 +143,13 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         <nav className="pointer-events-auto w-full max-w-6xl mx-auto bg-white/92 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/90 rounded-full transition-all duration-300 overflow-hidden">
           <div className="px-2.5 sm:px-4 md:px-6">
             <div className="flex justify-between items-center h-13 sm:h-14 md:h-18 gap-1.5 sm:gap-2 w-full">
-              <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink min-w-0 cursor-pointer select-none group active:scale-95 transition-transform"
-                onClick={() => handleNavClick('home')}
-                onContextMenu={(e) => e.preventDefault()}
-                onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}
-                style={{ WebkitTouchCallout: 'none' }}>
-                {/* Unified Logo Badge */}
-                <div className="flex items-center gap-1 shrink-0 bg-white rounded-xl sm:rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-all duration-300 pointer-events-none">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink min-w-0 cursor-pointer select-none group"
+                onClick={() => handleNavClick('home')}>
+                {/* Unified Logo Badge — long-press here triggers admin access */}
+                <div className="flex items-center gap-1 shrink-0 bg-white rounded-xl sm:rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-[transform,box-shadow,border-color] duration-300 ease-out active:scale-[0.98]"
+                  onContextMenu={(e) => e.preventDefault()}
+                  onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}
+                  style={{ WebkitTouchCallout: 'none' }}>
                   <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 overflow-hidden shrink-0">
                     <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-full h-full object-contain select-none" draggable="false" />
                   </div>
@@ -175,7 +183,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
               <div className="lg:hidden flex items-center shrink-0 ml-1 sm:ml-2">
                 {currentUser ? (<UserAvatar user={currentUser} onClick={toggleMenu} />) : (
-                  <button onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-1.5 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-all duration-300 backdrop-blur-sm relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center">
+                  <button ref={hamburgerRef} onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-1.5 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-all duration-300 backdrop-blur-sm relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center">
                     <div className="relative w-4.5 sm:w-5 h-3 sm:h-3.5 flex flex-col justify-between origin-center transform transition-all duration-300">
                       <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? 'rotate-45 translate-y-[5px] sm:translate-y-[6px]' : ''}`}></span>
                       <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0 scale-0' : ''}`}></span>
@@ -189,24 +197,27 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         </nav>
       </div>
 
+      {/* Mobile close button — rendered outside navbar stacking context, positioned at hamburger's exact location */}
+      {isMobileMenuOpen && closeBtnPos && !currentUser && (
+        <button
+          onClick={closeAllMenus}
+          className="fixed z-[80] lg:hidden flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-full border border-white/15 cursor-pointer transition-colors duration-300 focus:outline-none shadow-sm"
+          style={{ top: closeBtnPos.top, left: closeBtnPos.left, width: closeBtnPos.width, height: closeBtnPos.height }}
+        >
+          <div className="relative w-4.5 sm:w-5 h-3 sm:h-3.5 flex flex-col justify-between">
+            <span className="h-[2px] w-full bg-white rounded-full origin-center rotate-45 translate-y-[5px] sm:translate-y-[6px]"></span>
+            <span className="h-[2px] w-full bg-white rounded-full opacity-0 scale-0"></span>
+            <span className="h-[2px] w-full bg-white rounded-full origin-center -rotate-45 -translate-y-[5px] sm:-translate-y-[6px]"></span>
+          </div>
+        </button>
+      )}
+
       {/* Mobile backdrop */}
       <div className={`fixed inset-0 bg-slate-900/40 z-[60] lg:hidden transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={closeAllMenus}></div>
 
       {/* Mobile menu */}
       <div className={`fixed top-0 right-0 w-[280px] h-fit max-h-[100dvh] z-[70] lg:hidden flex flex-col transform transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] rounded-bl-[28px] overflow-hidden will-change-transform ${isMobileMenuOpen ? 'opacity-100 translate-x-0 visible' : 'opacity-0 translate-x-full invisible'}`}
         style={{ background: 'rgba(15, 23, 42, 0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        
-        {/* Unified Pixel-Aligned Close Button */}
-        <button
-          onClick={closeAllMenus}
-          className="fixed top-[20px] right-[28px] md:top-[32px] md:right-[40px] w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-300 border border-white/10 shadow-sm cursor-pointer z-[80] focus:outline-none"
-        >
-          <div className="relative w-5 h-3.5 flex flex-col justify-between origin-center transform transition-all duration-300">
-            <span className="h-[2px] w-full bg-white rounded-full rotate-45 translate-y-[6px]"></span>
-            <span className="h-[2px] w-full bg-white rounded-full opacity-0 scale-0"></span>
-            <span className="h-[2px] w-full bg-white rounded-full -rotate-45 -translate-y-[6px]"></span>
-          </div>
-        </button>
 
         {currentUser ? (
           <button onClick={(e) => { e.preventDefault(); closeAllMenus(); setShowMobileProfile(true); }} className="w-full bg-white/5 hover:bg-white/10 transition-colors p-6 flex flex-col items-center text-center shrink-0 relative group focus:outline-none border-b border-white/10 cursor-pointer">

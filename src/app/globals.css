@@ -121,3 +121,112 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   filter: invert(0.2);
 }
+
+/* ─── Perfectly Balanced Ultra-Smooth Scroll Reveal Animations ─── */
+@keyframes scroll-reveal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 30px, 0) scale(0.97);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 30px, 0) scale(0.97);
+  filter: blur(5px);
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+
+.scroll-reveal.revealed {
+  animation: scroll-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scroll-reveal-left {
+  0% {
+    opacity: 0;
+    transform: translate3d(-30px, 0, 0);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0px);
+  }
+}
+
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translate3d(-30px, 0, 0);
+  filter: blur(5px);
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+
+.scroll-reveal-left.revealed {
+  animation: scroll-reveal-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scroll-reveal-right {
+  0% {
+    opacity: 0;
+    transform: translate3d(30px, 0, 0);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0px);
+  }
+}
+
+.scroll-reveal-right {
+  opacity: 0;
+  transform: translate3d(30px, 0, 0);
+  filter: blur(5px);
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+
+.scroll-reveal-right.revealed {
+  animation: scroll-reveal-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Balanced Stagger Delays */
+.reveal-delay-1 { animation-delay: 70ms !important; }
+.reveal-delay-2 { animation-delay: 140ms !important; }
+.reveal-delay-3 { animation-delay: 210ms !important; }
+.reveal-delay-4 { animation-delay: 280ms !important; }
+.reveal-delay-5 { animation-delay: 350ms !important; }
+.reveal-delay-6 { animation-delay: 420ms !important; }
+
+/* ─── Subtle dot pattern background ─── */
+.bg-dot-pattern {
+  background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ─── Timeline connector line ─── */
+.timeline-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, #6366f1, #3b82f6, transparent);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 767px) {
+  .timeline-line {
+    left: 20px;
+  }
+}
+
+

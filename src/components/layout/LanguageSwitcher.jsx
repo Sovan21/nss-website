@@ -97,47 +97,81 @@ export default function LanguageSwitcher() {
 
   const currentLanguage = languages.find((lang) => lang.code === locale) || languages[0];
 
+  const [hiddenByFooter, setHiddenByFooter] = useState(false);
+
+  // Hide floating UI only when footer's top reaches the floating elements' position
+  useEffect(() => {
+    let retryTimer;
+    let footerEl;
+
+    const checkOverlap = () => {
+      if (!footerEl) return;
+      const footerTop = footerEl.getBoundingClientRect().top;
+      const threshold = window.innerHeight - 80; // floating UI is ~80px from bottom
+      setHiddenByFooter(footerTop < threshold);
+    };
+
+    const attach = () => {
+      footerEl = document.getElementById('footer');
+      if (!footerEl) { retryTimer = setTimeout(attach, 1000); return; }
+      checkOverlap();
+      window.addEventListener('scroll', checkOverlap, { passive: true });
+    };
+
+    attach();
+    return () => { clearTimeout(retryTimer); window.removeEventListener('scroll', checkOverlap); };
+  }, []);
+
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 select-none pointer-events-auto">
+    <div
+      className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 select-none"
+      style={{
+        transformOrigin: 'right center',
+        transform: hiddenByFooter ? 'scaleX(0) scaleY(0.75)' : 'scaleX(1) scaleY(1)',
+        opacity: hiddenByFooter ? 0 : 1,
+        pointerEvents: hiddenByFooter ? 'none' : 'auto',
+        transition: 'transform 700ms cubic-bezier(0.4, 0, 0.2, 1), opacity 700ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
       {/* Visitor Counter Capsule */}
       <div 
-        className="flex items-center gap-3 bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-full py-2.5 px-4 shadow-xl text-white text-xs transition-all hover:border-white/20"
+        className="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-full py-1.5 px-3 shadow-xl text-white text-[10px] transition-all hover:border-white/20"
         style={{ 
           boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)",
           animation: "confirm-pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)"
         }}
       >
         {/* Live Count */}
-        <div className="flex items-center gap-2" title="Users currently online">
-          <span className="relative flex h-2 w-2">
+        <div className="flex items-center gap-1.5" title="Users currently online">
+          <span className="relative flex h-1.5 w-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
           </span>
-          <span className="flex items-baseline gap-1">
-            <span className="font-bold text-emerald-400 tracking-tight">{stats.live !== null ? stats.live : "..."}</span>
-            <span className="text-[9px] text-white/50 font-black uppercase tracking-wider leading-none">{t("stats.live")}</span>
+          <span className="flex items-baseline gap-0.5">
+            <span className="font-bold text-emerald-400 tracking-tight text-[11px]">{stats.live !== null ? stats.live : "..."}</span>
+            <span className="text-[7px] text-white/50 font-black uppercase tracking-wider leading-none">{t("stats.live")}</span>
           </span>
         </div>
 
         {/* Vertical Divider */}
-        <div className="h-3.5 w-[1px] bg-white/20"></div>
+        <div className="h-2.5 w-[1px] bg-white/20"></div>
 
         {/* Total Count */}
-        <div className="flex items-center gap-1.5" title="Total unique visitors">
+        <div className="flex items-center gap-1" title="Total unique visitors">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
             fill="none" 
             viewBox="0 0 24 24" 
             strokeWidth={2.2} 
             stroke="currentColor" 
-            className="w-3.5 h-3.5 text-blue-400"
+            className="w-3 h-3 text-blue-400"
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
-          <span className="flex items-baseline gap-1">
-            <span className="font-bold text-white tracking-tight">{stats.total !== null ? stats.total.toLocaleString() : "..."}</span>
-            <span className="text-[9px] text-white/50 font-black uppercase tracking-wider leading-none">{t("stats.visitors")}</span>
+          <span className="flex items-baseline gap-0.5">
+            <span className="font-bold text-white tracking-tight text-[11px]">{stats.total !== null ? stats.total.toLocaleString() : "..."}</span>
+            <span className="text-[7px] text-white/50 font-black uppercase tracking-wider leading-none">{t("stats.visitors")}</span>
           </span>
         </div>
       </div>
