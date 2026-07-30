@@ -73,3 +73,9 @@ public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map
 public/fallback-*.js
+
+# Test Folders & Reports
+/Test Folder/
+/test/
+/tests/
+
