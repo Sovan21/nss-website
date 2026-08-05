@@ -15,12 +15,11 @@ body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border
 body::-webkit-scrollbar-thumb:hover { background: #94a3b8; border-color: #f1f5f9; }
 
 @keyframes fade-in-up {
-  0%   { opacity: 0; transform: translateY(20px) scale(0.98); }
-  100% { opacity: 1; transform: translateY(0)    scale(1);    }
+  0%   { opacity: 0; transform: translate3d(0, 24px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 .animate-fade-in-up {
-  animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+  animation: fade-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes shimmer {
@@ -37,14 +36,15 @@ body::-webkit-scrollbar-thumb:hover { background: #94a3b8; border-color: #f1f5f9
 }
 
 @keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
+  0% { transform: translate3d(0px, 0px, 0) scale(1); }
+  33% { transform: translate3d(20px, -30px, 0) scale(1.05); }
+  66% { transform: translate3d(-15px, 15px, 0) scale(0.95); }
+  100% { transform: translate3d(0px, 0px, 0) scale(1); }
 }
 
 .animate-blob {
   animation: blob 7s infinite;
+  will-change: transform;
 }
 
 .animation-delay-2000 {
@@ -58,22 +58,16 @@ body::-webkit-scrollbar-thumb:hover { background: #94a3b8; border-color: #f1f5f9
 /* Glassmorphism Utilities */
 .glass-panel {
   background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .glass-card {
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .glass-card-dark {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -122,83 +116,71 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   filter: invert(0.2);
 }
 
-/* ─── Perfectly Balanced Ultra-Smooth Scroll Reveal Animations ─── */
+/* ─── Ultra-Smooth, Highly Visible 60fps/120fps Scroll Reveal Animations ─── */
 @keyframes scroll-reveal {
   0% {
     opacity: 0;
-    transform: translate3d(0, 30px, 0) scale(0.97);
-    filter: blur(5px);
+    transform: translate3d(0, 32px, 0);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    filter: blur(0px);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 .scroll-reveal {
   opacity: 0;
-  transform: translate3d(0, 30px, 0) scale(0.97);
-  filter: blur(5px);
-  will-change: transform, opacity, filter;
+  transform: translate3d(0, 32px, 0);
   backface-visibility: hidden;
 }
 
 .scroll-reveal.revealed {
-  animation: scroll-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scroll-reveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes scroll-reveal-left {
   0% {
     opacity: 0;
-    transform: translate3d(-30px, 0, 0);
-    filter: blur(5px);
+    transform: translate3d(-32px, 0, 0);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0);
-    filter: blur(0px);
   }
 }
 
 .scroll-reveal-left {
   opacity: 0;
-  transform: translate3d(-30px, 0, 0);
-  filter: blur(5px);
-  will-change: transform, opacity, filter;
+  transform: translate3d(-32px, 0, 0);
   backface-visibility: hidden;
 }
 
 .scroll-reveal-left.revealed {
-  animation: scroll-reveal-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scroll-reveal-left 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes scroll-reveal-right {
   0% {
     opacity: 0;
-    transform: translate3d(30px, 0, 0);
-    filter: blur(5px);
+    transform: translate3d(32px, 0, 0);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0);
-    filter: blur(0px);
   }
 }
 
 .scroll-reveal-right {
   opacity: 0;
-  transform: translate3d(30px, 0, 0);
-  filter: blur(5px);
-  will-change: transform, opacity, filter;
+  transform: translate3d(32px, 0, 0);
   backface-visibility: hidden;
 }
 
 .scroll-reveal-right.revealed {
-  animation: scroll-reveal-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scroll-reveal-right 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Balanced Stagger Delays */
+/* Distinct, Elegant Stagger Delays */
 .reveal-delay-1 { animation-delay: 70ms !important; }
 .reveal-delay-2 { animation-delay: 140ms !important; }
 .reveal-delay-3 { animation-delay: 210ms !important; }

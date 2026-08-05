@@ -14,7 +14,8 @@ export const decodeDesignation = (raw) => {
     blood_group: '',
     phone: '',
     email: '',
-    registration_id: null
+    registration_id: null,
+    display_order: 999
   };
 
   if (!raw) return defaults;
@@ -35,7 +36,8 @@ export const decodeDesignation = (raw) => {
           blood_group: parsed.blood_group || '',
           phone: parsed.phone || '',
           email: parsed.email || '',
-          registration_id: parsed.registration_id || null
+          registration_id: parsed.registration_id || null,
+          display_order: parsed.display_order != null ? Number(parsed.display_order) : 999
         };
       } catch (e) {
         return { ...defaults, category: cat, designation: rest };
@@ -49,10 +51,6 @@ export const decodeDesignation = (raw) => {
 };
 
 export const encodeDesignation = (category, designation, extra = {}) => {
-  const hasExtra = extra.department || extra.semester || extra.blood_group || extra.phone || extra.email || extra.registration_id;
-  if (!hasExtra) {
-    return `${category}::${designation}`;
-  }
   const payload = {
     designation: designation || '',
     department: extra.department || '',
@@ -60,9 +58,21 @@ export const encodeDesignation = (category, designation, extra = {}) => {
     blood_group: extra.blood_group || '',
     phone: extra.phone || '',
     email: extra.email || '',
-    registration_id: extra.registration_id || null
+    registration_id: extra.registration_id || null,
+    display_order: extra.display_order != null ? Number(extra.display_order) : 999
   };
   return `${category}::${JSON.stringify(payload)}`;
+};
+
+export const getMemberOrder = (member) => {
+  if (member?.display_order != null && !isNaN(Number(member.display_order))) {
+    return Number(member.display_order);
+  }
+  const decoded = decodeDesignation(member?.designation);
+  if (decoded.display_order != null && !isNaN(Number(decoded.display_order))) {
+    return Number(decoded.display_order);
+  }
+  return 999;
 };
 
 const VolunteerSearchAutocomplete = ({ registrations, selectedVolId, onSelectVolunteer }) => {
@@ -230,6 +240,7 @@ const CommitteeManager = ({ setIsDirty }) => {
     category: 'Teacher',
     designation: '',
     about: '',
+    display_order: '',
     photo_url: null
   };
 
@@ -281,6 +292,28 @@ const CommitteeManager = ({ setIsDirty }) => {
     } catch (err) { console.error("Error fetching registrations:", err); return []; }
   };
 
+  const saveMemberToSupabase = async (action, data, memberId = null) => {
+    if (action === 'insert') {
+      const { error } = await supabase.from('committee').insert([data]);
+      if (error && (error.message?.includes('display_order') || error.code === 'PGRST204')) {
+        const { display_order, ...cleanData } = data;
+        const { error: err2 } = await supabase.from('committee').insert([cleanData]);
+        if (err2) throw err2;
+      } else if (error) {
+        throw error;
+      }
+    } else if (action === 'update') {
+      const { error } = await supabase.from('committee').update(data).eq('id', memberId);
+      if (error && (error.message?.includes('display_order') || error.code === 'PGRST204')) {
+        const { display_order, ...cleanData } = data;
+        const { error: err2 } = await supabase.from('committee').update(cleanData).eq('id', memberId);
+        if (err2) throw err2;
+      } else if (error) {
+        throw error;
+      }
+    }
+  };
+
   useEffect(() => {
     const initData = async () => {
       const commMembers = await fetchMembers();
@@ -299,7 +332,8 @@ const CommitteeManager = ({ setIsDirty }) => {
                 semester: matchingVol.semester || '',
                 blood_group: matchingVol.blood_group || '',
                 phone: matchingVol.phone || '',
-                email: matchingVol.email || ''
+                email: matchingVol.email || '',
+                display_order: getMemberOrder(member)
               });
               await supabase.from('committee').update({
                 designation: encoded,
@@ -329,6 +363,8 @@ const CommitteeManager = ({ setIsDirty }) => {
     e.preventDefault();
     setSaving(true);
     try {
+      const orderVal = newMember.display_order ? Number(newMember.display_order) : (filteredMembers.length + 1);
+
       if (mainTab === 'teachers') {
         let imageUrl = null;
         if (bannerFile) {
@@ -339,16 +375,18 @@ const CommitteeManager = ({ setIsDirty }) => {
           imageUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
         }
 
-        const encodedDesignation = encodeDesignation('Teacher', newMember.designation);
+        const encodedDesignation = encodeDesignation('Teacher', newMember.designation, {
+          display_order: orderVal
+        });
 
         const memberData = {
           name: newMember.name,
           designation: encodedDesignation,
           about: newMember.about,
-          image_url: imageUrl
+          image_url: imageUrl,
+          display_order: orderVal
         };
-        const { error } = await supabase.from('committee').insert([memberData]);
-        if (error) throw error;
+        await saveMemberToSupabase('insert', memberData);
 
         toast.success("New Teacher / Mentor Added!");
       } else {
@@ -361,17 +399,18 @@ const CommitteeManager = ({ setIsDirty }) => {
 
         const category = newMember.category || 'Student';
         const encodedDesignation = encodeDesignation(category, newMember.designation, {
-          registration_id: selectedVol.id
+          registration_id: selectedVol.id,
+          display_order: orderVal
         });
 
         const memberData = {
           name: selectedVol.full_name,
           designation: encodedDesignation,
           about: selectedVol.bio || '',
-          image_url: selectedVol.photo_url || null
+          image_url: selectedVol.photo_url || null,
+          display_order: orderVal
         };
-        const { error } = await supabase.from('committee').insert([memberData]);
-        if (error) throw error;
+        await saveMemberToSupabase('insert', memberData);
 
         toast.success("Committee Member Added!");
       }
@@ -384,16 +423,18 @@ const CommitteeManager = ({ setIsDirty }) => {
       setBannerFile(null);
       setShowAddForm(false);
       fetchMembers();
-    } catch (err) { toast.error("Failed to add member."); } finally { setSaving(false); }
+    } catch (err) { console.error(err); toast.error("Failed to add member."); } finally { setSaving(false); }
   };
 
   const openEditModal = (member) => {
     const decoded = decodeDesignation(member.designation);
+    const orderVal = getMemberOrder(member);
     setEditFormData({
       name: member.name,
       category: decoded.category || (mainTab === 'teachers' ? 'Teacher' : 'Student'),
       designation: decoded.designation || '',
       about: member.about || '',
+      display_order: orderVal !== 999 ? String(orderVal) : '',
       photo_url: member.image_url || null
     });
     setEditImageFile(null);
@@ -422,10 +463,13 @@ const CommitteeManager = ({ setIsDirty }) => {
 
       const decoded = decodeDesignation(editingMember.designation);
       const vol = decoded.registration_id ? registrations.find(r => String(r.id) === String(decoded.registration_id)) : null;
+      const orderVal = editFormData.display_order ? Number(editFormData.display_order) : 999;
 
       let encodedDesignation;
       if (editFormData.category === 'Teacher') {
-        encodedDesignation = encodeDesignation('Teacher', editFormData.designation);
+        encodedDesignation = encodeDesignation('Teacher', editFormData.designation, {
+          display_order: orderVal
+        });
       } else {
         encodedDesignation = encodeDesignation(editFormData.category, editFormData.designation, {
           registration_id: decoded.registration_id || null,
@@ -433,7 +477,8 @@ const CommitteeManager = ({ setIsDirty }) => {
           semester: vol?.semester || decoded.semester || '',
           blood_group: vol?.blood_group || decoded.blood_group || '',
           phone: vol?.phone || decoded.phone || '',
-          email: vol?.email || decoded.email || ''
+          email: vol?.email || decoded.email || '',
+          display_order: orderVal
         });
       }
 
@@ -441,15 +486,71 @@ const CommitteeManager = ({ setIsDirty }) => {
         name: editFormData.name,
         designation: encodedDesignation,
         about: editFormData.about,
-        image_url: updatedImageUrl
+        image_url: updatedImageUrl,
+        display_order: orderVal
       };
-      const { error } = await supabase.from('committee').update(finalUpdates).eq('id', editingMember.id);
-      if (error) throw error;
+      await saveMemberToSupabase('update', finalUpdates, editingMember.id);
 
       toast.success("Profile Updated Successfully!");
       setEditingMember(null);
       fetchMembers();
-    } catch (err) { toast.error("Failed to update profile."); } finally { setSaving(false); }
+    } catch (err) { console.error(err); toast.error("Failed to update profile."); } finally { setSaving(false); }
+  };
+
+  const handleMovePosition = async (member, direction) => {
+    const currentIndex = filteredMembers.findIndex(m => m.id === member.id);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= filteredMembers.length) return;
+
+    const targetMember = filteredMembers[targetIndex];
+
+    let order1 = getMemberOrder(targetMember);
+    let order2 = getMemberOrder(member);
+
+    if (order1 === order2 || order1 === 999 || order2 === 999) {
+      order1 = targetIndex + 1;
+      order2 = currentIndex + 1;
+    }
+
+    setSaving(true);
+    try {
+      const decoded1 = decodeDesignation(member.designation);
+      const vol1 = decoded1.registration_id ? registrations.find(r => String(r.id) === String(decoded1.registration_id)) : null;
+      const encoded1 = encodeDesignation(decoded1.category, decoded1.designation, {
+        registration_id: decoded1.registration_id || null,
+        department: vol1?.department || decoded1.department || '',
+        semester: vol1?.semester || decoded1.semester || '',
+        blood_group: vol1?.blood_group || decoded1.blood_group || '',
+        phone: vol1?.phone || decoded1.phone || '',
+        email: vol1?.email || decoded1.email || '',
+        display_order: order1
+      });
+
+      const decoded2 = decodeDesignation(targetMember.designation);
+      const vol2 = decoded2.registration_id ? registrations.find(r => String(r.id) === String(decoded2.registration_id)) : null;
+      const encoded2 = encodeDesignation(decoded2.category, decoded2.designation, {
+        registration_id: decoded2.registration_id || null,
+        department: vol2?.department || decoded2.department || '',
+        semester: vol2?.semester || decoded2.semester || '',
+        blood_group: vol2?.blood_group || decoded2.blood_group || '',
+        phone: vol2?.phone || decoded2.phone || '',
+        email: vol2?.email || decoded2.email || '',
+        display_order: order2
+      });
+
+      await saveMemberToSupabase('update', { designation: encoded1, display_order: order1 }, member.id);
+      await saveMemberToSupabase('update', { designation: encoded2, display_order: order2 }, targetMember.id);
+
+      toast.success("Position re-ordered!");
+      fetchMembers();
+    } catch (err) {
+      console.error("Error moving position:", err);
+      toast.error("Failed to update position.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDeleteMember = async (id) => {
@@ -462,16 +563,23 @@ const CommitteeManager = ({ setIsDirty }) => {
     fetchMembers();
   };
 
-  const filteredMembers = members.filter(m => {
-    const decoded = decodeDesignation(m.designation);
-    if (mainTab === 'teachers') {
-      return decoded.category === 'Teacher';
-    } else {
-      if (decoded.category === 'Teacher') return false;
-      if (volSubCategory === 'All') return true;
-      return decoded.category === volSubCategory;
-    }
-  });
+  const filteredMembers = members
+    .filter(m => {
+      const decoded = decodeDesignation(m.designation);
+      if (mainTab === 'teachers') {
+        return decoded.category === 'Teacher';
+      } else {
+        if (decoded.category === 'Teacher') return false;
+        if (volSubCategory === 'All') return true;
+        return decoded.category === volSubCategory;
+      }
+    })
+    .sort((a, b) => {
+      const orderA = getMemberOrder(a);
+      const orderB = getMemberOrder(b);
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.id || 0) - (b.id || 0);
+    });
 
   const PlusIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
   const EditIcon = () => <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
@@ -547,6 +655,10 @@ const CommitteeManager = ({ setIsDirty }) => {
                 <label className="block text-xs font-bold text-gray-700 mb-1">Designation *</label>
                 <input name="designation" value={newMember.designation} onChange={handleAddInputChange} required className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Program Officer, Mentor"/>
               </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Display Position / Order (1, 2, 3...)</label>
+                <input type="number" min="1" name="display_order" value={newMember.display_order} onChange={handleAddInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder={`Default position #${filteredMembers.length + 1}`}/>
+              </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1">About / Bio *</label>
                 <textarea name="about" value={newMember.about} onChange={handleAddInputChange} required rows="3" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Write a short bio..."></textarea>
@@ -586,16 +698,30 @@ const CommitteeManager = ({ setIsDirty }) => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Committee Designation / Role *</label>
-                <input
-                  name="designation"
-                  value={newMember.designation}
-                  onChange={handleAddInputChange}
-                  required
-                  className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="e.g. Student Coordinator, Cultural Lead, Eco Volunteer"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Committee Designation / Role *</label>
+                  <input
+                    name="designation"
+                    value={newMember.designation}
+                    onChange={handleAddInputChange}
+                    required
+                    className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. Student Coordinator, Cultural Lead, Eco Volunteer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Display Position / Order (1, 2, 3...)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    name="display_order"
+                    value={newMember.display_order}
+                    onChange={handleAddInputChange}
+                    className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder={`Default position #${filteredMembers.length + 1}`}
+                  />
+                </div>
               </div>
 
               {selectedVolId && (() => {
@@ -634,7 +760,7 @@ const CommitteeManager = ({ setIsDirty }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredMembers.map((member) => {
+          {filteredMembers.map((member, idx) => {
             const decoded = decodeDesignation(member.designation);
             const vol = decoded.registration_id ? registrations.find(r => String(r.id) === String(decoded.registration_id)) : null;
 
@@ -642,11 +768,21 @@ const CommitteeManager = ({ setIsDirty }) => {
             const cardDept = vol?.department || decoded.department;
             const cardSem = vol?.semester || decoded.semester;
             const cardPhoto = vol?.photo_url || member.image_url;
+            const cardOrder = getMemberOrder(member);
 
             if (mainTab === 'teachers') {
               return (
-                <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative group">
                   <div className="p-6 flex flex-col items-center text-center flex-1">
+                    <div className="w-full flex justify-between items-center mb-3">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-900 text-white shadow-xs">
+                        Pos #{cardOrder !== 999 ? cardOrder : idx + 1}
+                      </span>
+                      <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase tracking-widest">
+                        Teacher / Mentor
+                      </span>
+                    </div>
+
                     {member.image_url ? (
                       <img src={member.image_url} alt={member.name} className="w-28 h-28 object-cover rounded-full border-4 border-white shadow-md mb-4 bg-slate-100" />
                     ) : (
@@ -655,13 +791,15 @@ const CommitteeManager = ({ setIsDirty }) => {
                       </div>
                     )}
                     <h4 className="font-bold text-lg mb-1">{member.name}</h4>
-                    <p className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase tracking-widest mb-1.5">Teacher / Mentor</p>
                     <p className="text-sm text-indigo-600 font-semibold">{decoded.designation || "Mentor"}</p>
                   </div>
-                  <div className="flex border-t border-gray-100">
-                    <button onClick={() => openEditModal(member)} className="flex-1 py-3 text-sm font-semibold text-gray-600 hover:bg-blue-50 flex justify-center items-center"><EditIcon /> Edit</button>
-                    <div className="w-px bg-gray-100"></div>
-                    <button onClick={() => handleDeleteMember(member.id)} className="flex-1 py-3 text-sm font-semibold text-gray-600 hover:bg-red-50 flex justify-center items-center"><TrashIcon /> Delete</button>
+                  <div className="flex border-t border-gray-100 bg-gray-50/50">
+                    <button onClick={() => openEditModal(member)} className="flex-1 py-2.5 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex justify-center items-center transition border-r border-gray-100">
+                      <EditIcon /> Edit
+                    </button>
+                    <button onClick={() => handleDeleteMember(member.id)} className="flex-1 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 flex justify-center items-center transition">
+                      <TrashIcon /> Delete
+                    </button>
                   </div>
                 </div>
               );
@@ -674,8 +812,17 @@ const CommitteeManager = ({ setIsDirty }) => {
               const categoryBadge = badgeColors[decoded.category] || badgeColors.Student;
 
               return (
-                <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition">
+                <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition relative group">
                   <div className="p-5 flex flex-col items-center text-center flex-1">
+                    <div className="w-full flex justify-between items-center mb-3">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-900 text-white shadow-xs">
+                        Pos #{cardOrder !== 999 ? cardOrder : idx + 1}
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border uppercase tracking-widest ${categoryBadge}`}>
+                        {decoded.category}
+                      </span>
+                    </div>
+
                     {cardPhoto ? (
                       <img src={cardPhoto} alt={cardName} className="w-24 h-24 object-cover rounded-full border-4 border-white shadow-sm mb-3 bg-slate-100" />
                     ) : (
@@ -684,9 +831,6 @@ const CommitteeManager = ({ setIsDirty }) => {
                       </div>
                     )}
                     <h4 className="font-bold text-base text-gray-900 mb-1 leading-snug">{cardName}</h4>
-                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-md border uppercase tracking-widest mb-2 ${categoryBadge}`}>
-                      {decoded.category} Committee
-                    </span>
                     <p className="text-xs text-blue-700 font-bold mb-2">{decoded.designation}</p>
                     {(cardDept || cardSem) && (
                       <p className="text-[11px] text-gray-500 font-semibold bg-gray-50 px-2 py-1 rounded w-full line-clamp-1">
@@ -695,10 +839,9 @@ const CommitteeManager = ({ setIsDirty }) => {
                     )}
                   </div>
                   <div className="flex border-t border-gray-100 bg-gray-50/50">
-                    <button onClick={() => openEditModal(member)} className="flex-1 py-2.5 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex justify-center items-center transition">
+                    <button onClick={() => openEditModal(member)} className="flex-1 py-2.5 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex justify-center items-center transition border-r border-gray-100">
                       <EditIcon /> Edit
                     </button>
-                    <div className="w-px bg-gray-100"></div>
                     <button onClick={() => handleDeleteMember(member.id)} className="flex-1 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 flex justify-center items-center transition">
                       <TrashIcon /> Delete
                     </button>
@@ -745,6 +888,19 @@ const CommitteeManager = ({ setIsDirty }) => {
                       required
                       className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                       placeholder="e.g. Program Officer, Mentor"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Display Position / Order (1, 2, 3...)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      name="display_order"
+                      value={editFormData.display_order}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="e.g. 1 (1st position), 2 (2nd position)"
                     />
                   </div>
 
@@ -814,6 +970,19 @@ const CommitteeManager = ({ setIsDirty }) => {
                       onChange={handleEditInputChange}
                       required
                       className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Display Position / Order (1, 2, 3...)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      name="display_order"
+                      value={editFormData.display_order}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="e.g. 1 (1st position), 2 (2nd position)"
                     />
                   </div>
                 </>

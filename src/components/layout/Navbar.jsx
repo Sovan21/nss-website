@@ -140,7 +140,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   return (
     <>
       <div id="fixed-navbar" className="fixed top-0 left-0 right-0 z-50 pt-2.5 sm:pt-3 md:pt-4 px-2 sm:px-3 md:px-4 pointer-events-none box-border">
-        <nav className="pointer-events-auto w-full max-w-6xl mx-auto bg-white/92 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/90 rounded-full transition-all duration-300 overflow-hidden">
+        <nav className="pointer-events-auto w-full max-w-6xl mx-auto bg-white/95 shadow-[0_12px_30px_rgba(0,0,0,0.06)] border border-slate-100 rounded-full transition-all duration-300 overflow-hidden">
           <div className="px-2.5 sm:px-4 md:px-6">
             <div className="flex justify-between items-center h-13 sm:h-14 md:h-18 gap-1.5 sm:gap-2 w-full">
               <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink min-w-0 cursor-pointer select-none group"

@@ -7,7 +7,7 @@ import { CALENDAR_EVENTS } from "@/data/calendarEvents";
 /* ═══════════════════════════════════════════════════════════════
    SCROLL REVEAL HOOK — IntersectionObserver-based
    ═══════════════════════════════════════════════════════════════ */
-function useScrollReveal(threshold = 0.15) {
+function useScrollReveal(threshold = 0.1) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ function useScrollReveal(threshold = 0.15) {
           observer.unobserve(el);
         }
       },
-      { threshold, rootMargin: "0px 0px -60px 0px" }
+      { threshold, rootMargin: "0px 0px -20px 0px" }
     );
 
     observer.observe(el);
@@ -49,7 +49,7 @@ function useChildReveal(threshold = 0.1) {
           }
         });
       },
-      { threshold, rootMargin: "0px 0px -40px 0px" }
+      { threshold, rootMargin: "0px 0px -20px 0px" }
     );
 
     children.forEach((child) => observer.observe(child));
@@ -138,9 +138,9 @@ function WhatIsNSS() {
             {facts.map((fact, idx) => (
               <div
                 key={idx}
-                className={`scroll-reveal reveal-delay-${idx + 1} group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 md:p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-1`}
+                className={`scroll-reveal reveal-delay-${idx + 1} group relative bg-slate-900/80 border border-white/10 rounded-2xl p-5 md:p-6 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1`}
               >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${fact.color} flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform duration-500`}>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${fact.color} flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                   <fact.icon className="w-5 h-5 text-white" />
                 </div>
                 <p className="text-[10px] md:text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">{fact.label}</p>
@@ -153,9 +153,9 @@ function WhatIsNSS() {
         {/* Additional Core NSS Blocks */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12 md:mt-16">
           {/* Card 1: Objectives */}
-          <div className="scroll-reveal group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500 shrink-0">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0">
                 <Icons.Target className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-lg md:text-xl font-black text-white tracking-tight">{t("nss.objectives.title")}</h3>
@@ -176,9 +176,9 @@ function WhatIsNSS() {
           </div>
 
           {/* Card 2: Major Activities */}
-          <div className="scroll-reveal group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500 shrink-0">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0">
                 <Icons.Sparkles className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-lg md:text-xl font-black text-white tracking-tight">{t("nss.activities.title")}</h3>
@@ -202,9 +202,9 @@ function WhatIsNSS() {
           </div>
 
           {/* Card 3: Eligibility */}
-          <div className="scroll-reveal group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500 shrink-0">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0">
                 <Icons.AcademicCap className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-lg md:text-xl font-black text-white tracking-tight">{t("nss.eligibility.title")}</h3>
@@ -232,7 +232,7 @@ function WhatIsNSS() {
           </div>
 
           {/* Card 4: Benefits of Joining NSS */}
-          <div className="scroll-reveal group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
               <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500 shrink-0">
                 <Icons.Trophy className="w-5 h-5 text-white" />

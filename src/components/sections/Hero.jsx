@@ -83,14 +83,14 @@ export default function HeroSection({ title, subtitle, sliderUrls, onNavigate })
       <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/70 to-slate-900/90 z-20 pointer-events-none"></div>
 
       {/* Floating Animated Orbs */}
-      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob z-20 pointer-events-none"></div>
-      <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-indigo-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000 z-20 pointer-events-none"></div>
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full filter blur-3xl animate-blob z-20 pointer-events-none"></div>
+      <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-indigo-500/20 rounded-full filter blur-3xl animate-blob animation-delay-2000 z-20 pointer-events-none"></div>
 
       {/* Content Area */}
       <div className="relative z-30 px-6 sm:px-12 flex flex-col items-center w-full max-w-5xl mx-auto mt-28 lg:mt-0 pb-28 lg:pb-0">
 
         {/* Top Directorate & Ministry Panel */}
-        <div className="flex flex-col items-center text-center px-4 py-4 md:px-6 md:py-6 rounded-3xl bg-slate-950/40 backdrop-blur-[8px] border border-white/10 shadow-2xl mb-6 md:mb-10 animate-fade-in-up max-w-2xl w-full">
+        <div className="flex flex-col items-center text-center px-4 py-4 md:px-6 md:py-6 rounded-3xl bg-slate-950/80 border border-white/10 shadow-2xl mb-6 md:mb-10 animate-fade-in-up max-w-2xl w-full">
           <div className="inline-flex items-center gap-1.5 mb-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span className="text-xs sm:text-sm md:text-base lg:text-2xl font-black text-amber-400 uppercase tracking-[0.25em] drop-shadow-md">

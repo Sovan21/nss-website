@@ -28,12 +28,11 @@ export const GlobalStyles = () => (
     }
 
     @keyframes fade-in-up {
-      0%   { opacity: 0; transform: translateY(20px) scale(0.98); }
-      100% { opacity: 1; transform: translateY(0)    scale(1);    }
+      0%   { opacity: 0; transform: translate3d(0, 14px, 0); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0); }
     }
     .animate-fade-in-up {
-      animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      will-change: transform, opacity;
+      animation: fade-in-up 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
 
     /* Custom Animation for NSS Motto Loader */

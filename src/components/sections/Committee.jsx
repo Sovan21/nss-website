@@ -14,7 +14,8 @@ const decodeDesignation = (raw) => {
     blood_group: '',
     phone: '',
     email: '',
-    registration_id: null
+    registration_id: null,
+    display_order: 999
   };
 
   if (!raw) return defaults;
@@ -35,7 +36,8 @@ const decodeDesignation = (raw) => {
           blood_group: parsed.blood_group || '',
           phone: parsed.phone || '',
           email: parsed.email || '',
-          registration_id: parsed.registration_id || null
+          registration_id: parsed.registration_id || null,
+          display_order: parsed.display_order != null ? Number(parsed.display_order) : 999
         };
       } catch (e) {
         return { ...defaults, category: cat, designation: rest };
@@ -45,7 +47,15 @@ const decodeDesignation = (raw) => {
     return { ...defaults, category: cat, designation: rest };
   }
 
-  return { ...defaults, category: 'Student', designation: raw };
+  return { ...defaults, category: 'Student', designation: '' };
+};
+
+const getMemberOrder = (member) => {
+  if (member?.display_order != null && !isNaN(Number(member.display_order))) {
+    return Number(member.display_order);
+  }
+  const decoded = decodeDesignation(member?.designation);
+  return decoded.display_order ?? 999;
 };
 
 const CATEGORY_THEMES = {
@@ -238,7 +248,14 @@ export default function CommitteePage({ prefetchedMembers }) {
 
   if (loading) return <LoadingScreen />;
 
-  const filteredMembers = members.filter(m => decodeDesignation(m.designation).category === activeCategory);
+  const filteredMembers = members
+    .filter(m => decodeDesignation(m.designation).category === activeCategory)
+    .sort((a, b) => {
+      const orderA = getMemberOrder(a);
+      const orderB = getMemberOrder(b);
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.id || 0) - (b.id || 0);
+    });
 
   const committeeDetails = {
     Cultural: {

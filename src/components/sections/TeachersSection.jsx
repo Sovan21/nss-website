@@ -5,7 +5,7 @@ import { Icons } from "@/components/Icons";
 import { useLanguage } from "@/context/LanguageContext";
 
 const decodeDesignation = (raw) => {
-  if (!raw) return { category: 'Teacher', designation: '' };
+  if (!raw) return { category: 'Teacher', designation: '', display_order: 999 };
   if (raw.includes('::')) {
     const firstColon = raw.indexOf('::');
     const cat = raw.substring(0, firstColon);
@@ -13,14 +13,26 @@ const decodeDesignation = (raw) => {
     if (rest.startsWith('{')) {
       try {
         const parsed = JSON.parse(rest);
-        return { category: cat, designation: parsed.designation || '' };
+        return {
+          category: cat,
+          designation: parsed.designation || '',
+          display_order: parsed.display_order != null ? Number(parsed.display_order) : 999
+        };
       } catch (e) {
-        return { category: cat, designation: rest };
+        return { category: cat, designation: rest, display_order: 999 };
       }
     }
-    return { category: cat, designation: rest };
+    return { category: cat, designation: rest, display_order: 999 };
   }
-  return { category: 'Teacher', designation: raw };
+  return { category: 'Teacher', designation: raw, display_order: 999 };
+};
+
+const getMemberOrder = (member) => {
+  if (member?.display_order != null && !isNaN(Number(member.display_order))) {
+    return Number(member.display_order);
+  }
+  const decoded = decodeDesignation(member?.designation);
+  return decoded.display_order ?? 999;
 };
 
 const TeacherCard = ({ member, onCardClick }) => {
@@ -65,6 +77,15 @@ export default function TeachersSection({ members = [] }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [showFullPhoto, setShowFullPhoto] = useState(false);
 
+  const sortedMembers = React.useMemo(() => {
+    return [...members].sort((a, b) => {
+      const orderA = getMemberOrder(a);
+      const orderB = getMemberOrder(b);
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.id || 0) - (b.id || 0);
+    });
+  }, [members]);
+
   useEffect(() => {
     if (selectedMember) document.body.style.overflow = "hidden";
     else {
@@ -74,7 +95,7 @@ export default function TeachersSection({ members = [] }) {
     return () => { document.body.style.overflow = "unset"; };
   }, [selectedMember]);
 
-  if (!members || members.length === 0) return null;
+  if (!sortedMembers || sortedMembers.length === 0) return null;
 
   return (
     <section className="pt-8 pb-10 md:pt-12 md:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-white">
@@ -93,7 +114,7 @@ export default function TeachersSection({ members = [] }) {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8 items-stretch">
-          {members.map((member) => (
+          {sortedMembers.map((member) => (
             <TeacherCard key={member.id} member={member} onCardClick={setSelectedMember} />
           ))}
         </div>
