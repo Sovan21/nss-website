@@ -98,6 +98,23 @@ export default function LanguageSwitcher() {
   const currentLanguage = languages.find((lang) => lang.code === locale) || languages[0];
 
   const [hiddenByFooter, setHiddenByFooter] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Detect when Login / Register modal is opened
+  useEffect(() => {
+    const checkModal = () => {
+      const modalActive = !!document.getElementById('nss-auth-modal');
+      setIsAuthModalOpen(modalActive);
+    };
+
+    checkModal();
+    const observer = new MutationObserver(checkModal);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Hide floating UI only when footer's top reaches the floating elements' position
   useEffect(() => {
@@ -122,15 +139,17 @@ export default function LanguageSwitcher() {
     return () => { clearTimeout(retryTimer); window.removeEventListener('scroll', checkOverlap); };
   }, []);
 
+  const isHidden = hiddenByFooter || isAuthModalOpen;
+
   return (
     <div
       className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 select-none"
       style={{
         transformOrigin: 'right center',
-        transform: hiddenByFooter ? 'scaleX(0) scaleY(0.75)' : 'scaleX(1) scaleY(1)',
-        opacity: hiddenByFooter ? 0 : 1,
-        pointerEvents: hiddenByFooter ? 'none' : 'auto',
-        transition: 'transform 700ms cubic-bezier(0.4, 0, 0.2, 1), opacity 700ms cubic-bezier(0.4, 0, 0.2, 1)',
+        transform: isHidden ? 'scaleX(0) scaleY(0.75)' : 'scaleX(1) scaleY(1)',
+        opacity: isHidden ? 0 : 1,
+        pointerEvents: isHidden ? 'none' : 'auto',
+        transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       {/* Visitor Counter Capsule */}

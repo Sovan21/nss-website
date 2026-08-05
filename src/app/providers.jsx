@@ -6,13 +6,14 @@ import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 export default function Providers({ children }) {
   const pathname = usePathname();
-  const isAdminRoute = pathname?.startsWith('/admin');
+  // Show Live count, Total count & Language Switcher ONLY on the navbar menu pages (pathname === '/')
+  const isNavbarPage = pathname === '/';
 
   return (
     <LanguageProvider>
       <ToastProvider>
         {children}
-        {!isAdminRoute && <LanguageSwitcher />}
+        {isNavbarPage && <LanguageSwitcher />}
       </ToastProvider>
     </LanguageProvider>
   );

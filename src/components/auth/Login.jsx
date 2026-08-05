@@ -317,7 +317,7 @@ export default function Login({ onClose, onSwitch }) {
   const socialBtnClass = `w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-[4px_4px_10px_rgba(0,0,0,0.08),-4px_-4px_10px_rgba(255,255,255,0.9)] transition-all duration-300 border border-blue-50 ${loading ? 'opacity-50 cursor-not-allowed pointer-events-none grayscale-[0.5]' : 'hover:shadow-inner hover:scale-105 active:scale-95 cursor-pointer'}`;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 font-sans antialiased">
+    <div id="nss-auth-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 font-sans antialiased">
       <div className="absolute inset-0 bg-black/40 transition-opacity cursor-pointer" onClick={onClose}></div>
 
       <div className="relative z-10 w-full max-w-5xl bg-white shadow-2xl rounded-3xl animate-fade-in-up border border-blue-100 overflow-hidden max-h-[92dvh] md:max-h-[90vh] flex flex-col md:flex-row">

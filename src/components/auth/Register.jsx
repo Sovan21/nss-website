@@ -90,6 +90,131 @@ const DateOfBirthInput = ({ value, onChange, name, className, required, placehol
   );
 };
 
+// Inline Lightweight Dropdown Component with Rounded Border Radius & Custom Text (No external file, No icons)
+const InlineSelect = ({ name, value, onChange, options = [], placeholder = "Select", label = "Select Option", required = false, showSearch = true, alignRight = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [isOpen]);
+
+  const filteredOptions = React.useMemo(() => {
+    if (!searchQuery.trim()) return options;
+    return options.filter(opt => String(opt).toLowerCase().includes(searchQuery.toLowerCase().trim()));
+  }, [options, searchQuery]);
+
+  const handleSelect = (val) => {
+    setIsOpen(false);
+    setSearchQuery("");
+    setTimeout(() => {
+      onChange({ target: { name, value: val } });
+    }, 10);
+  };
+
+  const stopProp = (e) => {
+    e.stopPropagation();
+  };
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <select name={name} value={value} onChange={() => {}} required={required} tabIndex={-1} className="sr-only opacity-0 absolute inset-0 pointer-events-none">
+        <option value="">{placeholder}</option>
+        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+      </select>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-left flex items-center justify-between p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-800 shadow-sm text-[15px] font-semibold cursor-pointer outline-none transition-all duration-200"
+      >
+        <span className={value ? "text-slate-800 font-semibold" : "text-slate-400 font-medium"}>
+          {value || placeholder}
+        </span>
+        <svg className={`w-5 h-5 text-blue-600 transform-gpu transition-transform duration-200 ease-out ${isOpen ? "rotate-180" : "rotate-0"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          onMouseDown={stopProp}
+          onMouseMove={stopProp}
+          onMouseUp={stopProp}
+          onWheel={stopProp}
+          onTouchStart={stopProp}
+          onTouchMove={stopProp}
+          className={`absolute z-[300] top-full mt-2 w-full ${alignRight ? 'right-0 left-auto min-w-[200px]' : 'left-0 right-auto min-w-[220px]'} bg-white rounded-3xl shadow-2xl border border-blue-100/90 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
+        >
+          <div className="bg-[#043296] px-4 py-3 text-white flex items-center justify-between">
+            <span className="font-bold text-[14px] truncate">{label}</span>
+            <button type="button" onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+              </svg>
+            </button>
+          </div>
+
+          {showSearch && options.length > 4 && (
+            <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search ${label.toLowerCase()}...`}
+                className="w-full px-3.5 py-2 bg-white border border-blue-200 rounded-xl text-[13px] text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 font-medium"
+              />
+            </div>
+          )}
+
+          <div className="max-h-[220px] overflow-y-auto overscroll-contain touch-pan-y p-2 space-y-1 scrollbar-thin scrollbar-thumb-blue-200">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => {
+                const isSelected = value === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleSelect(opt)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-150 text-left text-[14px] cursor-pointer ${
+                      isSelected
+                        ? "bg-[#0052cc] text-white font-bold shadow-md shadow-blue-600/20"
+                        : "hover:bg-blue-50 text-slate-700 font-semibold hover:text-blue-900"
+                    }`}
+                  >
+                    <span>{opt}</span>
+                    {isSelected && (
+                      <svg className="w-4 h-4 text-white shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="py-6 text-center text-slate-400 text-[13px] font-medium">No results found</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Register({ onClose, onSwitch }) {
   const { t } = useLanguage();
   useEffect(() => {
@@ -356,7 +481,7 @@ export default function Register({ onClose, onSwitch }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 md:p-6 font-sans antialiased">
+    <div id="nss-auth-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 md:p-6 font-sans antialiased">
       <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={showConfirmModal ? undefined : onClose}></div>
 
       {showConfirmModal ? (
@@ -536,26 +661,30 @@ export default function Register({ onClose, onSwitch }) {
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.gender")} *</label>
-                    <select name="gender" value={formData.gender} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
-                      <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
-                      <option value="Male" className="bg-white text-slate-800 font-medium py-1.5">Male</option>
-                      <option value="Female" className="bg-white text-slate-800 font-medium py-1.5">Female</option>
-                      <option value="Other" className="bg-white text-slate-800 font-medium py-1.5">Other</option>
-                    </select>
+                    <InlineSelect
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      required
+                      options={["Male", "Female", "Other"]}
+                      placeholder={t("auth.register.select")}
+                      label={t("auth.register.gender")}
+                      showSearch={false}
+                    />
                   </div>
                   <div className="flex-1">
                     <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.bloodGroup")} *</label>
-                    <select name="blood_group" value={formData.blood_group} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
-                      <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
-                      <option value="A+" className="bg-white text-slate-800 font-medium py-1.5">A+</option>
-                      <option value="A-" className="bg-white text-slate-800 font-medium py-1.5">A-</option>
-                      <option value="B+" className="bg-white text-slate-800 font-medium py-1.5">B+</option>
-                      <option value="B-" className="bg-white text-slate-800 font-medium py-1.5">B-</option>
-                      <option value="O+" className="bg-white text-slate-800 font-medium py-1.5">O+</option>
-                      <option value="O-" className="bg-white text-slate-800 font-medium py-1.5">O-</option>
-                      <option value="AB+" className="bg-white text-slate-800 font-medium py-1.5">AB+</option>
-                      <option value="AB-" className="bg-white text-slate-800 font-medium py-1.5">AB-</option>
-                    </select>
+                    <InlineSelect
+                      name="blood_group"
+                      value={formData.blood_group}
+                      onChange={handleChange}
+                      required
+                      options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]}
+                      placeholder={t("auth.register.select")}
+                      label={t("auth.register.bloodGroup")}
+                      showSearch={false}
+                      alignRight={true}
+                    />
                   </div>
                 </div>
                 <div className="md:col-span-2">
@@ -570,42 +699,43 @@ export default function Register({ onClose, onSwitch }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.department")} *</label>
-                  <select name="department" value={formData.department} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
-                    <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
-                    {DEPARTMENTS.map(dept => (
-                      <option key={dept} value={dept} className="bg-white text-slate-800 font-medium py-1.5">{dept}</option>
-                    ))}
-                  </select>
+                  <InlineSelect
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    required
+                    options={DEPARTMENTS}
+                    placeholder={t("auth.register.select")}
+                    label="Select Your Subject"
+                    showSearch={true}
+                  />
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.semester")} *</label>
-                  <select name="semester" value={formData.semester} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
-                    <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
-                    <option value="1st" className="bg-white text-slate-800 font-medium py-1.5">1st Sem</option>
-                    <option value="2nd" className="bg-white text-slate-800 font-medium py-1.5">2nd Sem</option>
-                    <option value="3rd" className="bg-white text-slate-800 font-medium py-1.5">3rd Sem</option>
-                    <option value="4th" className="bg-white text-slate-800 font-medium py-1.5">4th Sem</option>
-                    <option value="5th" className="bg-white text-slate-800 font-medium py-1.5">5th Sem</option>
-                    <option value="6th" className="bg-white text-slate-800 font-medium py-1.5">6th Sem</option>
-                    <option value="7th" className="bg-white text-slate-800 font-medium py-1.5">7th Sem</option>
-                    <option value="8th" className="bg-white text-slate-800 font-medium py-1.5">8th Sem</option>
-                    <option value="Pass Out" className="bg-white text-slate-800 font-medium py-1.5">Pass Out</option>
-                  </select>
+                  <InlineSelect
+                    name="semester"
+                    value={formData.semester}
+                    onChange={handleChange}
+                    required
+                    options={["1st Sem", "2nd Sem", "3rd Sem", "4th Sem", "5th Sem", "6th Sem", "7th Sem", "8th Sem", "Pass Out"]}
+                    placeholder={t("auth.register.select")}
+                    label={t("auth.register.semester")}
+                    showSearch={false}
+                  />
                 </div>
                 {formData.semester === "Pass Out" && (
                   <div className="flex flex-col justify-end">
                     <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">Pass Out Year *</label>
-                    <select
-                      required
+                    <InlineSelect
+                      name="passout_year"
                       value={passoutYear}
                       onChange={(e) => setPassoutYear(e.target.value)}
-                      className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium"
-                    >
-                      <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
-                      {YEARS.map(yr => (
-                        <option key={yr} value={yr} className="bg-white text-slate-800 font-medium py-1.5">{yr}</option>
-                      ))}
-                    </select>
+                      required
+                      options={YEARS.map(String)}
+                      placeholder={t("auth.register.select")}
+                      label="Pass Out Year"
+                      showSearch={true}
+                    />
                   </div>
                 )}
                 <div className="flex flex-col justify-end">
@@ -614,11 +744,16 @@ export default function Register({ onClose, onSwitch }) {
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.prevExperience")} *</label>
-                  <select name="prev_experience" value={formData.prev_experience} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
-                    <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
-                    <option value="Yes" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.yes")}</option>
-                    <option value="No" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.no")}</option>
-                  </select>
+                  <InlineSelect
+                    name="prev_experience"
+                    value={formData.prev_experience}
+                    onChange={handleChange}
+                    required
+                    options={["Yes", "No"]}
+                    placeholder={t("auth.register.select")}
+                    label={t("auth.register.prevExperience")}
+                    showSearch={false}
+                  />
                 </div>
                 <div className={`flex flex-col justify-end col-span-1 ${formData.semester === "Pass Out" ? "md:col-span-1" : "md:col-span-2"}`}>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.extraCurriculum")} *</label>
