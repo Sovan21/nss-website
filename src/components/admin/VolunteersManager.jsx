@@ -6,6 +6,86 @@ import { useToast } from '@/components/Toast';
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
 import { compressImage, formatDate, useDebounce, deleteSupabaseImage, getInitials } from '@/lib/utils';
 
+// Custom Date Picker component that forces DD/MM/YYYY display on ALL devices while showing native calendar
+const DateOfBirthInput = ({ value, onChange, name, className, required, placeholder = "DD/MM/YYYY" }) => {
+  const hiddenInputRef = React.useRef(null);
+
+  const displayValue = React.useMemo(() => {
+    if (!value) return "";
+    if (value.includes("/")) return value;
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) return `${match[3]}/${match[2]}/${match[1]}`;
+    return value;
+  }, [value]);
+
+  const handleTextChange = (e) => {
+    let val = e.target.value.replace(/[^\d/]/g, "");
+    if (val.length === 2 && !val.includes("/")) {
+      val = val + "/";
+    } else if (val.length === 5 && val.split("/").length === 2) {
+      val = val + "/";
+    }
+    const match = val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) {
+      const yyyymmdd = `${match[3]}-${match[2]}-${match[1]}`;
+      onChange({ target: { name, value: yyyymmdd } });
+    } else {
+      onChange({ target: { name, value: val } });
+    }
+  };
+
+  const handleCalendarChange = (e) => {
+    if (e.target.value) {
+      onChange({ target: { name, value: e.target.value } });
+    }
+  };
+
+  const openCalendar = () => {
+    if (hiddenInputRef.current) {
+      if (typeof hiddenInputRef.current.showPicker === 'function') {
+        try { hiddenInputRef.current.showPicker(); } catch (err) { hiddenInputRef.current.focus(); hiddenInputRef.current.click(); }
+      } else {
+        hiddenInputRef.current.focus();
+        hiddenInputRef.current.click();
+      }
+    }
+  };
+
+  return (
+    <div className="relative flex items-center w-full">
+      <input
+        type="text"
+        name={name}
+        value={displayValue}
+        onChange={handleTextChange}
+        onClick={openCalendar}
+        required={required}
+        placeholder={placeholder}
+        maxLength={10}
+        className={className}
+      />
+      <button
+        type="button"
+        onClick={openCalendar}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 p-1 cursor-pointer focus:outline-none z-10"
+        title="Open Calendar"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </button>
+      <input
+        ref={hiddenInputRef}
+        type="date"
+        value={value && value.match(/^\d{4}-\d{2}-\d{2}$/) ? value : ''}
+        onChange={handleCalendarChange}
+        className="absolute inset-0 opacity-0 pointer-events-none w-0 h-0"
+        tabIndex={-1}
+      />
+    </div>
+  );
+};
+
 // ============================================================================
 // SECTION 1: VOLUNTEERS MANAGER (EXACT ORIGINAL UI RESTORED)
 // ============================================================================
@@ -121,35 +201,84 @@ const VolunteersManager = ({ setIsDirty }) => {
  setIsEditingProfile(true);
  };
 
- const handleEditInputChange = (e) => setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
+ const handleEditInputChange = (e) => {
+  let { name, value } = e.target;
+  if (name === 'full_name' || name === 'fathers_name' || name === 'mothers_name') {
+   value = value.replace(/[^a-zA-Z\s]/g, '');
+  }
+  if (name === 'college_application_id') {
+   value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  }
+  if (name === 'phone' || name === 'whatsapp' || name === 'aadhaar_no') {
+   value = value.replace(/\D/g, '');
+  }
+  setEditFormData({ ...editFormData, [name]: value });
+ };
 
  const handleUpdateVolunteer = async (e) => {
- e.preventDefault();
- setSaving(true);
- try {
- let updatedPhotoUrl = selectedVol.photo_url;
- 
- if (removeImage && updatedPhotoUrl) {
- await deleteSupabaseImage(selectedVol.photo_url);
- updatedPhotoUrl = null;
- } else if (editImageFile) {
- if (selectedVol.photo_url) await deleteSupabaseImage(selectedVol.photo_url);
- const compressed = await compressImage(editImageFile, 2, 800); // Max 2MB for volunteers
- const fileExt = compressed.name.split('.').pop();
- const fileName = `registration-${Date.now()}.${fileExt}`;
- await supabase.storage.from('nss-images').upload(fileName, compressed);
- updatedPhotoUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
- }
- const finalData = { ...editFormData, photo_url: updatedPhotoUrl };
- const { error } = await supabase.from('registrations').update(finalData).eq('id', selectedVol.id);
- if (error) throw error;
+  e.preventDefault();
 
- toast.success("Volunteer Profile Updated Successfully!");
- setIsEditingProfile(false);
- setSelectedVol(finalData);
- fetchVolunteers(currentPage, debouncedSearchTerm, filterBloodGroup);
- } catch (err) { toast.error("Failed to update volunteer."); } finally { setSaving(false); }
- };
+  const nameRegex = /^[a-zA-Z\s]+$/;
+  if (editFormData.full_name && !nameRegex.test(editFormData.full_name.trim())) {
+   toast.error("Full Name must contain only letters and spaces.");
+   return;
+  }
+  if (editFormData.fathers_name && !nameRegex.test(editFormData.fathers_name.trim())) {
+   toast.error("Father's Name must contain only letters and spaces.");
+   return;
+  }
+  if (editFormData.mothers_name && !nameRegex.test(editFormData.mothers_name.trim())) {
+   toast.error("Mother's Name must contain only letters and spaces.");
+   return;
+  }
+
+  const phoneRegex = /^[0-9]{10}$/;
+  if (editFormData.phone && !phoneRegex.test(editFormData.phone)) {
+   toast.error("Phone number must be exactly 10 digits.");
+   return;
+  }
+  if (editFormData.whatsapp && !phoneRegex.test(editFormData.whatsapp)) {
+   toast.error("WhatsApp number must be exactly 10 digits.");
+   return;
+  }
+
+  const aadhaarRegex = /^[0-9]{12}$/;
+  if (editFormData.aadhaar_no && !aadhaarRegex.test(editFormData.aadhaar_no)) {
+   toast.error("Aadhaar Number must be exactly 12 digits.");
+   return;
+  }
+
+  const appIdRegex = /^[A-Z0-9]{15}$/;
+  if (editFormData.college_application_id && !appIdRegex.test(editFormData.college_application_id)) {
+   toast.error("College Application ID must be exactly 15 characters (e.g. BBCOLG123456789).");
+   return;
+  }
+
+  setSaving(true);
+  try {
+  let updatedPhotoUrl = selectedVol.photo_url;
+  
+  if (removeImage && updatedPhotoUrl) {
+  await deleteSupabaseImage(selectedVol.photo_url);
+  updatedPhotoUrl = null;
+  } else if (editImageFile) {
+  if (selectedVol.photo_url) await deleteSupabaseImage(selectedVol.photo_url);
+  const compressed = await compressImage(editImageFile, 2, 800); // Max 2MB for volunteers
+  const fileExt = compressed.name.split('.').pop();
+  const fileName = `registration-${Date.now()}.${fileExt}`;
+  await supabase.storage.from('nss-images').upload(fileName, compressed);
+  updatedPhotoUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
+  }
+  const finalData = { ...editFormData, photo_url: updatedPhotoUrl };
+  const { error } = await supabase.from('registrations').update(finalData).eq('id', selectedVol.id);
+  if (error) throw error;
+
+  toast.success("Volunteer Profile Updated Successfully!");
+  setIsEditingProfile(false);
+  setSelectedVol(finalData);
+  fetchVolunteers(currentPage, debouncedSearchTerm, filterBloodGroup);
+  } catch (err) { toast.error("Failed to update volunteer."); } finally { setSaving(false); }
+  };
 
   const handleDeleteVolunteer = async () => {
     setDeleting(true);
@@ -377,8 +506,8 @@ const VolunteersManager = ({ setIsDirty }) => {
  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
  {!isEditingProfile && (
  <>
- <button onClick={openEditMode} className="bg-blue-600 hover:bg-blue-500 text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition shadow-sm whitespace-nowrap">Edit</button>
- <button onClick={() => { setDeleteConfirmInput(''); setShowDeleteConfirm(true); }} className="bg-red-600 hover:bg-red-500 text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition shadow-sm whitespace-nowrap">Delete</button>
+ <button onClick={openEditMode} className="bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition shadow-sm whitespace-nowrap">Edit</button>
+ <button onClick={() => { setDeleteConfirmInput(''); setShowDeleteConfirm(true); }} className="bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition shadow-sm whitespace-nowrap">Delete</button>
  </>
  )}
  <button onClick={() => { setSelectedVol(null); setIsEditingProfile(false); }} className="text-gray-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-full p-1.5 transition ml-1 sm:ml-2">
@@ -474,123 +603,136 @@ const VolunteersManager = ({ setIsDirty }) => {
  </div>
  </div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
+   <input required name="full_name" value={editFormData.full_name || ''} onChange={handleEditInputChange} pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">College Application ID</label>
+   <input required name="college_application_id" value={editFormData.college_application_id || ''} onChange={handleEditInputChange} minLength="15" maxLength="15" pattern="[A-Za-z0-9]{15}" title="Must be exactly 15 characters (e.g. BBCOLG123456789)" style={{ textTransform: 'uppercase' }} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" placeholder="BBCOLG123456789"/>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Department</label>
+   <select required name="department" value={editFormData.department || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-sm shadow-sm cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.75rem_center] bg-no-repeat pr-8 font-medium">
+   <option value="" className="bg-white text-gray-800 font-medium py-1">Select</option>
+   {DEPARTMENTS.map(dept => (
+     <option key={dept} value={dept} className="bg-white text-gray-800 font-medium py-1">{dept}</option>
+   ))}
+   </select>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Semester</label>
+   <select required name="semester" value={editFormData.semester && editFormData.semester.includes('Pass Out') ? 'Pass Out' : editFormData.semester || ''} onChange={(e) => {
+     const val = e.target.value;
+     if (val === 'Pass Out') {
+       setEditFormData({ ...editFormData, semester: 'Pass Out - 2026' });
+     } else {
+       setEditFormData({ ...editFormData, semester: val });
+     }
+   }} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-sm shadow-sm cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.75rem_center] bg-no-repeat pr-8 font-medium">
+   <option value="" className="bg-white text-gray-800 font-medium py-1">Select</option>
+   <option value="1st" className="bg-white text-gray-800 font-medium py-1">1st Sem</option>
+   <option value="2nd" className="bg-white text-gray-800 font-medium py-1">2nd Sem</option>
+   <option value="3rd" className="bg-white text-gray-800 font-medium py-1">3rd Sem</option>
+   <option value="4th" className="bg-white text-gray-800 font-medium py-1">4th Sem</option>
+   <option value="5th" className="bg-white text-gray-800 font-medium py-1">5th Sem</option>
+   <option value="6th" className="bg-white text-gray-800 font-medium py-1">6th Sem</option>
+   <option value="7th" className="bg-white text-gray-800 font-medium py-1">7th Sem</option>
+   <option value="8th" className="bg-white text-gray-800 font-medium py-1">8th Sem</option>
+   <option value="Pass Out" className="bg-white text-gray-800 font-medium py-1">Pass Out</option>
+   </select>
+   {(editFormData.semester && editFormData.semester.includes('Pass Out')) && (
+     <div className="mt-2">
+       <label className="block text-[11px] font-bold text-gray-500 mb-0.5">Pass Out Year</label>
+       <select
+         required
+         value={editFormData.semester.includes('-') ? editFormData.semester.split('-')[1].trim() : '2026'}
+         onChange={(e) => {
+           setEditFormData({ ...editFormData, semester: `Pass Out - ${e.target.value}` });
+         }}
+         className="w-full p-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-xs shadow-sm cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1rem] bg-[right_0.5rem_center] bg-no-repeat pr-6 font-medium"
+       >
+         <option value="" className="bg-white text-gray-800 font-medium py-1">Select Year</option>
+         {YEARS.map(yr => (
+           <option key={yr} value={yr} className="bg-white text-gray-800 font-medium py-1">{yr}</option>
+         ))}
+       </select>
+     </div>
+   )}
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Father's Name</label>
+   <input required name="fathers_name" value={editFormData.fathers_name || ''} onChange={handleEditInputChange} pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Mother's Name</label>
+   <input required name="mothers_name" value={editFormData.mothers_name || ''} onChange={handleEditInputChange} pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Aadhaar Number</label>
+   <input required name="aadhaar_no" value={editFormData.aadhaar_no || ''} onChange={handleEditInputChange} inputMode="numeric" minLength="12" maxLength="12" pattern="[0-9]{12}" title="Must be exactly 12 digits" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Previous Experience</label>
+   <select required name="prev_experience" value={editFormData.prev_experience || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-sm shadow-sm cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.75rem_center] bg-no-repeat pr-8 font-medium">
+   <option value="" className="bg-white text-gray-800 font-medium py-1">Select</option>
+   <option value="Yes" className="bg-white text-gray-800 font-medium py-1">Yes</option>
+   <option value="No" className="bg-white text-gray-800 font-medium py-1">No</option>
+   </select>
+   </div>
+   <div className="md:col-span-2">
+   <label className="block text-xs font-bold text-gray-700 mb-1">Extra Curriculum Activities</label>
+   <input name="extra_curriculum" value={editFormData.extra_curriculum || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
+   </div>
   <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
-  <input required name="full_name" value={editFormData.full_name || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
-  </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">College Application ID</label>
-  <input required name="college_application_id" value={editFormData.college_application_id || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
-  </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Department</label>
-  <select required name="department" value={editFormData.department || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
-  <option value="">Select</option>
-  {DEPARTMENTS.map(dept => (
-    <option key={dept} value={dept}>{dept}</option>
-  ))}
-  </select>
-  </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Semester</label>
-  <select required name="semester" value={editFormData.semester && editFormData.semester.includes('Pass Out') ? 'Pass Out' : editFormData.semester || ''} onChange={(e) => {
-    const val = e.target.value;
-    if (val === 'Pass Out') {
-      setEditFormData({ ...editFormData, semester: 'Pass Out - 2026' });
-    } else {
-      setEditFormData({ ...editFormData, semester: val });
-    }
-  }} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
-  <option value="">Select</option>
-  <option value="1st">1st Sem</option>
-  <option value="2nd">2nd Sem</option>
-  <option value="3rd">3rd Sem</option>
-  <option value="4th">4th Sem</option>
-  <option value="5th">5th Sem</option>
-  <option value="6th">6th Sem</option>
-  <option value="7th">7th Sem</option>
-  <option value="8th">8th Sem</option>
-  <option value="Pass Out">Pass Out</option>
-  </select>
-  {(editFormData.semester && editFormData.semester.includes('Pass Out')) && (
-    <div className="mt-2">
-      <label className="block text-[11px] font-bold text-gray-500 mb-0.5">Pass Out Year</label>
-      <select
-        required
-        value={editFormData.semester.includes('-') ? editFormData.semester.split('-')[1].trim() : '2026'}
-        onChange={(e) => {
-          setEditFormData({ ...editFormData, semester: `Pass Out - ${e.target.value}` });
-        }}
-        className="w-full p-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-xs shadow-sm"
-      >
-        <option value="">Select Year</option>
-        {YEARS.map(yr => (
-          <option key={yr} value={yr}>{yr}</option>
-        ))}
-      </select>
-    </div>
-  )}
-  </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Father's Name</label>
-  <input required name="fathers_name" value={editFormData.fathers_name || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
-  </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Mother's Name</label>
-  <input required name="mothers_name" value={editFormData.mothers_name || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
-  </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Aadhaar Number</label>
-  <input required name="aadhaar_no" value={editFormData.aadhaar_no || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
-  </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Previous Experience</label>
-  <select required name="prev_experience" value={editFormData.prev_experience || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
-  <option value="">Select</option>
-  <option value="Yes">Yes</option>
-  <option value="No">No</option>
-  </select>
-  </div>
-  <div className="md:col-span-2">
-  <label className="block text-xs font-bold text-gray-700 mb-1">Extra Curriculum Activities</label>
-  <input name="extra_curriculum" value={editFormData.extra_curriculum || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
-  </div>
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">Phone</label>
- <input required name="phone" value={editFormData.phone} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
- </div>
- <div>
- <label className="block text-xs font-bold text-gray-700 mb-1">WhatsApp</label>
- <input required name="whatsapp" value={editFormData.whatsapp} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
- </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Blood Group</label>
-  <select name="blood_group" value={editFormData.blood_group} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
-  <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option>
-  </select>
+  <label className="block text-xs font-bold text-gray-700 mb-1">Phone</label>
+  <input required name="phone" type="tel" inputMode="numeric" value={editFormData.phone || ''} onChange={handleEditInputChange} minLength="10" maxLength="10" pattern="[0-9]{10}" title="Must be exactly 10 digits" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
   </div>
   <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">Gender</label>
-  <select required name="gender" value={editFormData.gender || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm">
-  <option value="">Select</option>
-  <option value="Male">Male</option>
-  <option value="Female">Female</option>
-  <option value="Other">Other</option>
-  </select>
+  <label className="block text-xs font-bold text-gray-700 mb-1">WhatsApp</label>
+  <input required name="whatsapp" type="tel" inputMode="numeric" value={editFormData.whatsapp || ''} onChange={handleEditInputChange} minLength="10" maxLength="10" pattern="[0-9]{10}" title="Must be exactly 10 digits" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
   </div>
-  <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">DOB</label>
-  <input type="date" required name="dob" value={editFormData.dob} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm"/>
-  </div>
- <div className="md:col-span-2">
- <label className="block text-xs font-bold text-gray-700 mb-1">Current Address</label>
- <textarea required name="current_address" value={editFormData.current_address} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" rows="2"></textarea>
- </div>
- <div className="md:col-span-2">
- <label className="block text-xs font-bold text-gray-700 mb-1">Bio</label>
- <textarea required name="bio" value={editFormData.bio} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" rows="2"></textarea>
- </div>
- </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Blood Group</label>
+   <select name="blood_group" value={editFormData.blood_group} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-sm shadow-sm cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.75rem_center] bg-no-repeat pr-8 font-medium">
+   <option value="A+" className="bg-white text-gray-800 font-medium py-1">A+</option>
+   <option value="A-" className="bg-white text-gray-800 font-medium py-1">A-</option>
+   <option value="B+" className="bg-white text-gray-800 font-medium py-1">B+</option>
+   <option value="B-" className="bg-white text-gray-800 font-medium py-1">B-</option>
+   <option value="AB+" className="bg-white text-gray-800 font-medium py-1">AB+</option>
+   <option value="AB-" className="bg-white text-gray-800 font-medium py-1">AB-</option>
+   <option value="O+" className="bg-white text-gray-800 font-medium py-1">O+</option>
+   <option value="O-" className="bg-white text-gray-800 font-medium py-1">O-</option>
+   </select>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">Gender</label>
+   <select required name="gender" value={editFormData.gender || ''} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-sm shadow-sm cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.75rem_center] bg-no-repeat pr-8 font-medium">
+   <option value="" className="bg-white text-gray-800 font-medium py-1">Select</option>
+   <option value="Male" className="bg-white text-gray-800 font-medium py-1">Male</option>
+   <option value="Female" className="bg-white text-gray-800 font-medium py-1">Female</option>
+   <option value="Other" className="bg-white text-gray-800 font-medium py-1">Other</option>
+   </select>
+   </div>
+   <div>
+   <label className="block text-xs font-bold text-gray-700 mb-1">DOB</label>
+   <DateOfBirthInput
+     name="dob"
+     value={editFormData.dob || ''}
+     onChange={handleEditInputChange}
+     required
+     className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm cursor-pointer"
+   />
+   </div>
+   <div className="md:col-span-2">
+   <label className="block text-xs font-bold text-gray-700 mb-1">Current Address</label>
+   <textarea required name="current_address" value={editFormData.current_address} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" rows="2"></textarea>
+   </div>
+   <div className="md:col-span-2">
+   <label className="block text-xs font-bold text-gray-700 mb-1">Bio</label>
+   <textarea required name="bio" value={editFormData.bio} onChange={handleEditInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" rows="2"></textarea>
+   </div>
+   </div>
  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t shrink-0">
  <button type="button" onClick={() => setIsEditingProfile(false)} className="w-full sm:w-1/3 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl transition shadow-sm whitespace-nowrap">Cancel</button>
  <button type="submit" disabled={saving} className="w-full sm:w-2/3 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md whitespace-nowrap">{saving ? 'Saving...' : 'Save Changes'}</button>

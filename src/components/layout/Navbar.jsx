@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Icons } from "../Icons";
 import UserAvatar, { getInitials } from "../UserAvatar";
@@ -15,6 +16,7 @@ export const NAV_ITEMS = [
 
 const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   const { t } = useLanguage();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showMobileProfile, setShowMobileProfile] = useState(false);
@@ -135,7 +137,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   let adminPressTimer;
   const handlePressStart = () => { adminPressTimer = setTimeout(() => { setShowAdminWarning(true); }, 6000); };
   const handlePressEnd = () => { clearTimeout(adminPressTimer); };
-  const confirmAdminAccess = () => { setShowAdminWarning(false); sessionStorage.removeItem('allow_public'); if (localStorage.getItem('nss_admin_mode')) { window.location.href = '/admin'; } else { window.location.href = '/admin-login'; } };
+  const confirmAdminAccess = () => { setShowAdminWarning(false); sessionStorage.removeItem('allow_public'); if (localStorage.getItem('nss_admin_mode')) { router.push('/admin'); } else { router.push('/admin-login'); } };
 
   return (
     <>

@@ -41,20 +41,14 @@ export default function AdminDashboard() {
 
   const [warningModal, setWarningModal] = useState({ show: false, title: '', message: '', onConfirm: null });
 
+  // Populate admin user from cached session (no network call — AdminAuthLayout already verified)
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        const { data: adminData } = await supabase.from('admins').select('email').eq('email', user.email).single();
-        if (adminData) {
-          setAdminUser(user);
-        } else {
-          router.replace('/admin-login');
-        }
-      } else {
-        router.replace('/admin-login');
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setAdminUser(session.user);
     });
+  }, []);
 
+  useEffect(() => {
     window.history.pushState({ adminTrap: true }, '');
     const handlePopState = () => {
       window.history.pushState({ adminTrap: true }, '');
@@ -72,7 +66,7 @@ export default function AdminDashboard() {
             show: true,
             title: 'Exit Admin Panel?',
             message: 'You are about to exit the admin dashboard. Any unsaved progress will be lost.',
-            onConfirm: () => { window.location.replace('/'); }
+            onConfirm: () => { router.replace('/'); }
           });
         }
       }

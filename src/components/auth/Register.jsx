@@ -10,6 +10,86 @@ import { compressImage } from '@/lib/utils';
 
 export { DEPARTMENTS, YEARS, compressImage };
 
+// Custom Date Picker component that forces DD/MM/YYYY display on ALL devices while showing native calendar
+const DateOfBirthInput = ({ value, onChange, name, className, required, placeholder = "DD/MM/YYYY" }) => {
+  const hiddenInputRef = useRef(null);
+
+  const displayValue = React.useMemo(() => {
+    if (!value) return "";
+    if (value.includes("/")) return value;
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) return `${match[3]}/${match[2]}/${match[1]}`;
+    return value;
+  }, [value]);
+
+  const handleTextChange = (e) => {
+    let val = e.target.value.replace(/[^\d/]/g, "");
+    if (val.length === 2 && !val.includes("/")) {
+      val = val + "/";
+    } else if (val.length === 5 && val.split("/").length === 2) {
+      val = val + "/";
+    }
+    const match = val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) {
+      const yyyymmdd = `${match[3]}-${match[2]}-${match[1]}`;
+      onChange({ target: { name, value: yyyymmdd } });
+    } else {
+      onChange({ target: { name, value: val } });
+    }
+  };
+
+  const handleCalendarChange = (e) => {
+    if (e.target.value) {
+      onChange({ target: { name, value: e.target.value } });
+    }
+  };
+
+  const openCalendar = () => {
+    if (hiddenInputRef.current) {
+      if (typeof hiddenInputRef.current.showPicker === 'function') {
+        try { hiddenInputRef.current.showPicker(); } catch (err) { hiddenInputRef.current.focus(); hiddenInputRef.current.click(); }
+      } else {
+        hiddenInputRef.current.focus();
+        hiddenInputRef.current.click();
+      }
+    }
+  };
+
+  return (
+    <div className="relative flex items-center w-full">
+      <input
+        type="text"
+        name={name}
+        value={displayValue}
+        onChange={handleTextChange}
+        onClick={openCalendar}
+        required={required}
+        placeholder={placeholder}
+        maxLength={10}
+        className={className}
+      />
+      <button
+        type="button"
+        onClick={openCalendar}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 p-1 cursor-pointer focus:outline-none z-10"
+        title="Open Calendar"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </button>
+      <input
+        ref={hiddenInputRef}
+        type="date"
+        value={value && value.match(/^\d{4}-\d{2}-\d{2}$/) ? value : ''}
+        onChange={handleCalendarChange}
+        className="absolute inset-0 opacity-0 pointer-events-none w-0 h-0"
+        tabIndex={-1}
+      />
+    </div>
+  );
+};
+
 export default function Register({ onClose, onSwitch }) {
   const { t } = useLanguage();
   useEffect(() => {
@@ -104,7 +184,19 @@ export default function Register({ onClose, onSwitch }) {
     return () => window.removeEventListener('beforeunload', handler);
   }, [showConfirmModal, emailConfirmed]);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    let { name, value } = e.target;
+    if (name === 'full_name' || name === 'fathers_name' || name === 'mothers_name') {
+      value = value.replace(/[^a-zA-Z\s]/g, '');
+    }
+    if (name === 'college_application_id') {
+      value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+    if (name === 'phone' || name === 'whatsapp' || name === 'aadhaar_no') {
+      value = value.replace(/\D/g, '');
+    }
+    setFormData({ ...formData, [name]: value });
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -124,6 +216,20 @@ export default function Register({ onClose, onSwitch }) {
   const handleRegister = async (e) => {
     e.preventDefault();
 
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(formData.full_name.trim())) {
+      toast.error("Full Name must contain only letters and spaces.");
+      return;
+    }
+    if (!nameRegex.test(formData.fathers_name.trim())) {
+      toast.error("Father's Name must contain only letters and spaces.");
+      return;
+    }
+    if (!nameRegex.test(formData.mothers_name.trim())) {
+      toast.error("Mother's Name must contain only letters and spaces.");
+      return;
+    }
+
     if (formData.password.length < 6 || formData.password.length > 16) {
       toast.error("Password must be between 6 and 16 characters.");
       return;
@@ -135,8 +241,20 @@ export default function Register({ onClose, onSwitch }) {
       return;
     }
 
-    if (formData.college_application_id.length > 15) {
-      toast.error("College Application ID must not exceed 15 characters.");
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error("Phone number must be exactly 10 digits.");
+      return;
+    }
+
+    if (formData.whatsapp && !phoneRegex.test(formData.whatsapp)) {
+      toast.error("WhatsApp number must be exactly 10 digits.");
+      return;
+    }
+
+    const appIdRegex = /^[A-Z0-9]{15}$/;
+    if (!appIdRegex.test(formData.college_application_id)) {
+      toast.error("College Application ID must be exactly 15 characters (e.g. BBCOLG123456789).");
       return;
     }
 
@@ -348,7 +466,7 @@ export default function Register({ onClose, onSwitch }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.fullName")} *</label>
-                  <input name="full_name" type="text" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterName")} />
+                  <input name="full_name" type="text" value={formData.full_name} onChange={handleChange} required pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterName")} />
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.email")} *</label>
@@ -387,39 +505,56 @@ export default function Register({ onClose, onSwitch }) {
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.dob")} *</label>
-                  <input name="dob" type="date" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]" />
+                  <DateOfBirthInput
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer"
+                  />
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.phone")} *</label>
-                  <input name="phone" type="tel" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterPhone")} />
+                  <input name="phone" type="tel" inputMode="numeric" value={formData.phone} onChange={handleChange} required minLength="10" maxLength="10" pattern="[0-9]{10}" title="Must be exactly 10 digits" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterPhone")} />
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.whatsapp")} ({t("auth.register.optional")})</label>
-                  <input name="whatsapp" type="tel" onChange={handleChange} className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.optional")} />
+                  <input name="whatsapp" type="tel" inputMode="numeric" value={formData.whatsapp} onChange={handleChange} minLength="10" maxLength="10" pattern="[0-9]{10}" title="Must be exactly 10 digits" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.optional")} />
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.fathersName")} *</label>
-                  <input name="fathers_name" type="text" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterFathersName")} />
+                  <input name="fathers_name" type="text" value={formData.fathers_name} onChange={handleChange} required pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterFathersName")} />
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.mothersName")} *</label>
-                  <input name="mothers_name" type="text" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterMothersName")} />
+                  <input name="mothers_name" type="text" value={formData.mothers_name} onChange={handleChange} required pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterMothersName")} />
                 </div>
                 <div>
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.aadhaarNo")} *</label>
-                  <input name="aadhaar_no" type="text" onChange={handleChange} required maxLength="12" pattern="[0-9]{12}" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterAadhaar")} />
+                  <input name="aadhaar_no" type="text" inputMode="numeric" value={formData.aadhaar_no} onChange={handleChange} required minLength="12" maxLength="12" pattern="[0-9]{12}" title="Must be exactly 12 digits" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterAadhaar")} />
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.gender")} *</label>
-                    <select name="gender" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
-                      <option value="">{t("auth.register.select")}</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
+                    <select name="gender" value={formData.gender} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
+                      <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
+                      <option value="Male" className="bg-white text-slate-800 font-medium py-1.5">Male</option>
+                      <option value="Female" className="bg-white text-slate-800 font-medium py-1.5">Female</option>
+                      <option value="Other" className="bg-white text-slate-800 font-medium py-1.5">Other</option>
                     </select>
                   </div>
                   <div className="flex-1">
                     <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.bloodGroup")} *</label>
-                    <select name="blood_group" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
-                      <option value="">{t("auth.register.select")}</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="O+">O+</option><option value="O-">O-</option><option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    <select name="blood_group" value={formData.blood_group} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
+                      <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
+                      <option value="A+" className="bg-white text-slate-800 font-medium py-1.5">A+</option>
+                      <option value="A-" className="bg-white text-slate-800 font-medium py-1.5">A-</option>
+                      <option value="B+" className="bg-white text-slate-800 font-medium py-1.5">B+</option>
+                      <option value="B-" className="bg-white text-slate-800 font-medium py-1.5">B-</option>
+                      <option value="O+" className="bg-white text-slate-800 font-medium py-1.5">O+</option>
+                      <option value="O-" className="bg-white text-slate-800 font-medium py-1.5">O-</option>
+                      <option value="AB+" className="bg-white text-slate-800 font-medium py-1.5">AB+</option>
+                      <option value="AB-" className="bg-white text-slate-800 font-medium py-1.5">AB-</option>
                     </select>
                   </div>
                 </div>
@@ -435,26 +570,26 @@ export default function Register({ onClose, onSwitch }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.department")} *</label>
-                  <select name="department" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
-                    <option value="">{t("auth.register.select")}</option>
+                  <select name="department" value={formData.department} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
+                    <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
                     {DEPARTMENTS.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
+                      <option key={dept} value={dept} className="bg-white text-slate-800 font-medium py-1.5">{dept}</option>
                     ))}
                   </select>
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.semester")} *</label>
-                  <select name="semester" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
-                    <option value="">{t("auth.register.select")}</option>
-                    <option value="1st">1st Sem</option>
-                    <option value="2nd">2nd Sem</option>
-                    <option value="3rd">3rd Sem</option>
-                    <option value="4th">4th Sem</option>
-                    <option value="5th">5th Sem</option>
-                    <option value="6th">6th Sem</option>
-                    <option value="7th">7th Sem</option>
-                    <option value="8th">8th Sem</option>
-                    <option value="Pass Out">Pass Out</option>
+                  <select name="semester" value={formData.semester} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
+                    <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
+                    <option value="1st" className="bg-white text-slate-800 font-medium py-1.5">1st Sem</option>
+                    <option value="2nd" className="bg-white text-slate-800 font-medium py-1.5">2nd Sem</option>
+                    <option value="3rd" className="bg-white text-slate-800 font-medium py-1.5">3rd Sem</option>
+                    <option value="4th" className="bg-white text-slate-800 font-medium py-1.5">4th Sem</option>
+                    <option value="5th" className="bg-white text-slate-800 font-medium py-1.5">5th Sem</option>
+                    <option value="6th" className="bg-white text-slate-800 font-medium py-1.5">6th Sem</option>
+                    <option value="7th" className="bg-white text-slate-800 font-medium py-1.5">7th Sem</option>
+                    <option value="8th" className="bg-white text-slate-800 font-medium py-1.5">8th Sem</option>
+                    <option value="Pass Out" className="bg-white text-slate-800 font-medium py-1.5">Pass Out</option>
                   </select>
                 </div>
                 {formData.semester === "Pass Out" && (
@@ -464,25 +599,25 @@ export default function Register({ onClose, onSwitch }) {
                       required
                       value={passoutYear}
                       onChange={(e) => setPassoutYear(e.target.value)}
-                      className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] bg-white"
+                      className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium"
                     >
-                      <option value="">{t("auth.register.select")}</option>
+                      <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
                       {YEARS.map(yr => (
-                        <option key={yr} value={yr}>{yr}</option>
+                        <option key={yr} value={yr} className="bg-white text-slate-800 font-medium py-1.5">{yr}</option>
                       ))}
                     </select>
                   </div>
                 )}
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.collegeApplicationId")} *</label>
-                  <input name="college_application_id" type="text" onChange={handleChange} required maxLength="15" className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterApplicationId")} />
+                  <input name="college_application_id" type="text" value={formData.college_application_id} onChange={handleChange} required minLength="15" maxLength="15" pattern="[A-Za-z0-9]{15}" title="Must be exactly 15 characters (e.g. BBCOLG123456789)" style={{ textTransform: 'uppercase' }} className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder="BBCOLG123456789" />
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.prevExperience")} *</label>
-                  <select name="prev_experience" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px]">
-                    <option value="">{t("auth.register.select")}</option>
-                    <option value="Yes">{t("auth.register.yes")}</option>
-                    <option value="No">{t("auth.register.no")}</option>
+                  <select name="prev_experience" value={formData.prev_experience} onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-slate-800 shadow-sm text-[15px] cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 font-medium">
+                    <option value="" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.select")}</option>
+                    <option value="Yes" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.yes")}</option>
+                    <option value="No" className="bg-white text-slate-800 font-medium py-1.5">{t("auth.register.no")}</option>
                   </select>
                 </div>
                 <div className={`flex flex-col justify-end col-span-1 ${formData.semester === "Pass Out" ? "md:col-span-1" : "md:col-span-2"}`}>
