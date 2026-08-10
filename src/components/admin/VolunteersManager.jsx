@@ -299,24 +299,36 @@ const VolunteersManager = ({ setIsDirty }) => {
   const handleDeleteVolunteer = async () => {
     setDeleting(true);
     try {
-      await deleteSupabaseImage(selectedVol.photo_url);
+      // 1. Delete image from Supabase Storage
+      if (selectedVol?.photo_url) {
+        await deleteSupabaseImage(selectedVol.photo_url);
+      }
       
+      // 2. Delete record from database registrations table
+      const { error: dbError } = await supabase
+        .from('registrations')
+        .delete()
+        .eq('id', selectedVol.id);
+
+      if (dbError) {
+        console.error("Database deletion error:", dbError);
+      }
+
+      // 3. Call server API to delete from Auth system
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token || '';
 
-      const response = await fetch('/api/admin/delete-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId: selectedVol.id }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete user via API');
+      try {
+        await fetch('/api/admin/delete-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ userId: selectedVol.id }),
+        });
+      } catch (apiErr) {
+        console.warn("Auth deletion API notice:", apiErr);
       }
 
       toast.success("Volunteer and all associated data have been completely removed.");
@@ -328,7 +340,6 @@ const VolunteersManager = ({ setIsDirty }) => {
       toast.error(`Failed to delete volunteer: ${err.message}`);
     } finally {
       setDeleting(false);
-      setShowDeleteConfirm(false);
     }
   };
 

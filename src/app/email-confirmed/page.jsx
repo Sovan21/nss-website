@@ -10,25 +10,28 @@ export default function EmailConfirmedPage() {
   const [confirmedEmail, setConfirmedEmail] = useState('');
 
   useEffect(() => {
-    const processConfirmation = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setConfirmedEmail(session.user.email || '');
-          try {
-            const { data: profileData } = await supabase
-              .from('registrations')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle();
+    let isMounted = true;
 
-            await uploadConfirmedUserPhoto(session.user, session.user.email, profileData?.full_name);
-          } catch (e) {
-            console.error("Photo sync error on email confirmed page:", e);
-          }
-        }
-      } catch (err) {
-        console.error("Confirmation processing error:", err);
+    const processSession = async (session) => {
+      if (!session?.user) {
+        if (isMounted) setIsProcessing(false);
+        return;
+      }
+
+      if (isMounted) {
+        setConfirmedEmail(session.user.email || '');
+      }
+
+      try {
+        const { data: profileData } = await supabase
+          .from('registrations')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        await uploadConfirmedUserPhoto(session.user, session.user.email, profileData?.full_name);
+      } catch (e) {
+        console.error("Photo sync error on email confirmed page:", e);
       } finally {
         // Guarantee user is signed out so NO auto-login happens
         await supabase.auth.signOut();
@@ -38,11 +41,34 @@ export default function EmailConfirmedPage() {
           sessionStorage.removeItem('nss_just_registered');
           window.history.replaceState(null, '', window.location.pathname);
         }
-        setIsProcessing(false);
+        if (isMounted) setIsProcessing(false);
       }
     };
 
-    processConfirmation();
+    // 1. Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        processSession(session);
+      } else {
+        // Give token hash a brief moment to be parsed by Supabase SDK
+        const timer = setTimeout(() => {
+          if (isMounted) setIsProcessing(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    });
+
+    // 2. Listen for auth state changes (e.g. SIGNED_IN from token hash)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        processSession(session);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   return (

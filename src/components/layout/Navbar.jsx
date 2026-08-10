@@ -43,7 +43,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
       if (!session?.user) return;
       const user = session.user;
 
-      // Intercept email confirmation links & post-registration landing to prevent auto-login
+      // Intercept email confirmation links & redirect to /email-confirmed standalone page
       const isJustRegistered = sessionStorage.getItem('nss_just_registered') === 'true';
       const isEmailConfirmationLink =
         isJustRegistered ||
@@ -55,19 +55,10 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
       if (isEmailConfirmationLink) {
         sessionStorage.removeItem('nss_just_registered');
-        try {
-          const { data: profileData } = await supabase.from('registrations').select('*').eq('id', user.id).maybeSingle();
-          await uploadConfirmedUserPhoto(user, user.email, profileData?.full_name);
-        } catch (e) {}
-
-        // Sign out immediately so user is NOT logged in automatically in background
-        await supabase.auth.signOut();
-        localStorage.removeItem('nss_user');
-        localStorage.removeItem('nss_admin_mode');
-        setCurrentUser(null);
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        setShowEmailConfirmedModal(true);
-        return;
+        if (typeof window !== 'undefined' && window.location.pathname !== '/email-confirmed') {
+          window.location.href = '/email-confirmed' + window.location.hash;
+          return;
+        }
       }
 
       try {
@@ -111,11 +102,6 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         }
         localStorage.setItem('nss_user', JSON.stringify(userDataToSave));
         setCurrentUser(userDataToSave);
-
-        // Show Email Confirmed popup ONLY if not already dismissed
-        if (userDataToSave?.role === 'volunteer' && localStorage.getItem(`nss_whatsapp_dismissed_${user.id}`) !== 'true') {
-          setShowEmailConfirmedModal(true);
-        }
       } catch (err) { console.error("Session sync error:", err); }
     };
     checkSession();
