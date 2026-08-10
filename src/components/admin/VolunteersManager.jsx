@@ -5,6 +5,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
 import { compressImage, formatDate, useDebounce, deleteSupabaseImage, getInitials } from '@/lib/utils';
+import ImageCropperModal from '@/components/ImageCropperModal';
 
 // Custom Date Picker component that forces DD/MM/YYYY display on ALL devices while showing native calendar
 const DateOfBirthInput = ({ value, onChange, name, className, required, placeholder = "DD/MM/YYYY" }) => {
@@ -100,6 +101,7 @@ const VolunteersManager = ({ setIsDirty }) => {
  const [isEditingProfile, setIsEditingProfile] = useState(false);
  const [editFormData, setEditFormData] = useState({});
  const [editImageFile, setEditImageFile] = useState(null);
+ const [croppingAdminFile, setCroppingAdminFile] = useState(null);
  const [saving, setSaving] = useState(false);
  const [removeImage, setRemoveImage] = useState(false);
 
@@ -165,10 +167,6 @@ const VolunteersManager = ({ setIsDirty }) => {
         query = query.order('full_name', { ascending: true });
       }
 
-      const from = (page - 1) * rowsPerPage;
-      const to = from + rowsPerPage - 1;
-      query = query.range(from, to);
-
       const { data, error, count } = await query;
       if (error) throw error;
 
@@ -202,17 +200,32 @@ const VolunteersManager = ({ setIsDirty }) => {
  };
 
  const handleEditInputChange = (e) => {
-  let { name, value } = e.target;
+  const target = e.target;
+  const { name, value } = target;
+  const selectionStart = target ? target.selectionStart : null;
+  let formattedValue = value;
+
   if (name === 'full_name' || name === 'fathers_name' || name === 'mothers_name') {
-   value = value.replace(/[^a-zA-Z\s]/g, '');
+    formattedValue = value.replace(/[^a-zA-Z\s]/g, '');
   }
   if (name === 'college_application_id') {
-   value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    formattedValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   }
   if (name === 'phone' || name === 'whatsapp' || name === 'aadhaar_no') {
-   value = value.replace(/\D/g, '');
+    formattedValue = value.replace(/\D/g, '');
   }
-  setEditFormData({ ...editFormData, [name]: value });
+
+  setEditFormData((prev) => ({ ...prev, [name]: formattedValue }));
+
+  if (typeof selectionStart === 'number' && target) {
+    const diff = value.length - formattedValue.length;
+    const newPos = Math.max(0, selectionStart - diff);
+    requestAnimationFrame(() => {
+      try {
+        target.setSelectionRange(newPos, newPos);
+      } catch (err) {}
+    });
+  }
  };
 
  const handleUpdateVolunteer = async (e) => {
@@ -263,9 +276,12 @@ const VolunteersManager = ({ setIsDirty }) => {
   updatedPhotoUrl = null;
   } else if (editImageFile) {
   if (selectedVol.photo_url) await deleteSupabaseImage(selectedVol.photo_url);
-  const compressed = await compressImage(editImageFile, 2, 800); // Max 2MB for volunteers
-  const fileExt = compressed.name.split('.').pop();
-  const fileName = `registration-${Date.now()}.${fileExt}`;
+  const compressed = await compressImage(editImageFile, 700, 900);
+  const fileExt = compressed.name.split('.').pop() || 'jpg';
+  const nameSlug = editFormData.full_name
+    ? editFormData.full_name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    : 'user';
+  const fileName = `volunteer-${nameSlug}-${Date.now()}.${fileExt}`;
   await supabase.storage.from('nss-images').upload(fileName, compressed);
   updatedPhotoUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
   }
@@ -440,18 +456,12 @@ const VolunteersManager = ({ setIsDirty }) => {
  </div>
  )}
 
- {/* Pagination Controls */}
- {!loading && totalVolunteers > rowsPerPage && (
- <div className="flex justify-between items-center mt-6">
- <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 text-sm font-bold text-white bg-slate-600 rounded-lg disabled:bg-slate-300 disabled:cursor-not-allowed">
- Previous
- </button>
- <span className="text-sm font-semibold text-gray-600">Page {currentPage} of {Math.ceil(totalVolunteers / rowsPerPage)}</span>
- <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage * rowsPerPage >= totalVolunteers} className="px-4 py-2 text-sm font-bold text-white bg-slate-600 rounded-lg disabled:bg-slate-300 disabled:cursor-not-allowed">
- Next
- </button>
- </div>
- )}
+  {/* Volunteers Count Footer */}
+  {!loading && (
+    <div className="flex justify-between items-center mt-4 px-2 text-xs sm:text-sm font-semibold text-slate-500">
+      <span>Total Registered Volunteers: <strong className="text-slate-800 font-extrabold">{volunteers.length}</strong></span>
+    </div>
+  )}
 
  {showDeleteConfirm && selectedVol && (
  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[250] p-4 animate-fade-in-up">
@@ -594,7 +604,19 @@ const VolunteersManager = ({ setIsDirty }) => {
  <div className="flex gap-2 items-center justify-center sm:justify-start w-full">
  <label className="text-xs font-bold text-blue-700 bg-blue-100 hover:bg-blue-200 py-2 px-4 rounded-lg cursor-pointer transition shadow-sm whitespace-nowrap">
  {(selectedVol?.photo_url || editImageFile) && !removeImage ? 'Change Photo' : 'Add Photo'}
- <input type="file" accept="image/*" onChange={(e) => { setEditImageFile(e.target.files[0]); setRemoveImage(false); }} className="hidden"/>
+ <input type="file" accept="image/*" onChange={(e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const minSize = 100 * 1024;
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size < minSize || file.size > maxSize) {
+        toast.error("Photo size must be between 100 KB and 10 MB.");
+        e.target.value = null;
+        return;
+      }
+      setCroppingAdminFile(file);
+    }
+  }} className="hidden"/>
  </label>
  {(selectedVol?.photo_url || editImageFile) && !removeImage && (
  <button type="button" onClick={() => { setRemoveImage(true); setEditImageFile(null); }} className="text-xs bg-red-50 text-red-600 font-bold px-4 py-2 rounded-lg hover:bg-red-100 transition shadow-sm whitespace-nowrap">Remove</button>
@@ -743,6 +765,17 @@ const VolunteersManager = ({ setIsDirty }) => {
  </div>
  </div>
  )}
+ {croppingAdminFile && (
+    <ImageCropperModal
+      imageFile={croppingAdminFile}
+      onCropComplete={(croppedFile) => {
+        setEditImageFile(croppedFile);
+        setRemoveImage(false);
+        setCroppingAdminFile(null);
+      }}
+      onCancel={() => setCroppingAdminFile(null)}
+    />
+  )}
  </div>
  );
 };

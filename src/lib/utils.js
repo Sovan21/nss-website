@@ -6,53 +6,106 @@ import { supabaseAdmin as supabase } from '@/lib/supabase';
  */
 
 /**
- * Dynamic Canvas Image Compressor
+ * Dynamic Canvas Image Compressor targeting a specific file size window [minSizeKB, maxSizeKB]
  * @param {File} file - Image file to compress
- * @param {number} maxSizeMB - Maximum target size in megabytes
- * @param {number} maxWidth - Maximum target width in pixels
+ * @param {number} minSizeKB - Minimum target size in KB (default 700)
+ * @param {number} maxSizeKB - Maximum target size in KB (default 900)
+ * @param {number} initialMaxWidth - Maximum target width in pixels (default 2000)
  * @returns {Promise<File>} Compressed image file
  */
-export const compressImage = (file, maxSizeMB = 2, maxWidth = 800) => {
+export const compressImage = (file, minSizeKB = 700, maxSizeKB = 900, initialMaxWidth = 2000) => {
   return new Promise((resolve) => {
     if (!file || !file.type.startsWith('image/')) { resolve(file); return; }
+
+    // Support legacy signature: compressImage(file, maxSizeMB, maxWidth)
+    let minKB = minSizeKB;
+    let maxKB = maxSizeKB;
+    if (minSizeKB < 10) {
+      maxKB = Math.round(minSizeKB * 1024);
+      minKB = Math.round(maxKB * 0.70);
+      if (typeof maxSizeKB === 'number' && maxSizeKB > 100) {
+        initialMaxWidth = maxSizeKB;
+      }
+    }
+
+    const minSizeBytes = minKB * 1024;
+    const maxSizeBytes = maxKB * 1024;
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
       const img = new Image();
       img.src = event.target.result;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
+
+        let maxWidth = initialMaxWidth;
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
         }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        
-        const maxSizeBytes = maxSizeMB * 1024 * 1024;
-        let quality = 0.9;
-        
-        const attemptCompress = () => {
+
+        let quality = 0.95;
+        let attempts = 0;
+        const maxAttempts = 25;
+
+        const attemptCompress = (currentWidth, currentHeight) => {
+          attempts++;
+          const canvas = document.createElement('canvas');
+          canvas.width = currentWidth;
+          canvas.height = currentHeight;
+          const ctx = canvas.getContext('2d');
           ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, width, height);
-          ctx.drawImage(img, 0, 0, width, height);
+          ctx.fillRect(0, 0, currentWidth, currentHeight);
+          ctx.drawImage(img, 0, 0, currentWidth, currentHeight);
+
           canvas.toBlob((blob) => {
             if (!blob) { resolve(file); return; }
-            if (blob.size > maxSizeBytes && quality > 0.1) {
-              quality -= 0.1;
-              attemptCompress();
-            } else {
+
+            const size = blob.size;
+
+            // Target achieved: Size is inside target window [minSizeBytes, maxSizeBytes]
+            if (size >= minSizeBytes && size <= maxSizeBytes) {
               const newFileName = file.name.replace(/\.[^/.]+$/, ".jpg");
               const compressedFile = new File([blob], newFileName, { type: 'image/jpeg', lastModified: Date.now() });
-              const finalFile = compressedFile.size < file.size ? compressedFile : file;
-              resolve(finalFile);
+              resolve(compressedFile);
+              return;
+            }
+
+            if (attempts >= maxAttempts) {
+              const newFileName = file.name.replace(/\.[^/.]+$/, ".jpg");
+              const compressedFile = new File([blob], newFileName, { type: 'image/jpeg', lastModified: Date.now() });
+              resolve(compressedFile);
+              return;
+            }
+
+            if (size > maxSizeBytes) {
+              // Too large (> 900 KB): Decrease quality gradually
+              if (quality > 0.70) {
+                quality -= 0.02;
+                attemptCompress(currentWidth, currentHeight);
+              } else {
+                quality = 0.90;
+                attemptCompress(Math.round(currentWidth * 0.90), Math.round(currentHeight * 0.90));
+              }
+            } else if (size < minSizeBytes) {
+              // Too small (< 700 KB): Increase quality or scale canvas resolution up
+              if (quality < 0.98) {
+                quality = Math.min(0.98, quality + 0.03);
+                attemptCompress(currentWidth, currentHeight);
+              } else if (currentWidth < 2500) {
+                attemptCompress(Math.round(currentWidth * 1.15), Math.round(currentHeight * 1.15));
+              } else {
+                const newFileName = file.name.replace(/\.[^/.]+$/, ".jpg");
+                const compressedFile = new File([blob], newFileName, { type: 'image/jpeg', lastModified: Date.now() });
+                resolve(compressedFile);
+              }
             }
           }, 'image/jpeg', quality);
         };
-        attemptCompress();
+
+        attemptCompress(width, height);
       };
       img.onerror = () => resolve(file);
     };
@@ -129,5 +182,154 @@ export const deleteSupabaseImage = async (url) => {
     }
   } catch (error) {
     console.error("Error deleting image from storage:", error);
+  }
+};
+/**
+ * Save pending registration photo to local sessionStorage
+ */
+export const savePendingPhoto = (email, file) => {
+  if (!file || !email) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      sessionStorage.setItem(`nss_pending_photo_${email.toLowerCase()}`, e.target.result);
+      sessionStorage.setItem(`nss_pending_photo_name_${email.toLowerCase()}`, file.name);
+    } catch (err) {
+      console.warn("Could not cache pending photo locally:", err);
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+/**
+ * Retrieve pending registration photo file from local sessionStorage
+ */
+export const getPendingPhotoFile = (email) => {
+  if (!email) return null;
+  try {
+    const dataUrl = sessionStorage.getItem(`nss_pending_photo_${email.toLowerCase()}`);
+    const fileName = sessionStorage.getItem(`nss_pending_photo_name_${email.toLowerCase()}`) || 'photo.jpg';
+    if (!dataUrl) return null;
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], fileName, { type: mime });
+  } catch (err) {
+    return null;
+  }
+};
+
+/**
+ * Clear pending photo from sessionStorage
+ */
+export const clearPendingPhoto = (email) => {
+  if (!email) return;
+  try {
+    sessionStorage.removeItem(`nss_pending_photo_${email.toLowerCase()}`);
+    sessionStorage.removeItem(`nss_pending_photo_name_${email.toLowerCase()}`);
+  } catch (err) {}
+};
+
+/**
+ * Upload photo to Supabase storage ONLY AFTER email confirmation
+ */
+export const uploadConfirmedUserPhoto = async (user, email, fullName, photoFile = null) => {
+  try {
+    if (!user || !user.id) return '';
+
+    // Check if photo is ALREADY uploaded and present in database
+    const { data: existingRecord } = await supabase
+      .from('registrations')
+      .select('photo_url')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (existingRecord?.photo_url && existingRecord.photo_url.includes('nss-images')) {
+      clearPendingPhoto(email || user.email);
+      return existingRecord.photo_url;
+    }
+
+    const fileToUploadRaw = photoFile || getPendingPhotoFile(email || user.email);
+    if (!fileToUploadRaw) {
+      return existingRecord?.photo_url || '';
+    }
+
+    // Always pass image through dynamic target compressor [700 KB - 900 KB]
+    const finalFile = await compressImage(fileToUploadRaw, 700, 900);
+
+    const fileExt = finalFile.name.split('.').pop() || 'jpg';
+    const nameSlug = (fullName || user.user_metadata?.full_name || 'user')
+      .trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const userIdHash = user.id ? user.id.slice(0, 8) : 'pic';
+    const fileName = `volunteer-${nameSlug}-${userIdHash}.${fileExt}`;
+
+    // Upload with upsert: true so repeat or concurrent calls overwrite the exact same file
+    const { error: uploadError } = await supabase.storage.from('nss-images').upload(fileName, finalFile, { upsert: true });
+    if (uploadError) {
+      console.error("Storage upload error post-confirmation:", uploadError);
+      return '';
+    }
+
+    const { data: urlData } = supabase.storage.from('nss-images').getPublicUrl(fileName);
+    const photoUrl = urlData.publicUrl;
+
+    const m = user.user_metadata || {};
+    const profilePayload = {
+      id: user.id,
+      email: email || user.email,
+      full_name: fullName || m.full_name || 'Volunteer',
+      fathers_name: m.fathers_name || null,
+      mothers_name: m.mothers_name || null,
+      aadhaar_no: m.aadhaar_no || null,
+      phone: m.phone || null,
+      whatsapp: m.whatsapp || null,
+      dob: m.dob || null,
+      gender: m.gender || null,
+      blood_group: m.blood_group || null,
+      current_address: m.current_address || null,
+      department: m.department || null,
+      semester: m.semester || null,
+      college_application_id: m.college_application_id || null,
+      extra_curriculum: m.extra_curriculum || null,
+      prev_experience: m.prev_experience || null,
+      bio: m.bio || null,
+      photo_url: photoUrl,
+      role: 'volunteer'
+    };
+
+    // Upsert full profile row into registrations table
+    const { error: upsertError } = await supabase.from('registrations').upsert(profilePayload, { onConflict: 'id' });
+    if (upsertError) {
+      console.error("Upsert profile photo error:", upsertError);
+    }
+
+    // Update auth user metadata
+    await supabase.auth.updateUser({ data: { photo_url: photoUrl } });
+
+    // Clean up local pending photo cache
+    clearPendingPhoto(email || user.email);
+
+    // Sync localStorage and trigger user logged in event if currently active
+    const localUser = localStorage.getItem('nss_user');
+    if (localUser) {
+      try {
+        const parsed = JSON.parse(localUser);
+        if (parsed.id === user.id) {
+          parsed.photo_url = photoUrl;
+          localStorage.setItem('nss_user', JSON.stringify(parsed));
+          window.dispatchEvent(new Event('nss_user_logged_in'));
+        }
+      } catch (e) {}
+    }
+
+    return photoUrl;
+  } catch (err) {
+    console.error("Failed to upload confirmed user photo:", err);
+    return '';
   }
 };

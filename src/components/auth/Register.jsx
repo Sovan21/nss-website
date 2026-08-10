@@ -6,7 +6,8 @@ import { useToast } from '@/components/Toast';
 import { useLanguage } from '@/context/LanguageContext';
 
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
-import { compressImage } from '@/lib/utils';
+import { compressImage, savePendingPhoto, uploadConfirmedUserPhoto } from '@/lib/utils';
+import ImageCropperModal from '@/components/ImageCropperModal';
 
 export { DEPARTMENTS, YEARS, compressImage };
 
@@ -23,7 +24,9 @@ const DateOfBirthInput = ({ value, onChange, name, className, required, placehol
   }, [value]);
 
   const handleTextChange = (e) => {
-    let val = e.target.value.replace(/[^\d/]/g, "");
+    const target = e.target;
+    const { selectionStart, value } = target;
+    let val = value.replace(/[^\d/]/g, "");
     if (val.length === 2 && !val.includes("/")) {
       val = val + "/";
     } else if (val.length === 5 && val.split("/").length === 2) {
@@ -35,6 +38,16 @@ const DateOfBirthInput = ({ value, onChange, name, className, required, placehol
       onChange({ target: { name, value: yyyymmdd } });
     } else {
       onChange({ target: { name, value: val } });
+    }
+
+    if (typeof selectionStart === 'number' && target) {
+      const diff = value.length - val.length;
+      const newPos = Math.max(0, selectionStart - diff);
+      requestAnimationFrame(() => {
+        try {
+          target.setSelectionRange(newPos, newPos);
+        } catch (err) {}
+      });
     }
   };
 
@@ -218,8 +231,15 @@ const InlineSelect = ({ name, value, onChange, options = [], placeholder = "Sele
 export default function Register({ onClose, onSwitch }) {
   const { t } = useLanguage();
   useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'unset'; };
+    return () => {
+      setTimeout(() => {
+        if (!document.querySelector('#nss-auth-modal')) {
+          document.body.style.overflow = prevOverflow || 'unset';
+        }
+      }, 50);
+    };
   }, []);
 
   const [formData, setFormData] = useState({
@@ -233,6 +253,7 @@ export default function Register({ onClose, onSwitch }) {
 
   const { toast } = useToast();
   const [photoFile, setPhotoFile] = useState(null);
+  const [croppingFile, setCroppingFile] = useState(null);
   const [passoutYear, setPassoutYear] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -242,7 +263,8 @@ export default function Register({ onClose, onSwitch }) {
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [resendTimer, setResendTimer] = useState(90);
   const [resendLoading, setResendLoading] = useState(false);
-  const registeredCredsRef = useRef(null); // {email, password} for polling
+  const registeredCredsRef = useRef(null);
+  const pendingPhotoRef = useRef(null);
   const pollRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -284,11 +306,18 @@ export default function Register({ onClose, onSwitch }) {
 
     const checkConfirmation = async () => {
       try {
-        const { email, password } = registeredCredsRef.current;
+        const { email, password, full_name } = registeredCredsRef.current;
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (data?.session && !error) {
-          // Email is confirmed — sign out so user can login cleanly via login form
+          // Upload photo ONLY NOW that email is confirmed!
+          await uploadConfirmedUserPhoto(data.session.user, email, full_name, pendingPhotoRef.current);
+
+          // Sign out immediately so user is NOT logged in in background
           await supabase.auth.signOut();
+          localStorage.removeItem('nss_user');
+          localStorage.removeItem('nss_admin_mode');
+          window.dispatchEvent(new Event('nss_user_logged_in'));
+
           setEmailConfirmed(true);
           if (pollRef.current) clearInterval(pollRef.current);
         }
@@ -310,32 +339,48 @@ export default function Register({ onClose, onSwitch }) {
   }, [showConfirmModal, emailConfirmed]);
 
   const handleChange = (e) => {
-    let { name, value } = e.target;
+    const target = e.target;
+    const { name, value } = target;
+    const selectionStart = target ? target.selectionStart : null;
+    let formattedValue = value;
+
     if (name === 'full_name' || name === 'fathers_name' || name === 'mothers_name') {
-      value = value.replace(/[^a-zA-Z\s]/g, '');
+      formattedValue = value.replace(/[^a-zA-Z\s]/g, '');
     }
     if (name === 'college_application_id') {
-      value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      formattedValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     }
     if (name === 'phone' || name === 'whatsapp' || name === 'aadhaar_no') {
-      value = value.replace(/\D/g, '');
+      formattedValue = value.replace(/\D/g, '');
     }
-    setFormData({ ...formData, [name]: value });
+
+    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+
+    if (typeof selectionStart === 'number' && target) {
+      const diff = value.length - formattedValue.length;
+      const newPos = Math.max(0, selectionStart - diff);
+      requestAnimationFrame(() => {
+        try {
+          target.setSelectionRange(newPos, newPos);
+        } catch (err) {}
+      });
+    }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const minSize = 500 * 1024;
-      const maxSize = 1024 * 1024;
+      const minSize = 100 * 1024; // 100 KB
+      const maxSize = 10 * 1024 * 1024; // 10 MB
       if (file.size < minSize || file.size > maxSize) {
-        toast.error("Passport size photo must be between 500 KB and 1 MB.");
+        toast.error("Passport size photo must be between 100 KB and 10 MB.");
         e.target.value = null; // Reset file input
         setPhotoFile(null);
+        setCroppingFile(null);
         return;
       }
+      setCroppingFile(file);
     }
-    setPhotoFile(file);
   };
 
   const handleRegister = async (e) => {
@@ -386,20 +431,9 @@ export default function Register({ onClose, onSwitch }) {
     setLoading(true);
 
     try {
-      let uploadedPhotoUrl = '';
-
       if (photoFile) {
-        const compressedFile = await compressImage(photoFile, 1, 800); // Max 1MB
-        const fileExt = compressedFile.name.split('.').pop();
-        const fileName = `volunteer-${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage.from('nss-images').upload(fileName, compressedFile);
-        if (uploadError) {
-          throw new Error(`Photo upload failed: ${uploadError.message || "Storage error"}`);
-        }
-
-        const { data } = supabase.storage.from('nss-images').getPublicUrl(fileName);
-        uploadedPhotoUrl = data.publicUrl;
+        pendingPhotoRef.current = photoFile;
+        savePendingPhoto(formData.email, photoFile);
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -424,7 +458,7 @@ export default function Register({ onClose, onSwitch }) {
             extra_curriculum: formData.extra_curriculum,
             prev_experience: formData.prev_experience,
             bio: formData.bio,
-            photo_url: uploadedPhotoUrl
+            photo_url: '' // Storage upload deferred until email is confirmed!
           }
         }
       });
@@ -432,8 +466,8 @@ export default function Register({ onClose, onSwitch }) {
       if (authError) throw authError;
       if (!authData.user) throw new Error("User registration failed, please try again.");
 
-      // Store credentials in ref for polling (never rendered, ref only)
-      registeredCredsRef.current = { email: formData.email, password: formData.password };
+      // Store credentials in ref for polling
+      registeredCredsRef.current = { email: formData.email, password: formData.password, full_name: formData.full_name };
       sessionStorage.setItem('nss_just_registered', 'true');
       setShowConfirmModal(true);
 
@@ -490,46 +524,70 @@ export default function Register({ onClose, onSwitch }) {
           <div className="text-center">
             {!emailConfirmed ? (
               <>
-                {/* Animated mail icon */}
-                <div className="w-20 h-20 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center animate-pulse">
-                  <svg className="w-10 h-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                {/* Step Indicator Pill */}
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 font-extrabold text-[12px] uppercase tracking-wider mb-4 shadow-sm">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                  Action Required: Confirm Email
+                </div>
+
+                {/* Animated Attention Badge */}
+                <div className="w-20 h-20 mx-auto mb-4 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-amber-500/30 ring-4 ring-amber-100 animate-pulse">
+                  <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Application Submitted!</h3>
-                <p className="text-slate-600 text-[14px] font-medium mb-2 leading-relaxed">
-                  We have sent a confirmation link to your email address:
-                </p>
-                <p className="text-blue-700 font-bold text-[15px] mb-5 bg-blue-50 py-2 px-4 rounded-xl inline-block border border-blue-100">{formData.email}</p>
-                <p className="text-slate-500 text-[13px] leading-relaxed mb-4">
-                  Please open your email inbox and click on the confirmation link to activate your volunteer account. You can confirm from any device.
+
+                {/* Prominent Action Title */}
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2 tracking-tight">
+                  Confirm Your Email to Activate
+                </h3>
+
+                {/* Demoted / Smaller "Application Form Received" Note */}
+                <p className="text-emerald-800 bg-emerald-50 py-1.5 px-3.5 rounded-xl border border-emerald-200 text-xs font-bold mb-4 inline-block shadow-sm">
+                  ✓ Application form received — Email confirmation pending
                 </p>
 
-                {/* Resend Confirmation Email Button with 90s Timer */}
-                <div className="mb-6">
+                {/* Highlighted Email Address Box */}
+                <div className="bg-blue-50 p-3.5 rounded-2xl border border-blue-200 mb-4 text-center shadow-inner">
+                  <p className="text-slate-500 text-[11px] font-bold mb-1 uppercase tracking-wider">Confirmation link sent to:</p>
+                  <p className="text-blue-700 font-black text-[15px] break-all select-all">{formData.email}</p>
+                </div>
+
+                {/* Clear Instructions */}
+                <p className="text-slate-600 text-[13px] font-medium leading-relaxed mb-5">
+                  Please open your email inbox and click <strong className="text-slate-900 font-bold">&ldquo;Confirm Email Address&rdquo;</strong> to activate your volunteer profile. You can confirm from any device.
+                </p>
+
+                {/* Highlighted Resend Confirmation Email Button & Countdown */}
+                <div className="mb-5">
                   <button
                     type="button"
                     disabled={resendTimer > 0 || resendLoading}
                     onClick={handleResendConfirmationEmail}
-                    className={`w-full py-3 px-4 rounded-2xl font-bold text-xs transition-all duration-300 flex items-center justify-center gap-2 ${resendTimer > 0 || resendLoading ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 cursor-pointer active:scale-[0.98]'}`}
+                    className={`w-full py-3.5 px-4 rounded-2xl font-extrabold text-xs transition-all duration-300 flex items-center justify-center gap-2 ${resendTimer > 0 || resendLoading ? 'bg-amber-50 text-amber-800 border-2 border-amber-300 shadow-sm cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/25 cursor-pointer active:scale-[0.98]'}`}
                   >
                     {resendLoading ? (
                       <span>Resending Email...</span>
                     ) : resendTimer > 0 ? (
-                      <span>Resend Email in {resendTimer}s</span>
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-amber-600 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Resend Email in <strong className="font-black text-amber-950 underline text-sm ml-0.5">{resendTimer}s</strong>
+                      </span>
                     ) : (
                       <span>Resend Confirmation Email</span>
                     )}
                   </button>
                 </div>
 
-                {/* Subtle waiting indicator */}
-                <div className="flex items-center justify-center gap-2 text-slate-400 text-[13px] font-medium">
-                  <svg className="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+                {/* High-visibility Live Waiting Status Bar */}
+                <div className="bg-slate-900 text-white p-3.5 rounded-2xl flex items-center justify-center gap-2.5 text-xs font-bold shadow-lg animate-pulse border border-slate-800">
+                  <svg className="animate-spin h-4 w-4 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Waiting for email confirmation...
+                  <span className="tracking-wide">Waiting for email confirmation... (Auto-detecting)</span>
                 </div>
               </>
             ) : (
@@ -576,11 +634,18 @@ export default function Register({ onClose, onSwitch }) {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-50 rounded-full text-slate-400 hover:text-slate-700 transition-colors border border-slate-200 shadow-sm focus:outline-none z-20 cursor-pointer">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-600 hover:text-slate-900 transition-all duration-200 border border-slate-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none z-30 cursor-pointer"
+            title="Close"
+            aria-label="Close"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
 
-          <div className="text-center mb-8 mt-8 sm:mt-0">
+          <div className="text-center mb-6 sm:mb-8 mt-12 sm:mt-0 px-4 sm:px-0">
             <h2 className="text-2xl sm:text-4xl font-semibold text-slate-900 tracking-tight mb-2">{t("auth.register.title")}</h2>
             <p className="text-slate-500 text-[14px] sm:text-[15px] font-medium">{t("auth.register.subtitle")}</p>
           </div>
@@ -770,38 +835,80 @@ export default function Register({ onClose, onSwitch }) {
                   <textarea name="bio" rows="3" onChange={handleChange} required className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder={t("auth.register.enterBio")}></textarea>
                 </div>
                 <div>
-                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.photo")} (500 KB - 1 MB) *</label>
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border border-blue-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-white transition-all duration-200">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-3 text-blue-400" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" /></svg>
-                        <p className="mb-1 text-[15px] text-slate-600"><span className="font-semibold text-blue-600">{t("auth.register.uploadClick")}</span></p>
-                      </div>
-                      <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} required />
-                    </label>
-                  </div>
-                  {photoFile && (
-                    <div className="mt-4 flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-3 rounded-2xl w-fit">
-                      <img
-                        src={URL.createObjectURL(photoFile)}
-                        alt="Profile Preview"
-                        className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md bg-slate-100 shrink-0"
-                      />
-                      <div className="flex flex-col gap-1 min-w-0">
-                        <p className="text-[13px] text-slate-700 font-extrabold max-w-[200px] truncate">{photoFile.name}</p>
+                  <label className="block text-slate-600 font-bold mb-3 text-[12px] uppercase tracking-wider ml-1 text-center">
+                    {t("auth.register.photo")} (100 KB - 10 MB) *
+                  </label>
+                  <div className="flex flex-col items-center justify-center w-full">
+                    <div className="relative group">
+                      <label
+                        className={`relative flex flex-col items-center justify-center w-36 h-36 rounded-full border-2 ${
+                          photoFile
+                            ? 'border-blue-500 border-solid shadow-md'
+                            : 'border-dashed border-blue-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50/60'
+                        } cursor-pointer overflow-hidden transition-all duration-300 shadow-sm`}
+                      >
+                        {photoFile ? (
+                          <>
+                            <img
+                              src={URL.createObjectURL(photoFile)}
+                              alt="Profile Preview"
+                              className="w-full h-full object-cover rounded-full"
+                            />
+                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col items-center justify-center text-white p-2 text-center rounded-full backdrop-blur-[2px]">
+                              <svg className="w-6 h-6 mb-1 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <span className="text-[12px] font-bold">Change Photo</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center p-4 text-center">
+                            <div className="w-10 h-10 mb-2 rounded-full bg-blue-100/80 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform duration-200">
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                            </div>
+                            <p className="text-[13px] font-bold text-slate-700 leading-tight">
+                              {t("auth.register.uploadClick")}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">Click to browse</p>
+                          </div>
+                        )}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          required={!photoFile}
+                        />
+                      </label>
+
+                      {photoFile && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setPhotoFile(null);
                             if (fileInputRef.current) fileInputRef.current.value = "";
                           }}
-                          className="text-xs text-red-600 font-extrabold hover:text-red-800 transition-colors w-fit cursor-pointer uppercase tracking-wider"
+                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer z-10"
+                          title="Remove Photo"
                         >
-                          Remove Photo
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
-                      </div>
+                      )}
                     </div>
-                  )}
+
+                    {photoFile && (
+                      <p className="mt-2 text-[12px] text-slate-600 font-semibold max-w-[220px] truncate text-center">
+                        {photoFile.name}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -819,6 +926,20 @@ export default function Register({ onClose, onSwitch }) {
             </p>
           </div>
         </div>
+      )}
+
+      {croppingFile && (
+        <ImageCropperModal
+          imageFile={croppingFile}
+          onCropComplete={(croppedFile) => {
+            setPhotoFile(croppedFile);
+            setCroppingFile(null);
+          }}
+          onCancel={() => {
+            setCroppingFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }}
+        />
       )}
     </div>
   );

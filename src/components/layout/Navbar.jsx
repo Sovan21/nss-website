@@ -5,6 +5,7 @@ import { Icons } from "../Icons";
 import UserAvatar, { getInitials } from "../UserAvatar";
 import { ProfileCardContent } from "../ProfileModals";
 import { useLanguage } from "@/context/LanguageContext";
+import { uploadConfirmedUserPhoto } from "@/lib/utils";
 
 export const NAV_ITEMS = [
   { key: 'home', label: 'Home', icon: Icons.Home },
@@ -22,7 +23,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   const [showMobileProfile, setShowMobileProfile] = useState(false);
   const [showDesktopProfile, setShowDesktopProfile] = useState(false);
   const [showAdminWarning, setShowAdminWarning] = useState(false);
-  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+  const [showEmailConfirmedModal, setShowEmailConfirmedModal] = useState(false);
   const hamburgerRef = useRef(null);
   const [closeBtnPos, setCloseBtnPos] = useState(null);
 
@@ -41,9 +42,46 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     const syncSessionData = async (session) => {
       if (!session?.user) return;
       const user = session.user;
+
+      // Intercept email confirmation links & post-registration landing to prevent auto-login
+      const isJustRegistered = sessionStorage.getItem('nss_just_registered') === 'true';
+      const isEmailConfirmationLink =
+        isJustRegistered ||
+        ((window.location.hash.includes('access_token=') ||
+          window.location.hash.includes('type=signup') ||
+          window.location.hash.includes('type=email_confirmation') ||
+          window.location.hash.includes('token_hash=')) &&
+        !sessionStorage.getItem('nss_oauth_pending'));
+
+      if (isEmailConfirmationLink) {
+        sessionStorage.removeItem('nss_just_registered');
+        try {
+          const { data: profileData } = await supabase.from('registrations').select('*').eq('id', user.id).maybeSingle();
+          await uploadConfirmedUserPhoto(user, user.email, profileData?.full_name);
+        } catch (e) {}
+
+        // Sign out immediately so user is NOT logged in automatically in background
+        await supabase.auth.signOut();
+        localStorage.removeItem('nss_user');
+        localStorage.removeItem('nss_admin_mode');
+        setCurrentUser(null);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        setShowEmailConfirmedModal(true);
+        return;
+      }
+
       try {
         const { data: profileData } = await supabase.from('registrations').select('*').eq('id', user.id).maybeSingle();
         let userDataToSave = profileData;
+        if (profileData && !profileData.photo_url) {
+          const uploadedUrl = await uploadConfirmedUserPhoto(user, user.email, profileData.full_name);
+          if (uploadedUrl) {
+            profileData.photo_url = uploadedUrl;
+          } else if (user.user_metadata?.photo_url) {
+            profileData.photo_url = user.user_metadata.photo_url;
+            await supabase.from('registrations').update({ photo_url: user.user_metadata.photo_url }).eq('id', user.id);
+          }
+        }
         if (!profileData) {
           const m = user.user_metadata || {};
           const newProfile = {
@@ -74,10 +112,9 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         localStorage.setItem('nss_user', JSON.stringify(userDataToSave));
         setCurrentUser(userDataToSave);
 
-        // Show WhatsApp popup ONLY for newly registered volunteers on initial signup
-        const isJustRegistered = sessionStorage.getItem('nss_just_registered') === 'true';
-        if (isJustRegistered && userDataToSave?.role === 'volunteer' && localStorage.getItem(`nss_whatsapp_dismissed_${user.id}`) !== 'true') {
-          setShowWhatsAppPopup(true);
+        // Show Email Confirmed popup ONLY if not already dismissed
+        if (userDataToSave?.role === 'volunteer' && localStorage.getItem(`nss_whatsapp_dismissed_${user.id}`) !== 'true') {
+          setShowEmailConfirmedModal(true);
         }
       } catch (err) { console.error("Session sync error:", err); }
     };
@@ -95,7 +132,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   }, []);
 
   useEffect(() => {
-    const isScrollLocked = showAdminWarning || showWhatsAppPopup;
+    const isScrollLocked = showAdminWarning || showEmailConfirmedModal;
     if (isScrollLocked) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -104,7 +141,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showAdminWarning, showWhatsAppPopup]);
+  }, [showAdminWarning, showEmailConfirmedModal]);
 
   const toggleMenu = () => {
     if (!isMobileMenuOpen && hamburgerRef.current) {
@@ -126,12 +163,15 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
   const handleLogout = async () => { await supabase.auth.signOut(); localStorage.removeItem('nss_user'); setCurrentUser(null); closeAllMenus(); window.dispatchEvent(new Event('nss_user_logged_out')); };
 
-  const handleDismissWhatsApp = () => {
+  const handleCloseSuccessModal = () => {
+    setShowEmailConfirmedModal(false);
     if (currentUser?.id) {
       localStorage.setItem(`nss_whatsapp_dismissed_${currentUser.id}`, 'true');
     }
     sessionStorage.removeItem('nss_just_registered');
-    setShowWhatsAppPopup(false);
+    if (!currentUser && onOpenLogin) {
+      onOpenLogin();
+    }
   };
 
   let adminPressTimer;
@@ -305,14 +345,25 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
           </div>
         </div>
       )}
-      {/* WhatsApp Confirmation Group Invitation Modal */}
-      {showWhatsAppPopup && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[250] p-4 animate-fade-in pointer-events-auto">
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-center transform scale-100 transition-all duration-300 animate-fade-in-up">
-            
-            {/* Success checkmark badge */}
-            <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-500/20">
-              <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+      {/* Single Unified Success Modal: Email Verified Successfully! */}
+      {showEmailConfirmedModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 font-sans antialiased animate-fade-in pointer-events-auto">
+          <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-md" onClick={handleCloseSuccessModal}></div>
+
+          <div className="relative z-10 w-full max-w-md bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl shadow-2xl p-6 sm:p-8 border border-emerald-100 text-center animate-fade-in-up">
+            <button
+              onClick={handleCloseSuccessModal}
+              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-white/80 hover:bg-white rounded-full text-slate-500 hover:text-slate-800 transition cursor-pointer border border-slate-200 shadow-sm"
+              title="Close"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Green Checkmark Badge */}
+            <div className="w-20 h-20 mx-auto mb-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-bounce">
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -325,24 +376,25 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
               {t("nav.whatsapp.text")}
             </p>
 
-            {/* Buttons */}
+            {/* Action Buttons */}
             <div className="flex flex-col gap-3">
               <a 
                 href="https://chat.whatsapp.com/CVhiRk37OzC3tVCVdUv5wR" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                onClick={handleDismissWhatsApp}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl transition duration-300 shadow-md shadow-emerald-600/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[16px] no-underline"
+                onClick={handleCloseSuccessModal}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl transition duration-300 shadow-md shadow-emerald-600/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[15px] no-underline"
               >
                 <svg className="w-5 h-5 fill-current shrink-0" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.426.002 9.842-4.414 9.845-9.843.002-2.63-1.023-5.101-2.886-6.968C16.366 1.94 13.9 .916 11.999.916 6.574.916 2.16 5.334 2.158 10.766c-.001 1.503.402 2.974 1.168 4.29l-.993 3.627 3.724-.977 1.01.6c1.479.88 3.011 1.342 4.63 1.343h.001zm10.435-7.234c-.267-.134-1.58-.779-1.824-.868-.244-.09-.422-.134-.6.134-.178.267-.689.868-.844 1.047-.156.178-.311.2-.578.067-.267-.134-1.127-.416-2.148-1.327-.795-.71-1.332-1.587-1.488-1.854-.156-.267-.017-.411.116-.544.12-.12.267-.312.4-.467.133-.156.178-.267.267-.445.09-.178.044-.334-.022-.467-.067-.134-.6-1.446-.822-1.98-.217-.522-.455-.45-.6-.458-.138-.008-.297-.01-.456-.01-.159 0-.418.06-.637.29-.219.23-.837.818-.837 1.995 0 1.178.857 2.316.975 2.478.118.162 1.686 2.574 4.084 3.607.57.246 1.016.393 1.363.503.573.182 1.094.156 1.506.095.459-.069 1.58-.646 1.802-1.238.223-.593.223-1.102.156-1.238-.067-.134-.244-.214-.511-.348z" />
                 </svg>
                 {t("nav.whatsapp.join")}
               </a>
+
               <button 
                 type="button" 
-                onClick={handleDismissWhatsApp}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-6 rounded-2xl transition duration-200 cursor-pointer text-[15px]"
+                onClick={handleCloseSuccessModal}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-6 rounded-2xl transition duration-200 shadow-md text-sm cursor-pointer"
               >
                 {t("nav.whatsapp.later")}
               </button>

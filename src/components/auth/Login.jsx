@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 import { useLanguage } from '@/context/LanguageContext';
+import { getPendingPhotoFile, uploadConfirmedUserPhoto } from '@/lib/utils';
 
 // Professional SVG icon components for fact cards
 const FactIconBuilding = () => (
@@ -46,8 +47,15 @@ export default function Login({ onClose, onSwitch }) {
   const { t } = useLanguage();
   // Prevent background scrolling when modal is active
   useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'unset'; };
+    return () => {
+      setTimeout(() => {
+        if (!document.querySelector('#nss-auth-modal')) {
+          document.body.style.overflow = prevOverflow || 'unset';
+        }
+      }, 50);
+    };
   }, []);
 
   const { toast } = useToast();
@@ -129,8 +137,16 @@ export default function Login({ onClose, onSwitch }) {
         let finalProfile;
 
         if (existingProfile) {
-          // If profile exists, use it directly to avoid overwriting any existing data (like name, roll_no, etc.)
           finalProfile = existingProfile;
+          if (!finalProfile.photo_url) {
+            const uploadedUrl = await uploadConfirmedUserPhoto(user, user.email, finalProfile.full_name);
+            if (uploadedUrl) {
+              finalProfile.photo_url = uploadedUrl;
+            } else if (user.user_metadata?.photo_url) {
+              finalProfile.photo_url = user.user_metadata.photo_url;
+              await supabase.from('registrations').update({ photo_url: user.user_metadata.photo_url }).eq('id', user.id);
+            }
+          }
         } else {
           // If profile doesn't exist (first time Google login), create a basic profile
           const newUserProfile = {
@@ -220,11 +236,22 @@ export default function Login({ onClose, onSwitch }) {
       }
 
       // Fetch user profile from registrations table
-      const { data: profileData } = await supabase
+      let { data: profileData } = await supabase
         .from('registrations')
         .select('*')
         .eq('id', data.user.id)
         .single();
+
+      // If email confirmed and photo upload was pending, upload to storage now
+      if (data?.user && (!profileData?.photo_url || profileData.photo_url === '')) {
+        const pendingFile = getPendingPhotoFile(credentials.email);
+        if (pendingFile) {
+          const newPhotoUrl = await uploadConfirmedUserPhoto(data.user, credentials.email, profileData?.full_name || '', pendingFile);
+          if (newPhotoUrl && profileData) {
+            profileData.photo_url = newPhotoUrl;
+          }
+        }
+      }
 
       toast.success("Signed in successfully!");
       if (profileData && profileData.role === 'admin') {
@@ -323,8 +350,15 @@ export default function Login({ onClose, onSwitch }) {
       <div className="relative z-10 w-full max-w-5xl bg-white shadow-2xl rounded-3xl animate-fade-in-up border border-blue-100 overflow-hidden max-h-[92dvh] md:max-h-[90vh] flex flex-col md:flex-row">
 
         {/* Close Button */}
-        <button onClick={onClose} className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-500 hover:text-slate-800 transition-all duration-200 border border-slate-200/80 shadow-sm focus:outline-none z-30 cursor-pointer backdrop-blur-sm">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-11 h-11 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-600 hover:text-slate-900 transition-all duration-200 border border-slate-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none z-30 cursor-pointer backdrop-blur-sm"
+          title="Close"
+          aria-label="Close"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
 
         {/* ===== LEFT PANEL: NSS Branding (hidden on mobile) ===== */}
@@ -423,14 +457,14 @@ export default function Login({ onClose, onSwitch }) {
           <div className="max-w-md mx-auto w-full">
 
             {/* Mobile-only NSS branding */}
-            <div className="md:hidden text-center mb-6 mt-4">
+            <div className="md:hidden text-center mb-6 mt-10">
               <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-xl shadow-blue-600/20 mx-auto mb-3 ring-2 ring-blue-100 overflow-hidden">
                 <img src="/nss-logo.png" alt="NSS" className="w-full h-full object-contain p-0.5 bg-white" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                 <div className="hidden items-center justify-center w-full h-full text-blue-900 text-sm font-black bg-white">NSS</div>
               </div>
             </div>
 
-            <div className="text-center mb-8">
+            <div className="text-center mb-8 px-4 sm:px-0">
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">
                 {view === 'login' ? t("auth.login.title") : view === 'forgot_email' ? t("auth.login.resetTitle") : view === 'forgot_otp' ? 'Enter OTP' : 'New Password'}
               </h2>

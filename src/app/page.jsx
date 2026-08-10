@@ -50,6 +50,7 @@ export default function Home() {
     if (currentHash && currentHash.includes('error=') && currentHash.includes('error_description')) {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
+
     if (sessionStorage.getItem('nss_oauth_pending')) {
       sessionStorage.removeItem('nss_oauth_pending');
       setAuthModal(null);
