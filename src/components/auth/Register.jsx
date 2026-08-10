@@ -287,7 +287,7 @@ export default function Register({ onClose, onSwitch }) {
         type: 'signup',
         email: formData.email,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: `${window.location.origin}/email-confirmed`
         }
       });
       if (error) throw error;
@@ -440,7 +440,7 @@ export default function Register({ onClose, onSwitch }) {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/email-confirmed`,
           data: {
             full_name: formData.full_name,
             fathers_name: formData.fathers_name,
