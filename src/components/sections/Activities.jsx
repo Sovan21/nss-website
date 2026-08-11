@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Icons } from "@/components/Icons";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import { useLanguage } from "@/context/LanguageContext";
+import useScrollLock from '@/lib/useScrollLock';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -51,11 +52,7 @@ export default function ActivitiesPage({ prefetchedEvents }) {
     fetchEvents();
   }, [prefetchedEvents]);
 
-  useEffect(() => {
-    if (selectedEvent) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "unset";
-    return () => { document.body.style.overflow = "unset"; };
-  }, [selectedEvent]);
+  useScrollLock(!!selectedEvent);
 
   if (loading) return <LoadingScreen />;
 

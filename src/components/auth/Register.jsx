@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
 import { compressImage, savePendingPhoto, uploadConfirmedUserPhoto } from '@/lib/utils';
 import ImageCropperModal from '@/components/ImageCropperModal';
+import useScrollLock from '@/lib/useScrollLock';
 
 export { DEPARTMENTS, YEARS, compressImage };
 
@@ -230,17 +231,7 @@ const InlineSelect = ({ name, value, onChange, options = [], placeholder = "Sele
 
 export default function Register({ onClose, onSwitch }) {
   const { t } = useLanguage();
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      setTimeout(() => {
-        if (!document.querySelector('#nss-auth-modal')) {
-          document.body.style.overflow = prevOverflow || 'unset';
-        }
-      }, 50);
-    };
-  }, []);
+  useScrollLock(true);
 
   const [formData, setFormData] = useState({
     full_name: '', email: '', password: '', phone: '', whatsapp: '',

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 import { useLanguage } from '@/context/LanguageContext';
 import { getPendingPhotoFile, uploadConfirmedUserPhoto } from '@/lib/utils';
+import useScrollLock from '@/lib/useScrollLock';
 
 // Professional SVG icon components for fact cards
 const FactIconBuilding = () => (
@@ -46,17 +47,7 @@ const NSSFacts = [
 export default function Login({ onClose, onSwitch }) {
   const { t } = useLanguage();
   // Prevent background scrolling when modal is active
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      setTimeout(() => {
-        if (!document.querySelector('#nss-auth-modal')) {
-          document.body.style.overflow = prevOverflow || 'unset';
-        }
-      }, 50);
-    };
-  }, []);
+  useScrollLock(true);
 
   const { toast } = useToast();
   const [credentials, setCredentials] = useState({ email: '', password: '' });

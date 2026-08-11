@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import useScrollLock from "@/lib/useScrollLock";
 import { Icons } from "../Icons";
 import UserAvatar, { getInitials } from "../UserAvatar";
 import { ProfileCardContent } from "../ProfileModals";
@@ -100,17 +101,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     return () => { window.removeEventListener('nss_user_logged_in', checkSession); subscription?.unsubscribe(); };
   }, []);
 
-  useEffect(() => {
-    const isScrollLocked = showAdminWarning || showEmailConfirmedModal;
-    if (isScrollLocked) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [showAdminWarning, showEmailConfirmedModal]);
+  useScrollLock(showAdminWarning || showEmailConfirmedModal);
 
   const toggleMenu = () => {
     if (!isMobileMenuOpen && hamburgerRef.current) {

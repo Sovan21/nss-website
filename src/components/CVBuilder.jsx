@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getInitials } from './UserAvatar';
+import useScrollLock from '@/lib/useScrollLock';
 
 const POPULAR_SKILLS = [
   // Web & App Development
@@ -130,13 +131,8 @@ export default function CVBuilder({ user, onClose }) {
     }
   }, []);
 
-  useEffect(() => {
-    setMounted(true);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
+  useScrollLock(true);
 
   useEffect(() => {
     if (mounted) {

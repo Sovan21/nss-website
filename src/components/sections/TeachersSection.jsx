@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Icons } from "@/components/Icons";
 import { useLanguage } from "@/context/LanguageContext";
+import useScrollLock from '@/lib/useScrollLock';
 
 const decodeDesignation = (raw) => {
   if (!raw) return { category: 'Teacher', designation: '', display_order: 999 };
@@ -86,14 +87,8 @@ export default function TeachersSection({ members = [] }) {
     });
   }, [members]);
 
-  useEffect(() => {
-    if (selectedMember) document.body.style.overflow = "hidden";
-    else {
-      document.body.style.overflow = "unset";
-      setShowFullPhoto(false);
-    }
-    return () => { document.body.style.overflow = "unset"; };
-  }, [selectedMember]);
+  useScrollLock(!!selectedMember);
+  useEffect(() => { if (!selectedMember) setShowFullPhoto(false); }, [selectedMember]);
 
   if (!sortedMembers || sortedMembers.length === 0) return null;
 
