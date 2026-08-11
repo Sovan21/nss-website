@@ -21,6 +21,18 @@ export default function AboutPage({ onNavigate, siteData }) {
   const [alumni, setAlumni] = useState([]);
   const [achievementsTab, setAchievementsTab] = useState("camps"); // "camps" | "alumni"
   const [achievementsLoading, setAchievementsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => setIsLoggedIn(!!localStorage.getItem('nss_user'));
+    checkAuth();
+    window.addEventListener('nss_user_logged_in', checkAuth);
+    window.addEventListener('nss_user_logged_out', checkAuth);
+    return () => {
+      window.removeEventListener('nss_user_logged_in', checkAuth);
+      window.removeEventListener('nss_user_logged_out', checkAuth);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -399,15 +411,17 @@ export default function AboutPage({ onNavigate, siteData }) {
               Empower society, develop leadership skills, and create a lasting social impact through dedicated community service.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new Event('open_nss_register'));
-                }}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-7 py-3 rounded-full text-xs transition-all shadow-lg hover:scale-105 uppercase tracking-wider cursor-pointer"
-              >
-                Become a Volunteer
-              </button>
+              {!isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new Event('open_nss_register'));
+                  }}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-7 py-3 rounded-full text-xs transition-all shadow-lg hover:scale-105 uppercase tracking-wider cursor-pointer"
+                >
+                  Become a Volunteer
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onNavigate && onNavigate('activities')}
