@@ -44,7 +44,8 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
       const user = session.user;
 
       try {
-        const { data: profileData } = await supabase.from('registrations').select('*').eq('id', user.id).maybeSingle();
+        const { data: profileData, error: profileErr } = await supabase.from('registrations').select('*').eq('id', user.id).maybeSingle();
+        if (profileErr) return;
         let userDataToSave = profileData;
         if (profileData && !profileData.photo_url) {
           const uploadedUrl = await uploadConfirmedUserPhoto(user, user.email, profileData.full_name);
@@ -93,8 +94,8 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     }).catch(() => { });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') { localStorage.removeItem('nss_user'); localStorage.removeItem('nss_admin_mode'); setCurrentUser(null); return; }
-      if (localStorage.getItem('nss_admin_mode') === 'true') return;
-      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') { if (session) syncSessionData(session); }
+      if (localStorage.getItem('nss_admin_mode') === 'true' || event === 'USER_UPDATED') return;
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') { if (session) syncSessionData(session); }
     });
     return () => { window.removeEventListener('nss_user_logged_in', checkSession); subscription?.unsubscribe(); };
   }, []);

@@ -123,6 +123,9 @@ export default function Login({ onClose, onSwitch }) {
         // User clicked a password recovery link! Show the 'New Password' view.
         setView('forgot_password');
         toast.info("Please set your new password below.");
+      } else if (event === 'USER_UPDATED') {
+        // Ignore password update events in the general listener (handled in handleSetNewPassword)
+        return;
       } else if (session?.user) {
         // Signed in! Now fetch or create profile
         const user = session.user;
