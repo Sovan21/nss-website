@@ -17,6 +17,7 @@ export default function EmailConfirmedPage() {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash || '';
       const search = window.location.search || '';
+
       if (hash.includes('error=') || hash.includes('error_code=') || search.includes('error=')) {
         if (isMounted) {
           setIsError(true);
@@ -68,7 +69,6 @@ export default function EmailConfirmedPage() {
       if (session?.user) {
         processSession(session);
       } else {
-        // Wait a short moment for token hash to be processed if present
         const timer = setTimeout(() => {
           if (!handled && isMounted) {
             setIsError(true);
@@ -123,7 +123,7 @@ export default function EmailConfirmedPage() {
           </p>
 
           <p className="text-slate-500 text-xs font-semibold">
-            If you have already verified your email, you can log in directly from your registration device or website.
+            If you have already verified your email, you can log in directly from your registration page or website.
           </p>
         </div>
       ) : isSuccess ? (
@@ -131,7 +131,7 @@ export default function EmailConfirmedPage() {
         <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 sm:p-10 border border-emerald-100 text-center relative overflow-hidden animate-fade-in-up">
           {/* Green Checkmark Badge */}
           <div className="w-20 h-20 mx-auto mb-6 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/30 ring-8 ring-emerald-50">
-            <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -143,7 +143,7 @@ export default function EmailConfirmedPage() {
 
           {/* Simple Message Only */}
           <p className="text-slate-600 text-sm font-medium leading-relaxed">
-            Your email address has been verified. You can now close this tab or return to your registration device.
+            Your email address has been verified. You can now close this tab or return to your registration page.
           </p>
 
           <p className="mt-8 text-slate-400 text-xs font-medium">
