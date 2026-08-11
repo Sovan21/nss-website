@@ -309,38 +309,32 @@ export default function Register({ onClose, onSwitch }) {
         const { userId, email, password, full_name } = registeredCredsRef.current;
         let isConfirmed = false;
 
-        // Step 1: Query lightweight backend API (avoids 400 auth errors & Supabase login rate limits)
+        // Step 1: Query lightweight backend API (avoids 400/403 auth errors & Supabase login rate limits)
         try {
           const res = await fetch('/api/auth/check-confirmation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, email })
+            body: JSON.stringify({ userId, email, password })
           });
           if (res.ok) {
             const apiData = await res.json();
             if (apiData.confirmed) {
               isConfirmed = true;
-            } else if (apiData.noServiceKey) {
-              // Fallback if service role key is not configured
-              const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-              if (data?.session && !error) isConfirmed = true;
             }
           }
         } catch (apiErr) {
-          // Fallback if API call fails
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (data?.session && !error) isConfirmed = true;
+          // Catch any network errors silently
         }
 
         if (isConfirmed) {
           // Sign in now that confirmation is verified to retrieve session & upload photo
-          const { data } = await supabase.auth.signInWithPassword({ email, password });
+          const { data } = await supabase.auth.signInWithPassword({ email, password }).catch(() => ({}));
           const userSessionObj = data?.session?.user || { id: userId, email };
 
           await uploadConfirmedUserPhoto(userSessionObj, email, full_name, pendingPhotoRef.current);
 
           // Sign out immediately so user is NOT logged in in background
-          await supabase.auth.signOut();
+          await supabase.auth.signOut().catch(() => {});
           localStorage.removeItem('nss_user');
           localStorage.removeItem('nss_admin_mode');
           window.dispatchEvent(new Event('nss_user_logged_in'));
@@ -355,14 +349,6 @@ export default function Register({ onClose, onSwitch }) {
     pollRef.current = setInterval(checkConfirmation, 4000);
 
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [showConfirmModal, emailConfirmed]);
-
-  // Warn user before page reload while waiting for confirmation
-  useEffect(() => {
-    if (!showConfirmModal || emailConfirmed) return;
-    const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
   }, [showConfirmModal, emailConfirmed]);
 
   const handleChange = (e) => {
