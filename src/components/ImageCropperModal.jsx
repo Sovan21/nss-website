@@ -183,7 +183,9 @@ export default function ImageCropperModal({ imageFile, onCropComplete, onCancel 
   };
 
   const handleWheel = (e) => {
-    e.preventDefault();
+    if (e.cancelable) {
+      try { e.preventDefault(); } catch (err) {}
+    }
     if (!imageObj) return;
     const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
     const targetZoom = Math.max(minZoom, Math.min(minZoom * 4, zoom * zoomFactor));

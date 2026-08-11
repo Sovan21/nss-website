@@ -545,7 +545,6 @@ export default function Register({ onClose, onSwitch }) {
   };
   const handleMouseMove = (e) => {
     if (!isDragging.current) return;
-    if (e.cancelable) e.preventDefault();
     const y = e.pageY - scrollRef.current.offsetTop;
     const walk = (y - startY.current) * 1.5;
     scrollRef.current.scrollTop = scrollTop.current - walk;

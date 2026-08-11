@@ -324,18 +324,28 @@ export default function Login({ onClose, onSwitch }) {
       // Successfully updated password!
       toast.success("Password changed successfully! Please login with your new password.");
 
-      // Sign out to clear the temporary recovery session
-      await supabase.auth.signOut();
+      // Sign out safely to clear the temporary recovery session
+      await supabase.auth.signOut().catch(() => {});
 
-      // Redirect to login form
-      setView('login');
+      // Clear fields and redirect to login view
       setNewPassword('');
       setConfirmPassword('');
       setForgotOtp('');
+      setView('login');
 
     } catch (err) {
       console.error("Password Update Error:", err);
-      toast.error(err.message || "Failed to update password.");
+      let errorMsg = err?.message || "Failed to update password.";
+      if (
+        errorMsg.toLowerCase().includes("session") ||
+        errorMsg.toLowerCase().includes("auth") ||
+        errorMsg.toLowerCase().includes("token") ||
+        errorMsg.toLowerCase().includes("jwt") ||
+        errorMsg.toLowerCase().includes("grant")
+      ) {
+        errorMsg = "Reset session expired or invalid. Please request a new password reset OTP.";
+      }
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
