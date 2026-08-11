@@ -13,14 +13,24 @@ export default function EmailConfirmedPage() {
     let isMounted = true;
     let handled = false;
 
-    // Check if URL has error parameters in hash or search
     if (typeof window !== 'undefined') {
       const hash = window.location.hash || '';
       const search = window.location.search || '';
 
+      // Explicit error in URL hash or query
       if (hash.includes('error=') || hash.includes('error_code=') || search.includes('error=')) {
         if (isMounted) {
           setIsError(true);
+          setIsProcessing(false);
+        }
+        return;
+      }
+
+      // Check if user verified email in this browser session
+      const justVerified = sessionStorage.getItem('nss_email_verified');
+      if (justVerified === 'true') {
+        if (isMounted) {
+          setIsSuccess(true);
           setIsProcessing(false);
         }
         return;
@@ -39,6 +49,13 @@ export default function EmailConfirmedPage() {
         return;
       }
 
+      const userEmail = session.user.email || '';
+
+      if (typeof window !== 'undefined' && userEmail) {
+        sessionStorage.setItem('nss_email_verified', 'true');
+        sessionStorage.setItem('nss_verified_email', userEmail);
+      }
+
       try {
         const { data: profileData } = await supabase
           .from('registrations')
@@ -46,15 +63,14 @@ export default function EmailConfirmedPage() {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        await uploadConfirmedUserPhoto(session.user, session.user.email, profileData?.full_name);
+        await uploadConfirmedUserPhoto(session.user, userEmail, profileData?.full_name);
       } catch (e) {
         console.error("Photo sync error on email confirmed page:", e);
       } finally {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut().catch(() => {});
         if (typeof window !== 'undefined') {
           localStorage.removeItem('nss_user');
           localStorage.removeItem('nss_admin_mode');
-          sessionStorage.removeItem('nss_just_registered');
           window.history.replaceState(null, '', window.location.pathname);
         }
         if (isMounted) {
@@ -71,8 +87,13 @@ export default function EmailConfirmedPage() {
       } else {
         const timer = setTimeout(() => {
           if (!handled && isMounted) {
-            setIsError(true);
-            setIsProcessing(false);
+            if (typeof window !== 'undefined' && sessionStorage.getItem('nss_email_verified') === 'true') {
+              setIsSuccess(true);
+              setIsProcessing(false);
+            } else {
+              setIsError(true);
+              setIsProcessing(false);
+            }
           }
         }, 2000);
         return () => clearTimeout(timer);
@@ -127,7 +148,7 @@ export default function EmailConfirmedPage() {
           </p>
         </div>
       ) : isSuccess ? (
-        /* ── Simple Minimal Confirmation Popup (No WhatsApp / Proceed to Login buttons) ── */
+        /* ── Minimal Email Confirmation Link Popup (NO WhatsApp / NO Login buttons) ── */
         <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 sm:p-10 border border-emerald-100 text-center relative overflow-hidden animate-fade-in-up">
           {/* Green Checkmark Badge */}
           <div className="w-20 h-20 mx-auto mb-6 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/30 ring-8 ring-emerald-50">
@@ -136,16 +157,17 @@ export default function EmailConfirmedPage() {
             </svg>
           </div>
 
-          {/* Simple Success Title */}
+          {/* Minimal Success Title */}
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3 tracking-tight">
             Email Verified Successfully!
           </h1>
 
-          {/* Simple Message Only */}
+          {/* Minimal Subtext Only */}
           <p className="text-slate-600 text-sm font-medium leading-relaxed">
             Your email address has been verified. You can now close this tab or return to your registration page.
           </p>
 
+          {/* Sub-caption Footer */}
           <p className="mt-8 text-slate-400 text-xs font-medium">
             NSS Unit • Banwarilal Bhalotia College, Asansol
           </p>

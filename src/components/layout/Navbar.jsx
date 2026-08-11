@@ -43,24 +43,6 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
       if (!session?.user) return;
       const user = session.user;
 
-      // Intercept email confirmation links & redirect to /email-confirmed standalone page
-      const isJustRegistered = sessionStorage.getItem('nss_just_registered') === 'true';
-      const isEmailConfirmationLink =
-        isJustRegistered ||
-        ((window.location.hash.includes('access_token=') ||
-          window.location.hash.includes('type=signup') ||
-          window.location.hash.includes('type=email_confirmation') ||
-          window.location.hash.includes('token_hash=')) &&
-        !sessionStorage.getItem('nss_oauth_pending'));
-
-      if (isEmailConfirmationLink) {
-        sessionStorage.removeItem('nss_just_registered');
-        if (typeof window !== 'undefined' && window.location.pathname !== '/email-confirmed') {
-          window.location.href = '/email-confirmed' + window.location.hash;
-          return;
-        }
-      }
-
       try {
         const { data: profileData } = await supabase.from('registrations').select('*').eq('id', user.id).maybeSingle();
         let userDataToSave = profileData;

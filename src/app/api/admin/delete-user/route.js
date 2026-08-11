@@ -31,6 +31,31 @@ export async function POST(request) {
       }
     });
 
+    // Verify the token belongs to a valid authenticated user
+    const { data: { user: callerUser }, error: tokenError } = await supabaseAdmin.auth.getUser(token);
+    if (tokenError || !callerUser) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid or expired token' }, { status: 401 });
+    }
+
+    // Verify the caller has admin rights: check admins table (by email) OR registrations table (by role === 'admin')
+    const { data: adminRecord } = await supabaseAdmin
+      .from('admins')
+      .select('email')
+      .eq('email', callerUser.email)
+      .maybeSingle();
+
+    if (!adminRecord) {
+      const { data: callerProfile } = await supabaseAdmin
+        .from('registrations')
+        .select('role')
+        .eq('id', callerUser.id)
+        .maybeSingle();
+
+      if (!callerProfile || callerProfile.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+      }
+    }
+
     // 1. Find volunteer registration record to extract photo_url and delete photo from storage
     const { data: volData } = await supabaseAdmin
       .from('registrations')
@@ -67,10 +92,9 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, message: 'User completely removed' }, { status: 200 });
 
-    return NextResponse.json({ success: true, message: 'User completely removed from auth system' }, { status: 200 });
-
   } catch (err) {
     console.error("API Route Error:", err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+

@@ -236,98 +236,58 @@ export const clearPendingPhoto = (email) => {
 };
 
 /**
- * Upload photo to Supabase storage ONLY AFTER email confirmation
+ * Upload photo to Supabase storage ONLY AFTER email confirmation.
+ * Uses server-side API (/api/auth/sync-photo) with service_role key to bypass RLS.
  */
 export const uploadConfirmedUserPhoto = async (user, email, fullName, photoFile = null) => {
   try {
     if (!user || !user.id) return '';
 
-    // Check if photo is ALREADY uploaded and present in database
-    const { data: existingRecord } = await supabase
-      .from('registrations')
-      .select('photo_url')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (existingRecord?.photo_url && existingRecord.photo_url.includes('nss-images')) {
-      clearPendingPhoto(email || user.email);
-      return existingRecord.photo_url;
-    }
-
     const fileToUploadRaw = photoFile || getPendingPhotoFile(email || user.email);
-    if (!fileToUploadRaw) {
-      return existingRecord?.photo_url || '';
+
+    // Build FormData for server-side API
+    const formData = new FormData();
+    formData.append('userId', user.id);
+    formData.append('email', email || user.email || '');
+    formData.append('fullName', fullName || user.user_metadata?.full_name || 'Volunteer');
+
+    if (fileToUploadRaw) {
+      // Compress image on client side before sending to server
+      const finalFile = await compressImage(fileToUploadRaw, 700, 900);
+      formData.append('photo', finalFile);
     }
 
-    // Always pass image through dynamic target compressor [700 KB - 900 KB]
-    const finalFile = await compressImage(fileToUploadRaw, 700, 900);
+    const res = await fetch('/api/auth/sync-photo', {
+      method: 'POST',
+      body: formData
+    });
 
-    const fileExt = finalFile.name.split('.').pop() || 'jpg';
-    const nameSlug = (fullName || user.user_metadata?.full_name || 'user')
-      .trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    const userIdHash = user.id ? user.id.slice(0, 8) : 'pic';
-    const fileName = `volunteer-${nameSlug}-${userIdHash}.${fileExt}`;
-
-    // Upload with upsert: true so repeat or concurrent calls overwrite the exact same file
-    const { error: uploadError } = await supabase.storage.from('nss-images').upload(fileName, finalFile, { upsert: true });
-    if (uploadError) {
-      console.error("Storage upload error post-confirmation:", uploadError);
+    if (!res.ok) {
+      console.warn("sync-photo API returned:", res.status);
       return '';
     }
 
-    const { data: urlData } = supabase.storage.from('nss-images').getPublicUrl(fileName);
-    const photoUrl = urlData.publicUrl;
-
-    const m = user.user_metadata || {};
-    const profilePayload = {
-      id: user.id,
-      email: email || user.email,
-      full_name: fullName || m.full_name || 'Volunteer',
-      fathers_name: m.fathers_name || null,
-      mothers_name: m.mothers_name || null,
-      aadhaar_no: m.aadhaar_no || null,
-      phone: m.phone || null,
-      whatsapp: m.whatsapp || null,
-      dob: m.dob || null,
-      gender: m.gender || null,
-      blood_group: m.blood_group || null,
-      current_address: m.current_address || null,
-      department: m.department || null,
-      semester: m.semester || null,
-      college_application_id: m.college_application_id || null,
-      extra_curriculum: m.extra_curriculum || null,
-      prev_experience: m.prev_experience || null,
-      bio: m.bio || null,
-      photo_url: photoUrl,
-      role: 'volunteer'
-    };
-
-    // Upsert full profile row into registrations table
-    const { error: upsertError } = await supabase.from('registrations').upsert(profilePayload, { onConflict: 'id' });
-    if (upsertError) {
-      console.error("Upsert profile photo error:", upsertError);
-    }
-
-    // Update auth user metadata
-    await supabase.auth.updateUser({ data: { photo_url: photoUrl } });
+    const { photoUrl } = await res.json();
 
     // Clean up local pending photo cache
     clearPendingPhoto(email || user.email);
 
     // Sync localStorage and trigger user logged in event if currently active
-    const localUser = localStorage.getItem('nss_user');
-    if (localUser) {
-      try {
-        const parsed = JSON.parse(localUser);
-        if (parsed.id === user.id) {
-          parsed.photo_url = photoUrl;
-          localStorage.setItem('nss_user', JSON.stringify(parsed));
-          window.dispatchEvent(new Event('nss_user_logged_in'));
-        }
-      } catch (e) {}
+    if (typeof window !== 'undefined' && photoUrl) {
+      const localUser = localStorage.getItem('nss_user');
+      if (localUser) {
+        try {
+          const parsed = JSON.parse(localUser);
+          if (parsed.id === user.id) {
+            parsed.photo_url = photoUrl;
+            localStorage.setItem('nss_user', JSON.stringify(parsed));
+            window.dispatchEvent(new Event('nss_user_logged_in'));
+          }
+        } catch (e) {}
+      }
     }
 
-    return photoUrl;
+    return photoUrl || '';
   } catch (err) {
     console.error("Failed to upload confirmed user photo:", err);
     return '';

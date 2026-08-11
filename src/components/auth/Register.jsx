@@ -300,21 +300,43 @@ export default function Register({ onClose, onSwitch }) {
     }
   };
 
-  // Poll via server API / signInWithPassword to detect email confirmation (works cross-device)
+  // Restore pending credentials from sessionStorage on mount if waiting for confirmation
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !registeredCredsRef.current) {
+      const savedCreds = sessionStorage.getItem('nss_pending_creds');
+      if (savedCreds) {
+        try {
+          const parsed = JSON.parse(savedCreds);
+          if (parsed?.userId && parsed?.email) {
+            registeredCredsRef.current = parsed;
+            setFormData(prev => ({ ...prev, email: parsed.email }));
+            setShowConfirmModal(true);
+          }
+        } catch (e) {}
+      }
+    }
+  }, []);
+
+  // Poll via server API to detect email confirmation (works cross-device)
+  // Uses setTimeout chain (not setInterval) to prevent concurrent executions
+  const isPollingRef = useRef(false);
   useEffect(() => {
     if (!showConfirmModal || emailConfirmed || !registeredCredsRef.current) return;
+    let cancelled = false;
 
     const checkConfirmation = async () => {
+      if (cancelled || isPollingRef.current) return;
+      isPollingRef.current = true;
       try {
-        const { userId, email, password, full_name } = registeredCredsRef.current;
+        const { userId, email, full_name } = registeredCredsRef.current;
         let isConfirmed = false;
 
-        // Step 1: Query lightweight backend API (avoids 400/403 auth errors & Supabase login rate limits)
+        // Query backend API (uses service_role key server-side, no password sent)
         try {
           const res = await fetch('/api/auth/check-confirmation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, email, password })
+            body: JSON.stringify({ userId })
           });
           if (res.ok) {
             const apiData = await res.json();
@@ -326,29 +348,30 @@ export default function Register({ onClose, onSwitch }) {
           // Catch any network errors silently
         }
 
-        if (isConfirmed) {
-          // Sign in now that confirmation is verified to retrieve session & upload photo
-          const { data } = await supabase.auth.signInWithPassword({ email, password }).catch(() => ({}));
-          const userSessionObj = data?.session?.user || { id: userId, email };
+        if (isConfirmed && !cancelled) {
+          // Upload photo via server-side API (no client auth session needed — API uses service_role)
+          const userObj = { id: userId, email, user_metadata: {} };
+          await uploadConfirmedUserPhoto(userObj, email, full_name, pendingPhotoRef.current);
 
-          await uploadConfirmedUserPhoto(userSessionObj, email, full_name, pendingPhotoRef.current);
-
-          // Sign out immediately so user is NOT logged in in background
-          await supabase.auth.signOut().catch(() => {});
           localStorage.removeItem('nss_user');
           localStorage.removeItem('nss_admin_mode');
+          sessionStorage.removeItem('nss_pending_creds');
           window.dispatchEvent(new Event('nss_user_logged_in'));
 
           setEmailConfirmed(true);
-          if (pollRef.current) clearInterval(pollRef.current);
+          return; // Stop polling
         }
       } catch (err) { /* silent — email not yet confirmed */ }
+      isPollingRef.current = false;
+      // Schedule next poll only if not cancelled and not confirmed
+      if (!cancelled) {
+        pollRef.current = setTimeout(checkConfirmation, 3000);
+      }
     };
 
     checkConfirmation();
-    pollRef.current = setInterval(checkConfirmation, 4000);
 
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => { cancelled = true; if (pollRef.current) clearTimeout(pollRef.current); };
   }, [showConfirmModal, emailConfirmed]);
 
   const handleChange = (e) => {
@@ -484,9 +507,12 @@ export default function Register({ onClose, onSwitch }) {
       if (authError) throw authError;
       if (!authData.user) throw new Error("User registration failed, please try again.");
 
-      // Store user ID and credentials in ref for polling
-      registeredCredsRef.current = { userId: authData.user.id, email: formData.email, password: formData.password, full_name: formData.full_name };
-      sessionStorage.setItem('nss_just_registered', 'true');
+      // Store non-sensitive data for polling and page refresh recovery (no password stored anywhere)
+      const credsObj = { userId: authData.user.id, email: formData.email, full_name: formData.full_name };
+      registeredCredsRef.current = credsObj;
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('nss_pending_creds', JSON.stringify(credsObj));
+      }
       setShowConfirmModal(true);
 
     } catch (err) {

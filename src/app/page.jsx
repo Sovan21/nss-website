@@ -54,6 +54,8 @@ export default function Home() {
     if (sessionStorage.getItem('nss_oauth_pending')) {
       sessionStorage.removeItem('nss_oauth_pending');
       setAuthModal(null);
+    } else if (sessionStorage.getItem('nss_pending_creds')) {
+      setAuthModal('register');
     }
 
     // Fetch ALL data in parallel — eliminates waterfall loading
