@@ -300,17 +300,44 @@ export default function Register({ onClose, onSwitch }) {
     }
   };
 
-  // Poll via signInWithPassword to detect email confirmation (works cross-device)
+  // Poll via server API / signInWithPassword to detect email confirmation (works cross-device)
   useEffect(() => {
     if (!showConfirmModal || emailConfirmed || !registeredCredsRef.current) return;
 
     const checkConfirmation = async () => {
       try {
-        const { email, password, full_name } = registeredCredsRef.current;
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (data?.session && !error) {
-          // Upload photo ONLY NOW that email is confirmed!
-          await uploadConfirmedUserPhoto(data.session.user, email, full_name, pendingPhotoRef.current);
+        const { userId, email, password, full_name } = registeredCredsRef.current;
+        let isConfirmed = false;
+
+        // Step 1: Query lightweight backend API (avoids 400 auth errors & Supabase login rate limits)
+        try {
+          const res = await fetch('/api/auth/check-confirmation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, email })
+          });
+          if (res.ok) {
+            const apiData = await res.json();
+            if (apiData.confirmed) {
+              isConfirmed = true;
+            } else if (apiData.noServiceKey) {
+              // Fallback if service role key is not configured
+              const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+              if (data?.session && !error) isConfirmed = true;
+            }
+          }
+        } catch (apiErr) {
+          // Fallback if API call fails
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (data?.session && !error) isConfirmed = true;
+        }
+
+        if (isConfirmed) {
+          // Sign in now that confirmation is verified to retrieve session & upload photo
+          const { data } = await supabase.auth.signInWithPassword({ email, password });
+          const userSessionObj = data?.session?.user || { id: userId, email };
+
+          await uploadConfirmedUserPhoto(userSessionObj, email, full_name, pendingPhotoRef.current);
 
           // Sign out immediately so user is NOT logged in in background
           await supabase.auth.signOut();
@@ -324,8 +351,8 @@ export default function Register({ onClose, onSwitch }) {
       } catch (err) { /* silent — email not yet confirmed */ }
     };
 
-    // Start polling every 5 seconds
-    pollRef.current = setInterval(checkConfirmation, 5000);
+    checkConfirmation();
+    pollRef.current = setInterval(checkConfirmation, 4000);
 
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [showConfirmModal, emailConfirmed]);
@@ -385,6 +412,11 @@ export default function Register({ onClose, onSwitch }) {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    if (!photoFile) {
+      toast.error("Please upload a passport size photo.");
+      return;
+    }
 
     const nameRegex = /^[a-zA-Z\s]+$/;
     if (!nameRegex.test(formData.full_name.trim())) {
@@ -466,8 +498,8 @@ export default function Register({ onClose, onSwitch }) {
       if (authError) throw authError;
       if (!authData.user) throw new Error("User registration failed, please try again.");
 
-      // Store credentials in ref for polling
-      registeredCredsRef.current = { email: formData.email, password: formData.password, full_name: formData.full_name };
+      // Store user ID and credentials in ref for polling
+      registeredCredsRef.current = { userId: authData.user.id, email: formData.email, password: formData.password, full_name: formData.full_name };
       sessionStorage.setItem('nss_just_registered', 'true');
       setShowConfirmModal(true);
 
@@ -501,7 +533,7 @@ export default function Register({ onClose, onSwitch }) {
   };
   const handleMouseMove = (e) => {
     if (!isDragging.current) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     const y = e.pageY - scrollRef.current.offsetTop;
     const walk = (y - startY.current) * 1.5;
     scrollRef.current.scrollTop = scrollTop.current - walk;
@@ -881,7 +913,6 @@ export default function Register({ onClose, onSwitch }) {
                           className="hidden"
                           accept="image/*"
                           onChange={handleFileChange}
-                          required={!photoFile}
                         />
                       </label>
 
