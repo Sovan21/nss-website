@@ -21,6 +21,7 @@ const AchievementsManager = ({ setIsDirty }) => {
     po_name: "",
     year: ""
   });
+  const [customCampName, setCustomCampName] = useState("");
 
   // Alumni states
   const [alumni, setAlumni] = useState([]);
@@ -73,7 +74,11 @@ const AchievementsManager = ({ setIsDirty }) => {
   }, []);
 
   const handleCampInputChange = (e) => {
-    setCampFormData({ ...campFormData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "camp_type" && value !== "Other") {
+      setCustomCampName("");
+    }
+    setCampFormData({ ...campFormData, [name]: value });
   };
 
   const handleAlumniInputChange = (e) => {
@@ -82,18 +87,28 @@ const AchievementsManager = ({ setIsDirty }) => {
 
   const handleCampSubmit = async (e) => {
     e.preventDefault();
+    const finalCampType = campFormData.camp_type === "Other" ? customCampName.trim() : campFormData.camp_type;
+    if (!finalCampType) {
+      toast.error("Please enter the custom camp name.");
+      return;
+    }
     setSaving(true);
+    const payload = {
+      ...campFormData,
+      camp_type: finalCampType
+    };
     try {
       if (editingCamp) {
-        const { error } = await supabase.from("nss_camps").update(campFormData).eq("id", editingCamp.id);
+        const { error } = await supabase.from("nss_camps").update(payload).eq("id", editingCamp.id);
         if (error) throw error;
         toast.success("Camp achievement updated successfully!");
       } else {
-        const { error } = await supabase.from("nss_camps").insert([campFormData]);
+        const { error } = await supabase.from("nss_camps").insert([payload]);
         if (error) throw error;
         toast.success("Camp achievement added successfully!");
       }
       setCampFormData({ camp_type: "NIC", volunteers: "", location: "", po_name: "", year: "" });
+      setCustomCampName("");
       setEditingCamp(null);
       setShowCampForm(false);
       fetchCamps();
@@ -106,14 +121,16 @@ const AchievementsManager = ({ setIsDirty }) => {
   };
 
   const handleEditCamp = (camp) => {
+    const isStandard = ["NIC", "Pre-RD", "Adventure Camp", "Youth Festival"].includes(camp.camp_type);
     setEditingCamp(camp);
     setCampFormData({
-      camp_type: camp.camp_type,
+      camp_type: isStandard ? camp.camp_type : "Other",
       volunteers: camp.volunteers,
       location: camp.location,
       po_name: camp.po_name,
       year: camp.year
     });
+    setCustomCampName(isStandard ? "" : camp.camp_type);
     setShowCampForm(true);
   };
 
@@ -212,6 +229,7 @@ const AchievementsManager = ({ setIsDirty }) => {
 
   const handleCancelCamp = () => {
     setCampFormData({ camp_type: "NIC", volunteers: "", location: "", po_name: "", year: "" });
+    setCustomCampName("");
     setEditingCamp(null);
     setShowCampForm(false);
   };
@@ -284,6 +302,20 @@ const AchievementsManager = ({ setIsDirty }) => {
                     <option value="Other">Other Camp</option>
                   </select>
                 </div>
+                {campFormData.camp_type === "Other" && (
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Custom Camp Name *</label>
+                    <input
+                      type="text"
+                      name="custom_camp_name"
+                      value={customCampName}
+                      onChange={(e) => setCustomCampName(e.target.value)}
+                      required
+                      placeholder="e.g. State Level Camp / Special Camp"
+                      className="w-full p-2 border rounded-lg text-sm bg-white"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="text-xs font-semibold mb-1 block">Year * (e.g. 2026)</label>
                   <input

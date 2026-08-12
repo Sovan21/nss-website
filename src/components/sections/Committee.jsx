@@ -67,8 +67,8 @@ const CATEGORY_THEMES = {
     bgAccent: "bg-pink-50/80 border-pink-100",
     tagLabel: "Cultural Committee",
     icon: (
-      <svg className="w-3.5 h-3.5 text-pink-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg className="w-3.5 h-3.5 text-pink-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
       </svg>
     )
   },
@@ -295,7 +295,8 @@ export default function CommitteePage({ prefetchedMembers }) {
 
         {/* Tab Navigation */}
         <div className="flex justify-center mb-6 md:mb-8">
-          <div className="bg-white/70 backdrop-blur-md p-1.5 rounded-full shadow-sm border border-slate-200/60 inline-flex overflow-x-auto max-w-full no-scrollbar">
+          {/* Desktop Navigation (Horizontal Pills) */}
+          <div className="hidden sm:inline-flex bg-white/70 backdrop-blur-md p-1.5 rounded-full shadow-sm border border-slate-200/60 overflow-x-auto max-w-full no-scrollbar">
             {['Cultural', 'Student', 'Environment'].map((cat) => (
               <button
                 key={cat}
@@ -305,6 +306,39 @@ export default function CommitteePage({ prefetchedMembers }) {
                 {t(`committee.tab.${cat}`)}{t("committee.tabSuffix")}
               </button>
             ))}
+          </div>
+
+          {/* Mobile Navigation (Ultra-Slim 3-Column Segmented Control) */}
+          <div className="grid sm:hidden grid-cols-3 gap-1 p-1 bg-slate-200/60 backdrop-blur-xl rounded-xl border border-slate-200/80 shadow-inner w-full select-none">
+            {['Cultural', 'Student', 'Environment'].map((cat) => {
+              const isSelected = activeCategory === cat;
+              const gradients = {
+                Cultural: 'from-pink-500 via-rose-500 to-pink-600 shadow-pink-500/30',
+                Student: 'from-blue-600 via-indigo-600 to-blue-700 shadow-blue-500/30',
+                Environment: 'from-emerald-600 via-teal-600 to-green-700 shadow-emerald-500/30'
+              };
+
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`relative flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-lg transition-all duration-150 ease-out active:scale-95 touch-manipulation cursor-pointer ${
+                    isSelected
+                      ? `bg-gradient-to-r ${gradients[cat]} text-white shadow-sm scale-[1.01] font-extrabold z-10`
+                      : 'bg-white/80 hover:bg-white text-slate-700 font-bold shadow-2xs'
+                  }`}
+                >
+                  <span className={`shrink-0 ${isSelected ? 'text-white' : 'text-slate-600'}`}>
+                    {React.cloneElement(CATEGORY_THEMES[cat].icon, {
+                      className: `w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-600'}`
+                    })}
+                  </span>
+                  <span className="text-[12px] font-bold leading-none truncate tracking-tight">
+                    {t(`committee.tab.${cat}`)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

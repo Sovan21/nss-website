@@ -642,7 +642,7 @@ const VolunteersManager = ({ setIsDirty }) => {
    </div>
    <div>
    <label className="block text-xs font-bold text-gray-700 mb-1">College Application ID</label>
-   <input required name="college_application_id" value={editFormData.college_application_id || ''} onChange={handleEditInputChange} minLength="15" maxLength="15" pattern="[A-Za-z0-9]{15}" title="Must be exactly 15 characters (e.g. BBCOLG123456789)" style={{ textTransform: 'uppercase' }} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" placeholder="BBCOLG123456789"/>
+   <input name="college_application_id" value={editFormData.college_application_id || ''} onChange={handleEditInputChange} maxLength="15" pattern="[A-Za-z0-9]{15}" title="Must be exactly 15 characters (e.g. BBCOLG123456789)" style={{ textTransform: 'uppercase' }} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm shadow-sm" placeholder="BBCOLG123456789"/>
    </div>
    <div>
    <label className="block text-xs font-bold text-gray-700 mb-1">Department</label>

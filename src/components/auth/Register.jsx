@@ -455,7 +455,7 @@ export default function Register({ onClose, onSwitch }) {
     }
 
     const appIdRegex = /^[A-Z0-9]{15}$/;
-    if (!appIdRegex.test(formData.college_application_id)) {
+    if (formData.college_application_id && !appIdRegex.test(formData.college_application_id)) {
       toast.error("College Application ID must be exactly 15 characters (e.g. BBCOLG123456789).");
       return;
     }
@@ -855,8 +855,8 @@ export default function Register({ onClose, onSwitch }) {
                   </div>
                 )}
                 <div className="flex flex-col justify-end">
-                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.collegeApplicationId")} *</label>
-                  <input name="college_application_id" type="text" value={formData.college_application_id} onChange={handleChange} required minLength="15" maxLength="15" pattern="[A-Za-z0-9]{15}" title="Must be exactly 15 characters (e.g. BBCOLG123456789)" style={{ textTransform: 'uppercase' }} className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder="BBCOLG123456789" />
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.collegeApplicationId")}</label>
+                  <input name="college_application_id" type="text" value={formData.college_application_id} onChange={handleChange} maxLength="15" pattern="[A-Za-z0-9]{15}" title="Must be exactly 15 characters (e.g. BBCOLG123456789)" style={{ textTransform: 'uppercase' }} className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder="BBCOLG123456789" />
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.prevExperience")} *</label>
