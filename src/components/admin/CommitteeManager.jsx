@@ -14,6 +14,7 @@ export const decodeDesignation = (raw) => {
     blood_group: '',
     phone: '',
     email: '',
+    qualification: '',
     registration_id: null,
     display_order: 999
   };
@@ -36,6 +37,7 @@ export const decodeDesignation = (raw) => {
           blood_group: parsed.blood_group || '',
           phone: parsed.phone || '',
           email: parsed.email || '',
+          qualification: parsed.qualification || '',
           registration_id: parsed.registration_id || null,
           display_order: parsed.display_order != null ? Number(parsed.display_order) : 999
         };
@@ -47,7 +49,7 @@ export const decodeDesignation = (raw) => {
     return { ...defaults, category: cat, designation: rest };
   }
 
-  return { ...defaults, category: 'Teacher', designation: '' };
+  return { ...defaults, category: 'Teacher', designation: raw };
 };
 
 export const encodeDesignation = (category, designation, extra = {}) => {
@@ -58,6 +60,7 @@ export const encodeDesignation = (category, designation, extra = {}) => {
     blood_group: extra.blood_group || '',
     phone: extra.phone || '',
     email: extra.email || '',
+    qualification: extra.qualification || '',
     registration_id: extra.registration_id || null,
     display_order: extra.display_order != null ? Number(extra.display_order) : 999
   };
@@ -239,6 +242,10 @@ const CommitteeManager = ({ setIsDirty }) => {
     name: '',
     category: 'Teacher',
     designation: '',
+    qualification: '',
+    email: '',
+    phone: '',
+    department: '',
     about: '',
     display_order: '',
     photo_url: null
@@ -333,6 +340,7 @@ const CommitteeManager = ({ setIsDirty }) => {
                 blood_group: matchingVol.blood_group || '',
                 phone: matchingVol.phone || '',
                 email: matchingVol.email || '',
+                qualification: decoded.qualification || '',
                 display_order: getMemberOrder(member)
               });
               await supabase.from('committee').update({
@@ -376,6 +384,10 @@ const CommitteeManager = ({ setIsDirty }) => {
         }
 
         const encodedDesignation = encodeDesignation('Teacher', newMember.designation, {
+          qualification: newMember.qualification,
+          email: newMember.email,
+          phone: newMember.phone,
+          department: newMember.department,
           display_order: orderVal
         });
 
@@ -433,6 +445,10 @@ const CommitteeManager = ({ setIsDirty }) => {
       name: member.name,
       category: decoded.category || (mainTab === 'teachers' ? 'Teacher' : 'Student'),
       designation: decoded.designation || '',
+      qualification: member.qualification || decoded.qualification || '',
+      email: member.email || decoded.email || '',
+      phone: member.phone || decoded.phone || '',
+      department: member.department || decoded.department || '',
       about: member.about || '',
       display_order: orderVal !== 999 ? String(orderVal) : '',
       photo_url: member.image_url || null
@@ -468,6 +484,10 @@ const CommitteeManager = ({ setIsDirty }) => {
       let encodedDesignation;
       if (editFormData.category === 'Teacher') {
         encodedDesignation = encodeDesignation('Teacher', editFormData.designation, {
+          qualification: editFormData.qualification,
+          email: editFormData.email,
+          phone: editFormData.phone,
+          department: editFormData.department,
           display_order: orderVal
         });
       } else {
@@ -478,6 +498,7 @@ const CommitteeManager = ({ setIsDirty }) => {
           blood_group: vol?.blood_group || decoded.blood_group || '',
           phone: vol?.phone || decoded.phone || '',
           email: vol?.email || decoded.email || '',
+          qualification: decoded.qualification || '',
           display_order: orderVal
         });
       }
@@ -649,19 +670,35 @@ const CommitteeManager = ({ setIsDirty }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Full Name *</label>
-                <input name="name" value={newMember.name} onChange={handleAddInputChange} required className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Dr. John Doe"/>
+                <input name="name" value={newMember.name} onChange={handleAddInputChange} required className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Prof. Dr. Amitava Basu"/>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Designation *</label>
-                <input name="designation" value={newMember.designation} onChange={handleAddInputChange} required className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Program Officer, Mentor"/>
+                <input name="designation" value={newMember.designation} onChange={handleAddInputChange} required className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. PRINCIPLE, Program Officer (Unit-I)"/>
               </div>
               <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Qualification</label>
+                <input name="qualification" value={newMember.qualification} onChange={handleAddInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. M.Com, Ph.D"/>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Department</label>
+                <input name="department" value={newMember.department} onChange={handleAddInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Commerce, Physics"/>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+                <input type="email" name="email" value={newMember.email} onChange={handleAddInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. principal@bbcollege.ac.in"/>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number</label>
+                <input type="tel" name="phone" value={newMember.phone} onChange={handleAddInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. +91 94340 12345"/>
+              </div>
+              <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1">Display Position / Order (1, 2, 3...)</label>
                 <input type="number" min="1" name="display_order" value={newMember.display_order} onChange={handleAddInputChange} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder={`Default position #${filteredMembers.length + 1}`}/>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-gray-700 mb-1">About / Bio *</label>
-                <textarea name="about" value={newMember.about} onChange={handleAddInputChange} required rows="3" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Write a short bio..."></textarea>
+                <label className="block text-xs font-bold text-gray-700 mb-1">About / Achievements (1 per line for bullet list) *</label>
+                <textarea name="about" value={newMember.about} onChange={handleAddInputChange} required rows="4" className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Chairman, IQAC&#10;Speaker / Expert on NEP 2020&#10;Over 20 years of experience"></textarea>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1">Profile Picture (Optional)</label>
@@ -875,7 +912,7 @@ const CommitteeManager = ({ setIsDirty }) => {
                       onChange={handleEditInputChange}
                       required
                       className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="e.g. Dr. John Doe"
+                      placeholder="e.g. Prof. Dr. Amitava Basu"
                     />
                   </div>
 
@@ -887,8 +924,56 @@ const CommitteeManager = ({ setIsDirty }) => {
                       onChange={handleEditInputChange}
                       required
                       className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="e.g. Program Officer, Mentor"
+                      placeholder="e.g. PRINCIPLE, Program Officer (Unit-I)"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Qualification</label>
+                      <input
+                        name="qualification"
+                        value={editFormData.qualification}
+                        onChange={handleEditInputChange}
+                        className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="e.g. M.Com, Ph.D"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Department</label>
+                      <input
+                        name="department"
+                        value={editFormData.department}
+                        onChange={handleEditInputChange}
+                        className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="e.g. Commerce"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={editFormData.email}
+                        onChange={handleEditInputChange}
+                        className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="e.g. principal@bbcollege.ac.in"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={editFormData.phone}
+                        onChange={handleEditInputChange}
+                        className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="e.g. +91 94340 12345"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -905,15 +990,15 @@ const CommitteeManager = ({ setIsDirty }) => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">About / Bio *</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">About / Achievements (1 per line for bullet list) *</label>
                     <textarea
                       name="about"
                       value={editFormData.about}
                       onChange={handleEditInputChange}
                       required
-                      rows="3"
+                      rows="4"
                       className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="Write a short bio..."
+                      placeholder="Write accomplishments line by line..."
                     ></textarea>
                   </div>
 
