@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage, deleteSupabaseImage } from '@/lib/utils';
+import { compressImage, deleteSupabaseImage, uploadAdminImage } from '@/lib/utils';
 
 const SettingsManager = ({ isDirty, setIsDirty }) => {
   const { toast } = useToast();
@@ -76,7 +76,8 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSiteData = async () => {
+      setLoading(true);
       try {
         const { data, error } = await supabase.from('site_content').select('*').limit(1).single();
         if (error && error.code !== 'PGRST116') throw error;
@@ -92,10 +93,15 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
           setSliderSlots((data.hero_slider_urls || []).map(url => ({ isNew: false, file: null, preview: url })));
           setAboutSlots((data.about_image_url ? data.about_image_url.split(',').filter(Boolean) : []).map(url => ({ isNew: false, file: null, preview: url })));
         }
-      } catch (err) { console.error(err); } finally { setLoading(false); }
+      } catch (err) { console.error("Error fetching site data:", err); } finally { setLoading(false); }
     };
-    fetchData();
+    fetchSiteData();
   }, []);
+
+  const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
 
   const handleUpdate = async (e) => {
     e.preventDefault(); setSaving(true);
@@ -110,8 +116,9 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
         if (slot.isNew && slot.file) {
           const compressedFile = await compressImage(slot.file, 6, 1920);
           const fileName = `about-${Date.now()}-${Math.floor(Math.random()*1000)}.${compressedFile.name.split('.').pop()}`;
-          await supabase.storage.from('nss-images').upload(fileName, compressedFile);
-          finalAboutUrls.push(supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl);
+          const gUrl = await uploadAdminImage(compressedFile, fileName);
+          if (gUrl) finalAboutUrls.push(gUrl);
+          else throw new Error("Failed to upload about image");
         } else { finalAboutUrls.push(slot.preview); }
       }
       const updatedAboutImageUrl = finalAboutUrls.join(',');
@@ -127,8 +134,9 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
         if (slot.isNew && slot.file) {
           const compressedSlotFile = await compressImage(slot.file, 6, 1920);
           const fileName = `slider-${Date.now()}-${Math.floor(Math.random()*1000)}.${compressedSlotFile.name.split('.').pop()}`;
-          await supabase.storage.from('nss-images').upload(fileName, compressedSlotFile);
-          finalSliderUrls.push(supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl);
+          const sUrl = await uploadAdminImage(compressedSlotFile, fileName);
+          if (sUrl) finalSliderUrls.push(sUrl);
+          else throw new Error("Failed to upload slider image");
         } else { finalSliderUrls.push(slot.preview); }
       }
 
@@ -136,8 +144,15 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
       const finalData = { ...siteData, contact_phone: finalPhone, about_image_url: updatedAboutImageUrl, hero_slider_urls: finalSliderUrls };
       delete finalData.contact_phone_2;
       
-      if (siteData.id) await supabase.from('site_content').update(finalData).eq('id', siteData.id);
-      else await supabase.from('site_content').insert([finalData]);
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+      
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(finalData)
+      });
+      if (!res.ok) throw new Error("Failed to update settings via API");
 
       toast.success("Settings Updated!"); setIsDirty(false); setSiteData({ ...finalData, contact_phone: siteData.contact_phone, contact_phone_2: siteData.contact_phone_2 });
       setSliderSlots(finalSliderUrls.map(url => ({ isNew: false, file: null, preview: url })));

@@ -53,15 +53,18 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
           if (uploadedUrl) {
             profileData.photo_url = uploadedUrl;
           } else if (user.user_metadata?.photo_url) {
+            await uploadConfirmedUserPhoto(user, user.email, profileData.full_name);
             profileData.photo_url = user.user_metadata.photo_url;
-            await supabase.from('registrations').update({ photo_url: user.user_metadata.photo_url }).eq('id', user.id);
           }
         }
         if (!profileData) {
           const m = user.user_metadata || {};
-          const newProfile = {
+          const fullName = m.full_name || user.email?.split('@')[0] || "Volunteer";
+          await uploadConfirmedUserPhoto(user, user.email, fullName);
+          
+          userDataToSave = {
             id: user.id,
-            full_name: m.full_name || user.email?.split('@')[0] || "Volunteer",
+            full_name: fullName,
             email: user.email,
             fathers_name: m.fathers_name || null,
             mothers_name: m.mothers_name || null,
@@ -81,8 +84,6 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
             photo_url: m.photo_url || null,
             role: 'volunteer'
           };
-          const { data: insertedData } = await supabase.from('registrations').insert([newProfile]).select().maybeSingle();
-          userDataToSave = insertedData || newProfile;
         }
         localStorage.setItem('nss_user', JSON.stringify(userDataToSave));
         setCurrentUser(userDataToSave);

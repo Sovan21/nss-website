@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage, formatDate, deleteSupabaseImage } from '@/lib/utils';
+import { compressImage, formatDate, deleteSupabaseImage, uploadAdminImage } from '@/lib/utils';
 
 // ============================================================================
 // NAME TAG INPUT — Smart tag-based name entry with live count
@@ -178,6 +178,12 @@ const EventsManager = ({ setIsDirty }) => {
     } catch (err) { console.error("Error fetching events:", err); } finally { setLoading(false); }
   };
 
+  const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
+
+
   const handleAddInputChange = (e) => setAddFormData({ ...addFormData, [e.target.name]: e.target.value });
   
   const handleAddEvent = async (e) => {
@@ -187,15 +193,24 @@ const EventsManager = ({ setIsDirty }) => {
     try {
       const compressedBanner = await compressImage(bannerFile, 6, 1920);
       const bannerName = `banner-${Date.now()}.${compressedBanner.name.split('.').pop()}`;
-      await supabase.storage.from('nss-images').upload(bannerName, compressedBanner);
-      const bannerUrl = supabase.storage.from('nss-images').getPublicUrl(bannerName).data.publicUrl;
+      const bannerUrl = await uploadAdminImage(compressedBanner, bannerName);
+      if (!bannerUrl) throw new Error("Failed to upload banner");
 
       const newEvent = { ...addFormData, banner_url: bannerUrl };
-      await supabase.from('events').insert([newEvent]);
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+      
+      const res = await fetch('/api/admin/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(newEvent)
+      });
+      if (!res.ok) throw new Error("Failed to create event");
+
       toast.success("Event Created Successfully!");
       setAddFormData({ title: '', start_date: '', end_date: '' }); setBannerFile(null); setShowAddForm(false);
       fetchEvents();
-    } catch (err) { toast.error("Failed to create event."); } finally { setSaving(false); }
+    } catch (err) { toast.error("Failed to create event."); console.error(err); } finally { setSaving(false); }
   };
 
   const openEditModal = (evt) => {
@@ -216,8 +231,8 @@ const EventsManager = ({ setIsDirty }) => {
         await deleteSupabaseImage(editingEvent.banner_url);
         const compressedBanner = await compressImage(editBannerFile, 6, 1920);
         const bannerName = `banner-edit-${Date.now()}.${compressedBanner.name.split('.').pop()}`;
-        await supabase.storage.from('nss-images').upload(bannerName, compressedBanner);
-        updatedBannerUrl = supabase.storage.from('nss-images').getPublicUrl(bannerName).data.publicUrl;
+        updatedBannerUrl = await uploadAdminImage(compressedBanner, bannerName);
+        if (!updatedBannerUrl) throw new Error("Failed to upload banner");
       }
 
       let updatedGalleryUrls = editingEvent.gallery_urls || [];
@@ -226,46 +241,82 @@ const EventsManager = ({ setIsDirty }) => {
         for (let i = 0; i < galleryFiles.length; i++) {
           const compressedFile = await compressImage(galleryFiles[i], 6, 1920);
           const fileName = `gallery-${Date.now()}-${i}.${compressedFile.name.split('.').pop()}`;
-          await supabase.storage.from('nss-images').upload(fileName, compressedFile);
-          updatedGalleryUrls.push(supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl);
+          const gUrl = await uploadAdminImage(compressedFile, fileName);
+          if (gUrl) updatedGalleryUrls.push(gUrl);
+          else throw new Error("Failed to upload gallery image");
         }
       }
 
       const finalUpdates = {
+        id: editingEvent.id,
         ...editFormData,
         banner_url: updatedBannerUrl,
         gallery_urls: updatedGalleryUrls,
         teachers_present: teacherTags.join(', '),
         volunteers_present: volunteerTags.join(', '),
       };
-      await supabase.from('events').update(finalUpdates).eq('id', editingEvent.id);
+      
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+      
+      const res = await fetch('/api/admin/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(finalUpdates)
+      });
+      if (!res.ok) throw new Error("Failed to update event");
+
       toast.success("Event Updated!");
       setEditingEvent(null); fetchEvents();
-    } catch (err) { toast.error("Failed to update event."); } finally { setSaving(false); }
+    } catch (err) { toast.error("Failed to update event."); console.error(err); } finally { setSaving(false); }
   };
 
   const handleDeleteEvent = async (id) => {
     const confirmed = await confirm("Delete this event and all its images permanently?", { title:"Delete Event", type:"danger", confirmText:"Delete", cancelText:"Cancel" });
     if (!confirmed) return;
     const evt = events.find(e => e.id === id);
-    if (evt) {
-      await deleteSupabaseImage(evt.banner_url);
-      if (evt.gallery_urls) {
-        for (let url of evt.gallery_urls) await deleteSupabaseImage(url);
-      }
+    if (!evt) return;
+
+    try {
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+      
+      const res = await fetch('/api/admin/events', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id, banner_url: evt.banner_url, gallery_urls: evt.gallery_urls })
+      });
+      if (!res.ok) throw new Error("Failed to delete event");
+      
+      toast.success("Event deleted successfully.");
+      fetchEvents();
+    } catch (err) {
+      toast.error("Failed to delete event.");
+      console.error(err);
     }
-    await supabase.from('events').delete().eq('id', id);
-    toast.success("Event deleted successfully.");
-    fetchEvents();
   };
 
   const handleClearGallery = async () => {
     const confirmed = await confirm("Delete all gallery images for this event?", { title:"Clear Gallery", type:"danger", confirmText:"Clear All", cancelText:"Cancel" });
     if (!confirmed) return;
-    for (let url of editingEvent.gallery_urls || []) await deleteSupabaseImage(url);
-    await supabase.from('events').update({ gallery_urls: [] }).eq('id', editingEvent.id);
-    setEditingEvent({...editingEvent, gallery_urls: []});
-    toast.success("Gallery cleared!");
+    try {
+      for (let url of editingEvent.gallery_urls || []) await deleteSupabaseImage(url);
+      
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch('/api/admin/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: editingEvent.id, gallery_urls: [] })
+      });
+      if (!res.ok) throw new Error("Failed to clear gallery");
+
+      setEditingEvent({...editingEvent, gallery_urls: []});
+      toast.success("Gallery cleared!");
+    } catch (err) {
+      toast.error("Failed to clear gallery.");
+      console.error(err);
+    }
   };
 
   const removeNewGalleryImage = (indexToRemove) => {
@@ -275,12 +326,27 @@ const EventsManager = ({ setIsDirty }) => {
   const removeOldGalleryImage = async (indexToRemove) => {
     const confirmed = await confirm("Remove this image from the gallery?", { title:"Remove Image", type:"danger", confirmText:"Remove", cancelText:"Cancel" });
     if (!confirmed) return;
-    const urlToRemove = editingEvent.gallery_urls[indexToRemove];
-    const updatedUrls = editingEvent.gallery_urls.filter((_, idx) => idx !== indexToRemove);
-    setEditingEvent({ ...editingEvent, gallery_urls: updatedUrls });
-    await deleteSupabaseImage(urlToRemove);
-    await supabase.from('events').update({ gallery_urls: updatedUrls }).eq('id', editingEvent.id);
-    toast.success("Image removed!");
+    try {
+      const urlToRemove = editingEvent.gallery_urls[indexToRemove];
+      const updatedUrls = editingEvent.gallery_urls.filter((_, idx) => idx !== indexToRemove);
+      
+      await deleteSupabaseImage(urlToRemove);
+      
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch('/api/admin/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: editingEvent.id, gallery_urls: updatedUrls })
+      });
+      if (!res.ok) throw new Error("Failed to remove image");
+
+      setEditingEvent({ ...editingEvent, gallery_urls: updatedUrls });
+      toast.success("Image removed!");
+    } catch (err) {
+      toast.error("Failed to remove image.");
+      console.error(err);
+    }
   };
 
   return (

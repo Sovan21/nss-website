@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage } from '@/lib/utils';
+import { compressImage, uploadAdminImage } from '@/lib/utils';
 
 const AchievementsManager = ({ setIsDirty }) => {
   const { toast, confirm } = useToast();
@@ -41,6 +41,11 @@ const AchievementsManager = ({ setIsDirty }) => {
   useEffect(() => {
     setIsDirty(showCampForm || showAlumniForm || editingCamp !== null || editingAlumni !== null);
   }, [showCampForm, showAlumniForm, editingCamp, editingAlumni, setIsDirty]);
+
+  const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
 
   const fetchCamps = async () => {
     try {
@@ -98,13 +103,24 @@ const AchievementsManager = ({ setIsDirty }) => {
       camp_type: finalCampType
     };
     try {
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
       if (editingCamp) {
-        const { error } = await supabase.from("nss_camps").update(payload).eq("id", editingCamp.id);
-        if (error) throw error;
+        const res = await fetch('/api/admin/achievements', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'camps', id: editingCamp.id, data: payload })
+        });
+        if (!res.ok) throw new Error("Failed to update camp achievement");
         toast.success("Camp achievement updated successfully!");
       } else {
-        const { error } = await supabase.from("nss_camps").insert([payload]);
-        if (error) throw error;
+        const res = await fetch('/api/admin/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'camps', data: payload })
+        });
+        if (!res.ok) throw new Error("Failed to create camp achievement");
         toast.success("Camp achievement added successfully!");
       }
       setCampFormData({ camp_type: "NIC", volunteers: "", location: "", po_name: "", year: "" });
@@ -143,8 +159,16 @@ const AchievementsManager = ({ setIsDirty }) => {
     });
     if (!confirmed) return;
     try {
-      const { error } = await supabase.from("nss_camps").delete().eq("id", id);
-      if (error) throw error;
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch('/api/admin/achievements', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: 'camps', id })
+      });
+      if (!res.ok) throw new Error("Failed to delete camp achievement");
+      
       toast.success("Camp achievement deleted successfully");
       fetchCamps();
     } catch (err) {
@@ -162,21 +186,30 @@ const AchievementsManager = ({ setIsDirty }) => {
         const compressedFile = await compressImage(alumniPhotoFile, 5, 600);
         const fileExt = compressedFile.name.split('.').pop();
         const fileName = `alumni-${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from("nss-images").upload(fileName, compressedFile);
-        if (uploadError) throw uploadError;
-        const { data: publicUrlData } = supabase.storage.from("nss-images").getPublicUrl(fileName);
-        photoUrl = publicUrlData.publicUrl;
+        photoUrl = await uploadAdminImage(compressedFile, fileName);
+        if (!photoUrl) throw new Error("Failed to upload alumni photo");
       }
 
       const postData = { ...alumniFormData, photo_url: photoUrl };
 
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
       if (editingAlumni) {
-        const { error } = await supabase.from("nss_alumni").update(postData).eq("id", editingAlumni.id);
-        if (error) throw error;
+        const res = await fetch('/api/admin/achievements', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'alumni', id: editingAlumni.id, data: postData })
+        });
+        if (!res.ok) throw new Error("Failed to update alumni");
         toast.success("Alumni profile updated successfully!");
       } else {
-        const { error } = await supabase.from("nss_alumni").insert([postData]);
-        if (error) throw error;
+        const res = await fetch('/api/admin/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'alumni', data: postData })
+        });
+        if (!res.ok) throw new Error("Failed to create alumni");
         toast.success("Alumni profile added successfully!");
       }
       setAlumniFormData({ name: "", passing_year: "", current_position: "", organization: "", description: "" });
@@ -213,12 +246,16 @@ const AchievementsManager = ({ setIsDirty }) => {
     });
     if (!confirmed) return;
     try {
-      if (alum.photo_url && alum.photo_url.includes("nss-images")) {
-        const fileName = alum.photo_url.split("/").pop();
-        await supabase.storage.from("nss-images").remove([fileName]);
-      }
-      const { error } = await supabase.from("nss_alumni").delete().eq("id", alum.id);
-      if (error) throw error;
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch('/api/admin/achievements', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: 'alumni', id: alum.id, photo_url: alum.photo_url })
+      });
+      if (!res.ok) throw new Error("Failed to delete alumni");
+      
       toast.success("Alumni profile deleted successfully");
       fetchAlumni();
     } catch (err) {

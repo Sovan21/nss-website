@@ -137,32 +137,23 @@ export default function Login({ onClose, onSwitch }) {
             if (uploadedUrl) {
               finalProfile.photo_url = uploadedUrl;
             } else if (user.user_metadata?.photo_url) {
+              // Instead of client-side update, let sync-photo API handle it by calling it without a file
+              await uploadConfirmedUserPhoto(user, user.email, finalProfile.full_name);
               finalProfile.photo_url = user.user_metadata.photo_url;
-              await supabase.from('registrations').update({ photo_url: user.user_metadata.photo_url }).eq('id', user.id);
             }
           }
         } else {
-          // If profile doesn't exist (first time Google login), create a basic profile
-          const newUserProfile = {
+          // If profile doesn't exist (first time Google login), trigger the secure server-side upsert
+          const fullName = user.user_metadata.full_name || user.user_metadata.name || 'NSS Volunteer';
+          await uploadConfirmedUserPhoto(user, user.email, fullName);
+          
+          finalProfile = {
             id: user.id,
-            full_name: user.user_metadata.full_name || user.user_metadata.name || 'NSS Volunteer',
+            full_name: fullName,
             email: user.email,
             photo_url: user.user_metadata.avatar_url || user.user_metadata.picture || '',
+            role: 'volunteer'
           };
-
-          const { data: newProfile, error } = await supabase
-            .from('registrations')
-            .insert([newUserProfile])
-            .select()
-            .single();
-
-          if (!error && newProfile) {
-            finalProfile = newProfile;
-          } else {
-            console.error("Failed to create new profile:", error);
-            // Fallback so the user is still logged in on the frontend
-            finalProfile = newUserProfile;
-          }
         }
 
         if (finalProfile) {

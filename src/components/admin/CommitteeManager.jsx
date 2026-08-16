@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage, getInitials, deleteSupabaseImage } from '@/lib/utils';
+import { compressImage, getInitials, deleteSupabaseImage, uploadAdminImage } from '@/lib/utils';
 
 export const decodeDesignation = (raw) => {
   const defaults = {
@@ -299,24 +299,34 @@ const CommitteeManager = ({ setIsDirty }) => {
     } catch (err) { console.error("Error fetching registrations:", err); return []; }
   };
 
+  const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
+
   const saveMemberToSupabase = async (action, data, memberId = null) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
     if (action === 'insert') {
-      const { error } = await supabase.from('committee').insert([data]);
-      if (error && (error.message?.includes('display_order') || error.code === 'PGRST204')) {
-        const { display_order, ...cleanData } = data;
-        const { error: err2 } = await supabase.from('committee').insert([cleanData]);
-        if (err2) throw err2;
-      } else if (error) {
-        throw error;
+      const res = await fetch('/api/admin/committee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to add member');
       }
     } else if (action === 'update') {
-      const { error } = await supabase.from('committee').update(data).eq('id', memberId);
-      if (error && (error.message?.includes('display_order') || error.code === 'PGRST204')) {
-        const { display_order, ...cleanData } = data;
-        const { error: err2 } = await supabase.from('committee').update(cleanData).eq('id', memberId);
-        if (err2) throw err2;
-      } else if (error) {
-        throw error;
+      const res = await fetch('/api/admin/committee', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: memberId, ...data })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update member');
       }
     }
   };
@@ -330,25 +340,38 @@ const CommitteeManager = ({ setIsDirty }) => {
         for (const member of commMembers) {
           const decoded = decodeDesignation(member.designation);
           if (decoded.category === 'Teacher') continue;
-          if (!decoded.department || !decoded.registration_id || !decoded.blood_group) {
-            const matchingVol = regList.find(r => r.full_name && member.name && r.full_name.toLowerCase().trim() === member.name.toLowerCase().trim());
-            if (matchingVol) {
-              const encoded = encodeDesignation(decoded.category, decoded.designation, {
-                registration_id: matchingVol.id,
-                department: matchingVol.department || '',
-                semester: matchingVol.semester || '',
-                blood_group: matchingVol.blood_group || '',
-                phone: matchingVol.phone || '',
-                email: matchingVol.email || '',
-                qualification: decoded.qualification || '',
-                display_order: getMemberOrder(member)
-              });
-              await supabase.from('committee').update({
-                designation: encoded,
-                about: member.about || matchingVol.bio || '',
-                image_url: member.image_url || matchingVol.photo_url || null
-              }).eq('id', member.id);
-              updatedAny = true;
+          const matchingVol = decoded.registration_id 
+            ? regList.find(r => String(r.id) === String(decoded.registration_id))
+            : regList.find(r => r.full_name && member.name && r.full_name.toLowerCase().trim() === member.name.toLowerCase().trim());
+
+          if (matchingVol && (!decoded.department || !decoded.registration_id || !decoded.blood_group || !member.image_url)) {
+            const encoded = encodeDesignation(decoded.category, decoded.designation, {
+              registration_id: matchingVol.id,
+              department: matchingVol.department || decoded.department || '',
+              semester: matchingVol.semester || decoded.semester || '',
+              blood_group: matchingVol.blood_group || decoded.blood_group || '',
+              phone: matchingVol.phone || decoded.phone || '',
+              email: matchingVol.email || decoded.email || '',
+              qualification: decoded.qualification || '',
+              display_order: getMemberOrder(member)
+            });
+            try {
+              const syncToken = await getAuthToken();
+              if (syncToken) {
+                const syncRes = await fetch('/api/admin/committee', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${syncToken}` },
+                  body: JSON.stringify({
+                    id: member.id,
+                    designation: encoded,
+                    about: member.about || matchingVol.bio || '',
+                    image_url: member.image_url || matchingVol.photo_url || null
+                  })
+                });
+                if (syncRes.ok) updatedAny = true;
+              }
+            } catch (syncErr) {
+              console.error('Auto-sync failed for member', member.id, syncErr);
             }
           }
         }
@@ -379,8 +402,8 @@ const CommitteeManager = ({ setIsDirty }) => {
           const compressedFile = await compressImage(bannerFile, 5, 1200);
           const fileExt = compressedFile.name.split('.').pop();
           const fileName = `committee-${Date.now()}.${fileExt}`;
-          await supabase.storage.from('nss-images').upload(fileName, compressedFile);
-          imageUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
+          imageUrl = await uploadAdminImage(compressedFile, fileName);
+          if (!imageUrl) throw new Error("Failed to upload image");
         }
 
         const encodedDesignation = encodeDesignation('Teacher', newMember.designation, {
@@ -464,8 +487,12 @@ const CommitteeManager = ({ setIsDirty }) => {
     e.preventDefault();
     setSaving(true);
     try {
-      let updatedImageUrl = editingMember.image_url;
-      if (removeImage && updatedImageUrl) {
+      const decoded = decodeDesignation(editingMember.designation);
+      const vol = (decoded.registration_id ? registrations.find(r => String(r.id) === String(decoded.registration_id)) : null)
+               || registrations.find(r => r.full_name && editingMember.name && r.full_name.toLowerCase().trim() === editingMember.name.toLowerCase().trim());
+
+      let updatedImageUrl = editingMember.image_url || vol?.photo_url || null;
+      if (removeImage && editingMember.image_url) {
         await deleteSupabaseImage(editingMember.image_url);
         updatedImageUrl = null;
       } else if (editImageFile) {
@@ -473,12 +500,9 @@ const CommitteeManager = ({ setIsDirty }) => {
         const compressedFile = await compressImage(editImageFile, 5, 1200);
         const fileExt = compressedFile.name.split('.').pop();
         const fileName = `committee-edit-${Date.now()}.${fileExt}`;
-        await supabase.storage.from('nss-images').upload(fileName, compressedFile);
-        updatedImageUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
+        updatedImageUrl = await uploadAdminImage(compressedFile, fileName);
+        if (!updatedImageUrl) throw new Error("Failed to upload image");
       }
-
-      const decoded = decodeDesignation(editingMember.designation);
-      const vol = decoded.registration_id ? registrations.find(r => String(r.id) === String(decoded.registration_id)) : null;
       const orderVal = editFormData.display_order ? Number(editFormData.display_order) : 999;
 
       let encodedDesignation;
@@ -578,8 +602,18 @@ const CommitteeManager = ({ setIsDirty }) => {
     const confirmed = await confirm("Are you sure you want to remove this member?", { title:"Remove Member", type:"danger", confirmText:"Remove", cancelText:"Cancel" });
     if (!confirmed) return;
     const member = members.find(m => m.id === id);
-    if (member) await deleteSupabaseImage(member.image_url);
-    await supabase.from('committee').delete().eq('id', id);
+    const token = await getAuthToken();
+    if (!token) { toast.error('Not authenticated'); return; }
+    const res = await fetch('/api/admin/committee', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, image_url: member?.image_url })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.error || 'Failed to delete member');
+      return;
+    }
     toast.success("Member removed successfully.");
     fetchMembers();
   };

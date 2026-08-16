@@ -1,7 +1,8 @@
+export const dynamic = 'force-dynamic';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nfmgklkenucufkqlsohu.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(request) {
@@ -10,37 +11,37 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Server config error' }, { status: 500 });
     }
 
-    const formData = await request.formData();
-    const userId = formData.get('userId');
-    const email = formData.get('email');
-    const fullName = formData.get('fullName');
-    const photo = formData.get('photo'); // File or null
-
-    if (!userId || typeof userId !== 'string') {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const token = authHeader.split(' ')[1];
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Verify user exists in auth system and email is confirmed
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
-    if (authError || !authData?.user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const { data: { user }, error: tokenError } = await supabaseAdmin.auth.getUser(token);
+    if (tokenError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!authData.user.email_confirmed_at) {
+    const formData = await request.formData();
+    // Ignore formData.get('userId') and use the verified user.id instead
+    const userId = user.id;
+    const email = formData.get('email');
+    const fullName = formData.get('fullName');
+    const photo = formData.get('photo'); // File or null
+
+    if (!user.email_confirmed_at) {
       return NextResponse.json({ error: 'Email not confirmed' }, { status: 400 });
     }
-
-    const user = authData.user;
     const m = user.user_metadata || {};
 
-    // Check if photo already exists
+    // Check if profile already exists to preserve role and photo
     const { data: existingRecord } = await supabaseAdmin
       .from('registrations')
-      .select('photo_url')
+      .select('photo_url, role')
       .eq('id', userId)
       .maybeSingle();
 
@@ -97,7 +98,7 @@ export async function POST(request) {
       prev_experience: m.prev_experience || null,
       bio: m.bio || null,
       photo_url: photoUrl,
-      role: 'volunteer'
+      role: existingRecord?.role || 'volunteer'
     };
 
     // Upsert with service_role key — bypasses RLS
@@ -117,3 +118,5 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+

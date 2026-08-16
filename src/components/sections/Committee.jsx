@@ -113,10 +113,14 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+const cleanStr = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
 const CommitteeCard = ({ member, registrations }) => {
+  const [imgError, setImgError] = useState(false);
   const decoded = decodeDesignation(member.designation);
   const vol = (decoded.registration_id ? registrations.find(r => String(r.id) === String(decoded.registration_id)) : null)
-           || registrations.find(r => r.full_name && member.name && r.full_name.toLowerCase().trim() === member.name.toLowerCase().trim());
+           || registrations.find(r => r.full_name && member.name && cleanStr(r.full_name) === cleanStr(member.name))
+           || registrations.find(r => r.full_name && member.name && (cleanStr(r.full_name).includes(cleanStr(member.name)) || cleanStr(member.name).includes(cleanStr(r.full_name))));
   
   const name = vol?.full_name || member.name;
   const department = vol?.department || decoded.department;
@@ -166,11 +170,13 @@ const CommitteeCard = ({ member, registrations }) => {
           {/* Avatar with White Ring & Verified Green Checkmark */}
           <div className="relative shrink-0">
             <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-full overflow-hidden border-[4px] border-white shadow-lg bg-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-              {photoUrl ? (
+              {photoUrl && !imgError ? (
                 <img
                   src={photoUrl}
                   alt={name}
                   loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -289,19 +295,35 @@ export default function CommitteePage({ prefetchedMembers }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [{ data: commData }, { data: regData }] = await Promise.all([
-          supabase.from("committee").select("*").order("id", { ascending: true }),
-          supabase.from("registrations").select("*")
-        ]);
-        if (commData) {
-          const studentMembers = commData.filter(m => {
-            const decoded = decodeDesignation(m.designation);
-            return decoded.category !== 'Teacher';
-          });
-          setMembers(studentMembers);
-        }
-        if (regData) {
-          setRegistrations(regData);
+        const res = await fetch('/api/committee', { cache: 'no-store' });
+        if (res.ok) {
+          const { members: commData, registrations: regData } = await res.json();
+          if (commData) {
+            const studentMembers = commData.filter(m => {
+              const decoded = decodeDesignation(m.designation);
+              return decoded.category !== 'Teacher';
+            });
+            setMembers(studentMembers);
+          }
+          if (regData) {
+            setRegistrations(regData);
+          }
+        } else {
+          // Fallback to client Supabase query if API route fails
+          const [{ data: commData }, { data: regData }] = await Promise.all([
+            supabase.from("committee").select("*").order("id", { ascending: true }),
+            supabase.from("registrations").select("*")
+          ]);
+          if (commData) {
+            const studentMembers = commData.filter(m => {
+              const decoded = decodeDesignation(m.designation);
+              return decoded.category !== 'Teacher';
+            });
+            setMembers(studentMembers);
+          }
+          if (regData) {
+            setRegistrations(regData);
+          }
         }
       } catch (err) {
         console.error("Error fetching committee:", err);
@@ -410,8 +432,10 @@ export default function CommitteePage({ prefetchedMembers }) {
 
         {/* Committee Info Banner */}
         <div className={`mb-10 max-w-3xl mx-auto rounded-2xl p-5 md:p-6 border flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 transition-colors duration-500 animate-fade-in-up ${committeeDetails[activeCategory].bg} ${committeeDetails[activeCategory].border}`}>
-          <div className="bg-white p-3 rounded-xl shadow-sm shrink-0">
-            {committeeDetails[activeCategory].icon}
+          <div className="bg-white p-3.5 rounded-2xl shadow-sm shrink-0 border border-white/80 flex items-center justify-center">
+            {React.cloneElement(CATEGORY_THEMES[activeCategory].icon, {
+              className: `w-6 h-6 ${CATEGORY_THEMES[activeCategory].textAccent}`
+            })}
           </div>
           <div>
             <h4 className="font-bold text-slate-800 text-lg mb-1">{committeeDetails[activeCategory].title}</h4>

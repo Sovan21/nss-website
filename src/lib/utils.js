@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabaseAdmin as supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 /**
  * Shared Application Utility Functions
@@ -167,21 +167,74 @@ export const useDebounce = (value, delay) => {
 export const deleteSupabaseImage = async (url) => {
   if (!url || typeof url !== 'string' || url.includes('placeholder.com')) return;
   try {
-    const cleanUrl = url.split('?')[0];
-    let filePath = '';
-    if (cleanUrl.includes('/nss-images/')) {
-      filePath = decodeURIComponent(cleanUrl.split('/nss-images/')[1]);
-    } else {
-      filePath = decodeURIComponent(cleanUrl.split('/').pop());
+    let { data: { session } } = await supabaseAdmin.auth.getSession();
+    let token = session?.access_token;
+    
+    // Fallback if admin client doesn't have it (e.g. legacy session)
+    if (!token) {
+      const pubSession = await supabase.auth.getSession();
+      token = pubSession?.data?.session?.access_token;
     }
-    if (filePath) {
-      const { error } = await supabase.storage.from('nss-images').remove([filePath]);
-      if (error) {
-        console.error("Client storage delete error:", error);
-      }
+    
+    if (!token) {
+      console.warn("No token available for deleteSupabaseImage");
+      return;
+    }
+    const res = await fetch('/api/admin/storage/delete', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ url })
+    });
+    if (!res.ok) {
+      console.error("Client storage delete error:", await res.text());
     }
   } catch (error) {
     console.error("Error deleting image from storage:", error);
+  }
+};
+
+/**
+ * Secure Admin Image Uploader
+ */
+export const uploadAdminImage = async (file, fileName) => {
+  if (!file || !fileName) return null;
+  try {
+    let { data: { session } } = await supabaseAdmin.auth.getSession();
+    let token = session?.access_token;
+    
+    // Fallback if admin client doesn't have it (e.g. legacy session)
+    if (!token) {
+      const pubSession = await supabase.auth.getSession();
+      token = pubSession?.data?.session?.access_token;
+    }
+
+    if (!token) throw new Error("No auth token available");
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileName', fileName);
+
+    const res = await fetch('/api/admin/storage/upload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to upload image');
+    }
+    
+    const data = await res.json();
+    return data.publicUrl;
+  } catch (error) {
+    console.error("Error uploading admin image:", error);
+    return null;
   }
 };
 /**
@@ -257,8 +310,13 @@ export const uploadConfirmedUserPhoto = async (user, email, fullName, photoFile 
       formData.append('photo', finalFile);
     }
 
+    // Get the current session token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
     const res = await fetch('/api/auth/sync-photo', {
       method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData
     });
 

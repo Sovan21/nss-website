@@ -1,11 +1,21 @@
 /**
  * Supabase Client Configuration
- * Provides isolated clients for public and admin sessions using separate storage keys.
+ * 
+ * BROWSER-ONLY — both exports use the public anon key.
+ * Service role key is NEVER used in the browser; it is only used
+ * inside Next.js API routes (server-side).
+ * 
+ * `supabaseAdmin` is kept as a named export for backward-compatibility
+ * with admin UI components (separate auth storage key).
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nfmgklkenucufkqlsohu.supabase.co'; 
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWdrbGtlbnVjdWZrcWxzb2h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxOTQwMjAsImV4cCI6MjA4OTc3MDAyMH0.I9ufaMFIOFKrUpvpilILRdNEIFiUp0NYHbSjX4nKUto';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY env variables.');
+}
 
 if (typeof window !== 'undefined') {
   // Clean up error hash fragments from aborted OAuth (but preserve tab hashes like #about)
@@ -20,7 +30,7 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Public Client
+ * Public Client — used by public-facing pages (read-only queries, auth flows)
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -33,7 +43,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 /**
- * Admin Client
+ * Admin UI Client — uses the SAME anon key but a separate auth storage key
+ * so admin and public sessions don't collide.
+ * All write operations MUST go through server-side API routes.
  */
 export const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

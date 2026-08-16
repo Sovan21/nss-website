@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
-import { compressImage, formatDate, useDebounce, deleteSupabaseImage, getInitials } from '@/lib/utils';
+import { compressImage, formatDate, useDebounce, deleteSupabaseImage, getInitials, uploadAdminImage } from '@/lib/utils';
 import ImageCropperModal from '@/components/ImageCropperModal';
 
 // Custom Date Picker component that forces DD/MM/YYYY display on ALL devices while showing native calendar
@@ -282,12 +282,21 @@ const VolunteersManager = ({ setIsDirty }) => {
     ? editFormData.full_name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
     : 'user';
   const fileName = `volunteer-${nameSlug}-${Date.now()}.${fileExt}`;
-  await supabase.storage.from('nss-images').upload(fileName, compressed);
-  updatedPhotoUrl = supabase.storage.from('nss-images').getPublicUrl(fileName).data.publicUrl;
+  updatedPhotoUrl = await uploadAdminImage(compressed, fileName);
+  if (!updatedPhotoUrl) throw new Error("Failed to upload photo");
   }
-  const finalData = { ...editFormData, photo_url: updatedPhotoUrl };
-  const { error } = await supabase.from('registrations').update(finalData).eq('id', selectedVol.id);
-  if (error) throw error;
+  const finalData = { id: selectedVol.id, ...editFormData, photo_url: updatedPhotoUrl };
+  
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await fetch('/api/admin/volunteers', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(finalData)
+  });
+  if (!res.ok) throw new Error("Failed to update volunteer via API");
 
   toast.success("Volunteer Profile Updated Successfully!");
   setIsEditingProfile(false);
@@ -299,36 +308,21 @@ const VolunteersManager = ({ setIsDirty }) => {
   const handleDeleteVolunteer = async () => {
     setDeleting(true);
     try {
-      // 1. Delete image from Supabase Storage
-      if (selectedVol?.photo_url) {
-        await deleteSupabaseImage(selectedVol.photo_url);
-      }
-      
-      // 2. Delete record from database registrations table
-      const { error: dbError } = await supabase
-        .from('registrations')
-        .delete()
-        .eq('id', selectedVol.id);
-
-      if (dbError) {
-        console.error("Database deletion error:", dbError);
-      }
-
-      // 3. Call server API to delete from Auth system
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token || '';
+      if (!token) throw new Error("Not authenticated");
 
-      try {
-        await fetch('/api/admin/delete-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ userId: selectedVol.id }),
-        });
-      } catch (apiErr) {
-        console.warn("Auth deletion API notice:", apiErr);
+      const res = await fetch('/api/admin/volunteers', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id: selectedVol.id, photo_url: selectedVol.photo_url }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete volunteer via API");
       }
 
       toast.success("Volunteer and all associated data have been completely removed.");
@@ -664,14 +658,14 @@ const VolunteersManager = ({ setIsDirty }) => {
      }
    }} className="w-full p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-sm shadow-sm cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%232563eb%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.75rem_center] bg-no-repeat pr-8 font-medium">
    <option value="" className="bg-white text-gray-800 font-medium py-1">Select</option>
-   <option value="1st" className="bg-white text-gray-800 font-medium py-1">1st Sem</option>
-   <option value="2nd" className="bg-white text-gray-800 font-medium py-1">2nd Sem</option>
-   <option value="3rd" className="bg-white text-gray-800 font-medium py-1">3rd Sem</option>
-   <option value="4th" className="bg-white text-gray-800 font-medium py-1">4th Sem</option>
-   <option value="5th" className="bg-white text-gray-800 font-medium py-1">5th Sem</option>
-   <option value="6th" className="bg-white text-gray-800 font-medium py-1">6th Sem</option>
-   <option value="7th" className="bg-white text-gray-800 font-medium py-1">7th Sem</option>
-   <option value="8th" className="bg-white text-gray-800 font-medium py-1">8th Sem</option>
+   <option value="1st Sem" className="bg-white text-gray-800 font-medium py-1">1st Sem</option>
+   <option value="2nd Sem" className="bg-white text-gray-800 font-medium py-1">2nd Sem</option>
+   <option value="3rd Sem" className="bg-white text-gray-800 font-medium py-1">3rd Sem</option>
+   <option value="4th Sem" className="bg-white text-gray-800 font-medium py-1">4th Sem</option>
+   <option value="5th Sem" className="bg-white text-gray-800 font-medium py-1">5th Sem</option>
+   <option value="6th Sem" className="bg-white text-gray-800 font-medium py-1">6th Sem</option>
+   <option value="7th Sem" className="bg-white text-gray-800 font-medium py-1">7th Sem</option>
+   <option value="8th Sem" className="bg-white text-gray-800 font-medium py-1">8th Sem</option>
    <option value="Pass Out" className="bg-white text-gray-800 font-medium py-1">Pass Out</option>
    </select>
    {(editFormData.semester && editFormData.semester.includes('Pass Out')) && (
