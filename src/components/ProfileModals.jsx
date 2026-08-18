@@ -4,24 +4,7 @@ import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import CVBuilder from "./CVBuilder";
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (match) {
-    const [_, year, month, day] = match;
-    return `${day}/${month}/${year}`;
-  }
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = String(d.getFullYear());
-    return `${day}/${month}/${year}`;
-  } catch (e) {
-    return dateStr;
-  }
-};
+import { formatDate } from "@/lib/utils";
 
 export const ProfileCardContent = ({ user, onClose, onLogout }) => {
   const [currentView, setCurrentView] = useState('profile');

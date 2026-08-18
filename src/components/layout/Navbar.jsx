@@ -122,7 +122,16 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     closeAllMenus();
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); localStorage.removeItem('nss_user'); setCurrentUser(null); closeAllMenus(); window.dispatchEvent(new Event('nss_user_logged_out')); };
+  const handleLogout = async () => { 
+    await supabase.auth.signOut(); 
+    localStorage.removeItem('nss_user'); 
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('nss_')) sessionStorage.removeItem(key);
+    });
+    setCurrentUser(null); 
+    closeAllMenus(); 
+    window.dispatchEvent(new Event('nss_user_logged_out')); 
+  };
 
   const handleCloseSuccessModal = () => {
     setShowEmailConfirmedModal(false);

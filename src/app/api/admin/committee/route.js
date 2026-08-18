@@ -1,57 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-/**
- * Verify the caller is an authenticated admin.
- * Same pattern as /api/admin/delete-user/route.js
- */
-async function verifyAdmin(request) {
-  if (!supabaseServiceKey) {
-    return { error: 'Server configuration error: Missing service role key', status: 500 };
-  }
-
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'Unauthorized: Missing authorization token', status: 401 };
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
-  });
-
-  const { data: { user }, error: tokenError } = await supabaseAdmin.auth.getUser(token);
-  if (tokenError || !user) {
-    return { error: 'Unauthorized: Invalid or expired token', status: 401 };
-  }
-
-  // Check admins table
-  const { data: adminRecord } = await supabaseAdmin
-    .from('admins')
-    .select('email')
-    .eq('email', user.email)
-    .maybeSingle();
-
-  if (!adminRecord) {
-    // Fallback: check registrations role
-    const { data: callerProfile } = await supabaseAdmin
-      .from('registrations')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (!callerProfile || callerProfile.role !== 'admin') {
-      return { error: 'Forbidden: Admin access required', status: 403 };
-    }
-  }
-
-  return { supabaseAdmin, user };
-}
+import { verifyAdmin } from '@/lib/adminAuth';
 
 /**
  * POST — Add a new committee member

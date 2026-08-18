@@ -14,7 +14,7 @@ export async function GET() {
 
     const [{ data: commData, error: commErr }, { data: regData, error: regErr }] = await Promise.all([
       adminClient.from("committee").select("*").order("id", { ascending: true }),
-      adminClient.from("registrations").select("id, full_name, department, semester, blood_group, photo_url")
+      adminClient.from("registrations").select("id, full_name, department, semester, photo_url")
     ]);
 
     if (commErr) console.error("commErr:", commErr);

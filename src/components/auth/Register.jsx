@@ -6,7 +6,7 @@ import { useToast } from '@/components/Toast';
 import { useLanguage } from '@/context/LanguageContext';
 
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
-import { compressImage, savePendingPhoto, uploadConfirmedUserPhoto } from '@/lib/utils';
+import { compressImage, savePendingPhoto, getPendingPhotoFile, uploadConfirmedUserPhoto } from '@/lib/utils';
 import ImageCropperModal from '@/components/ImageCropperModal';
 import useScrollLock from '@/lib/useScrollLock';
 
@@ -342,7 +342,8 @@ export default function Register({ onClose, onSwitch }) {
         if (isConfirmed && !cancelled) {
           // Upload photo via server-side API (no client auth session needed — API uses service_role)
           const userObj = { id: userId, email, user_metadata: {} };
-          await uploadConfirmedUserPhoto(userObj, email, full_name, pendingPhotoRef.current);
+          const photoToUpload = pendingPhotoRef.current || getPendingPhotoFile(email);
+          await uploadConfirmedUserPhoto(userObj, email, full_name, photoToUpload);
 
           localStorage.removeItem('nss_user');
           localStorage.removeItem('nss_admin_mode');
@@ -380,8 +381,12 @@ export default function Register({ onClose, onSwitch }) {
     if (name === 'phone' || name === 'whatsapp' || name === 'aadhaar_no') {
       formattedValue = value.replace(/\D/g, '');
     }
-
-    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+    // Clear college_application_id when semester changes
+    if (name === 'semester') {
+      setFormData((prev) => ({ ...prev, [name]: formattedValue, college_application_id: '' }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+    }
 
     if (typeof selectionStart === 'number' && target) {
       const diff = value.length - formattedValue.length;
@@ -454,10 +459,18 @@ export default function Register({ onClose, onSwitch }) {
       return;
     }
 
-    const appIdRegex = /^[A-Z0-9]{15}$/;
-    if (formData.college_application_id && !appIdRegex.test(formData.college_application_id)) {
-      toast.error("College Application ID must be exactly 15 characters (e.g. BBCOLG123456789).");
-      return;
+    if (formData.semester === '1st Sem') {
+      const applicantCodeRegex = /^[A-Z0-9]{12}$/;
+      if (formData.college_application_id && !applicantCodeRegex.test(formData.college_application_id)) {
+        toast.error("Applicant Code must be exactly 12 characters (capital letters and numbers only).");
+        return;
+      }
+    } else {
+      const appIdRegex = /^[A-Z0-9]{15}$/;
+      if (formData.college_application_id && !appIdRegex.test(formData.college_application_id)) {
+        toast.error("College Application ID must be exactly 15 characters (e.g. BBCOLG123456789).");
+        return;
+      }
     }
 
     setLoading(true);
@@ -855,8 +868,21 @@ export default function Register({ onClose, onSwitch }) {
                   </div>
                 )}
                 <div className="flex flex-col justify-end">
-                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.collegeApplicationId")}</label>
-                  <input name="college_application_id" type="text" value={formData.college_application_id} onChange={handleChange} maxLength="15" pattern="[A-Za-z0-9]{15}" title="Must be exactly 15 characters (e.g. BBCOLG123456789)" style={{ textTransform: 'uppercase' }} className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]" placeholder="BBCOLG123456789" />
+                  <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">
+                    {formData.semester === '1st Sem' ? 'Applicant Code' : t("auth.register.collegeApplicationId")}
+                  </label>
+                  <input
+                    name="college_application_id"
+                    type="text"
+                    value={formData.college_application_id}
+                    onChange={handleChange}
+                    maxLength={formData.semester === '1st Sem' ? 12 : 15}
+                    pattern={formData.semester === '1st Sem' ? '[A-Z0-9]{12}' : '[A-Za-z0-9]{15}'}
+                    title={formData.semester === '1st Sem' ? 'Must be exactly 12 characters (capital letters and numbers)' : 'Must be exactly 15 characters (e.g. BBCOLG123456789)'}
+                    style={{ textTransform: 'uppercase' }}
+                    className="w-full p-4 bg-slate-50 border border-blue-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm text-[15px]"
+                    placeholder={formData.semester === '1st Sem' ? 'e.g. ABCD12345678' : 'BBCOLG123456789'}
+                  />
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="block text-slate-600 font-bold mb-2 text-[12px] uppercase tracking-wider ml-1">{t("auth.register.prevExperience")} *</label>
