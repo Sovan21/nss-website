@@ -160,9 +160,9 @@ const VolunteersManager = ({ setIsDirty }) => {
       } else if (sort === 'name_desc') {
         query = query.order('full_name', { ascending: false });
       } else if (sort === 'newest') {
-        query = query.order('id', { ascending: false });
+        query = query.order('created_at', { ascending: false });
       } else if (sort === 'oldest') {
-        query = query.order('id', { ascending: true });
+        query = query.order('created_at', { ascending: true });
       } else {
         query = query.order('full_name', { ascending: true });
       }
@@ -177,9 +177,9 @@ const VolunteersManager = ({ setIsDirty }) => {
 
  const exportToCSV = () => {
  if (volunteers.length === 0) return toast.warning("No data available to export!");
- const headers = ["ID","Full Name","Father's Name","Mother's Name","Aadhaar Number","Department","Semester","College Application ID","Extra Curriculum","Previous Experience","Phone","WhatsApp","Email","Blood Group","Gender","DOB","Address"];
+ const headers = ["ID","Created At","Full Name","Father's Name","Mother's Name","Aadhaar Number","Department","Semester","College Application ID","Extra Curriculum","Previous Experience","Phone","WhatsApp","Email","Blood Group","Gender","DOB","Address"];
  const csvRows = volunteers.map(vol => [
- vol.id, `"${vol.full_name || ''}"`, `"${vol.fathers_name || ''}"`, `"${vol.mothers_name || ''}"`, `"${vol.aadhaar_no || ''}"`,
+ vol.id, `"${vol.created_at ? new Date(vol.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}"`, `"${vol.full_name || ''}"`, `"${vol.fathers_name || ''}"`, `"${vol.mothers_name || ''}"`, `"${vol.aadhaar_no || ''}"`,
  `"${vol.department || ''}"`, `"${vol.semester || ''}"`, `"${vol.college_application_id || ''}"`, `"${vol.extra_curriculum || ''}"`, `"${vol.prev_experience || ''}"`,
  `"${vol.phone || ''}"`, `"${vol.whatsapp || ''}"`, `"${vol.email || ''}"`, `"${vol.blood_group || ''}"`, `"${vol.gender || ''}"`,
  `"${vol.dob ? formatDate(vol.dob) : ''}"`, `"${vol.current_address ? vol.current_address.replace(/"/g, '""') : ''}"`
