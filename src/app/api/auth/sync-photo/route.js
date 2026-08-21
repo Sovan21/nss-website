@@ -93,6 +93,41 @@ export async function POST(request) {
 
       const { data: urlData } = supabaseAdmin.storage.from('nss-images').getPublicUrl(fileName);
       photoUrl = urlData.publicUrl;
+
+      // Clean up temp photo if it exists (photo was uploaded directly, temp no longer needed)
+      if (m.temp_photo_path) {
+        await supabaseAdmin.storage.from('nss-images').remove([m.temp_photo_path]).catch(() => {});
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: { ...m, temp_photo_path: null }
+        }).catch(() => {});
+      }
+    }
+
+    // If no photo was uploaded directly, check for temp photo from registration
+    if (!photoUrl && m.temp_photo_path) {
+      try {
+        const tempPath = m.temp_photo_path;
+        // Move from temp/ to permanent location (remove "temp/" prefix)
+        const permanentPath = tempPath.replace(/^temp\//, '');
+
+        const { error: moveError } = await supabaseAdmin.storage
+          .from('nss-images')
+          .move(tempPath, permanentPath);
+
+        if (!moveError) {
+          const { data: urlData } = supabaseAdmin.storage.from('nss-images').getPublicUrl(permanentPath);
+          photoUrl = urlData.publicUrl;
+
+          // Clear temp_photo_path from user_metadata
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: { ...m, temp_photo_path: null }
+          }).catch(() => {});
+        } else {
+          console.error("Failed to move temp photo:", moveError);
+        }
+      } catch (tempErr) {
+        console.error("Temp photo move error:", tempErr);
+      }
     }
 
     // Build profile payload from auth user_metadata

@@ -7,7 +7,11 @@ import { useLanguage } from '@/context/LanguageContext';
 
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
 import { compressImage, savePendingPhoto, getPendingPhotoFile, uploadConfirmedUserPhoto } from '@/lib/utils';
-import ImageCropperModal from '@/components/ImageCropperModal';
+import dynamic from 'next/dynamic';
+const ImageCropperModal = dynamic(() => import('@/components/ImageCropperModal'), {
+  loading: () => <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm"><div className="w-12 h-12 border-4 border-white/20 border-t-blue-500 rounded-full animate-spin"></div></div>,
+  ssr: false
+});
 import useScrollLock from '@/lib/useScrollLock';
 
 export { DEPARTMENTS, YEARS, compressImage };
@@ -510,6 +514,25 @@ export default function Register({ onClose, onSwitch }) {
 
       if (authError) throw authError;
       if (!authData.user) throw new Error("User registration failed, please try again.");
+
+      // Upload photo to temp server storage immediately (cross-device reliable)
+      if (photoFile) {
+        try {
+          const finalFile = await compressImage(photoFile, 700, 900);
+          const tempFormData = new FormData();
+          tempFormData.append('userId', authData.user.id);
+          tempFormData.append('fullName', formData.full_name);
+          tempFormData.append('photo', finalFile);
+
+          await fetch('/api/auth/upload-temp-photo', {
+            method: 'POST',
+            body: tempFormData
+          });
+        } catch (tempErr) {
+          // Silent — sessionStorage fallback still available via savePendingPhoto above
+          console.warn("Temp photo upload failed, falling back to sessionStorage:", tempErr);
+        }
+      }
 
       // Store non-sensitive data for polling and page refresh recovery (no password stored anywhere)
       const credsObj = { userId: authData.user.id, email: formData.email, full_name: formData.full_name };

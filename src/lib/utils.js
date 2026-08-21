@@ -289,8 +289,9 @@ export const clearPendingPhoto = (email) => {
 };
 
 /**
- * Upload photo to Supabase storage ONLY AFTER email confirmation.
+ * Sync photo to Supabase storage AFTER email confirmation.
  * Uses server-side API (/api/auth/sync-photo) with service_role key to bypass RLS.
+ * If no photo file is provided, the server checks for a temp photo uploaded at registration.
  */
 export const uploadConfirmedUserPhoto = async (user, email, fullName, photoFile = null) => {
   try {
