@@ -26,19 +26,22 @@ export default function ContactPage({ siteData }) {
   };
 
   return (
-    <section className="pt-28 pb-12 md:pt-36 md:pb-20 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] flex-grow flex items-center justify-center relative overflow-hidden">
+    <section className="w-full bg-[#faf9f6] py-8 sm:py-10 px-4 sm:px-6 lg:px-8 flex-grow flex items-center justify-center relative overflow-hidden">
       <div className="absolute top-0 left-0 w-72 h-72 bg-blue-500/5 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
       <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/5 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
- 
-      <div className="max-w-5xl w-full mx-auto relative z-10">
-        <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 border border-blue-100">
-            <Icons.Mail className="w-3.5 h-3.5" /> {t("contact.badge")}
+
+      <div className="max-w-6xl w-full mx-auto relative z-10 flex flex-col">
+        <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-[#004899] text-xs font-black uppercase tracking-widest shadow-xs mb-2.5">
+            <Icons.Mail className="w-4 h-4 text-blue-600" />
+            <span>{t("contact.badge")}</span>
           </div>
-          <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight leading-none">
-            {t("contact.heading")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">{t("contact.headingAccent")}</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight font-poppins">
+            {t("contact.heading")} <span className="text-[#004899] underline decoration-amber-400 decoration-4 underline-offset-8">{t("contact.headingAccent")}</span>
           </h2>
-          <p className="text-slate-500 font-medium text-sm md:text-lg leading-relaxed">{t("contact.subtitle")}</p>
+          <p className="mt-3 text-slate-600 text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
+            {t("contact.subtitle")}
+          </p>
         </div>
  
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

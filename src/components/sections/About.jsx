@@ -95,7 +95,7 @@ export default function AboutPage({ onNavigate, siteData }) {
   }, [images.length]);
 
   return (
-    <section className="pt-20 pb-12 md:pt-28 md:pb-16 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] relative overflow-hidden flex-grow">
+    <section className="w-full bg-[#faf9f6] py-8 sm:py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden flex-grow">
       {/* Background Decor */}
       <div className="absolute top-0 right-0 w-[35rem] h-[35rem] bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[35rem] h-[35rem] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -103,28 +103,28 @@ export default function AboutPage({ onNavigate, siteData }) {
       <div className="max-w-7xl mx-auto w-full relative z-10 flex flex-col">
         
         {/* ─── SECTION 1: EDITORIAL HERO HEADER (COMPACT) ─── */}
-        <div className="text-center max-w-3xl mx-auto mb-10 md:mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest mb-3 shadow-sm">
-            <Icons.Info className="w-3.5 h-3.5 text-blue-600 animate-pulse" /> {t("about.badge")}
+        <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-[#004899] text-xs font-black uppercase tracking-widest shadow-xs mb-2.5">
+            <Icons.Info className="w-4 h-4 text-blue-600" />
+            <span>{t("about.badge")}</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight font-poppins">
             {finalData.about_heading === "About Us" ? (
               <>
                 {t("nav.about")}{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">
+                <span className="text-[#004899] underline decoration-amber-400 decoration-4 underline-offset-8">
                   NSS Unit
                 </span>
               </>
             ) : finalData.about_heading}
           </h2>
-          <div className="w-16 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mx-auto mb-4"></div>
-          <p className="text-xs sm:text-sm md:text-base text-slate-600 font-medium leading-relaxed text-justify sm:text-center">
+          <p className="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
             {finalData.about_text}
           </p>
         </div>
 
         {/* ─── SECTION 2: DUAL FEATURE SHOWCASE (MOBILE: TEXT FIRST, PHOTO BELOW) ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch mb-12 md:mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch mb-8 sm:mb-10">
           
           {/* TEXT FIRST ON MOBILE (order-1), RIGHT ON DESKTOP (lg:order-2) */}
           <div className="order-1 lg:order-2 lg:col-span-6 flex flex-col justify-between space-y-3">

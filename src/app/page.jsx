@@ -3,23 +3,27 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import { useLanguage } from "@/context/LanguageContext";
+import { Icons } from "@/components/Icons";
 
 // Layout components
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import VisitorCounter from "@/components/layout/LanguageSwitcher";
 import Login from "@/components/auth/Login";
 import Register from "@/components/auth/Register";
 
 // Section components
 import HeroSection from "@/components/sections/Hero";
 import Activities from "@/components/sections/Activities";
+import Gallery from "@/components/sections/Gallery";
+import Notices from "@/components/sections/Notices";
 import Committee from "@/components/sections/Committee";
 import About from "@/components/sections/About";
 import Contact from "@/components/sections/Contact";
 import TeachersSection from "@/components/sections/TeachersSection";
 import NSSStory from "@/components/sections/NSSStoryNew";
 
-const VALID_TABS = ['home', 'activities', 'committee', 'about', 'contact'];
+const VALID_TABS = ['home', 'activities', 'committee', 'gallery', 'notices', 'contact', 'about'];
 const getTabFromHash = () => {
   if (typeof window === 'undefined') return 'home';
   const hash = window.location.hash.replace('#', '');
@@ -31,10 +35,51 @@ export default function Home() {
   const [siteData, setSiteData] = useState(null);
   const [eventsData, setEventsData] = useState(null);
   const [committeeData, setCommitteeData] = useState(null);
+  const [noticesData, setNoticesData] = useState(null);
+  const [galleryData, setGalleryData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [authModal, setAuthModal] = useState(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 250);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Detect when footer enters viewport to hide scroll-to-top button with requestAnimationFrame
+  useEffect(() => {
+    let rafId;
+    const handleCheckFooter = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const footer = document.getElementById('footer');
+        if (!footer) {
+          setIsFooterVisible(false);
+          return;
+        }
+        const rect = footer.getBoundingClientRect();
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        const isVisible = rect.top <= windowHeight;
+        setIsFooterVisible(prev => (prev !== isVisible ? isVisible : prev));
+      });
+    };
+
+    window.addEventListener('scroll', handleCheckFooter, { passive: true });
+    window.addEventListener('resize', handleCheckFooter, { passive: true });
+    handleCheckFooter();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleCheckFooter);
+      window.removeEventListener('resize', handleCheckFooter);
+    };
+  }, [loading, activeTab]);
 
   useEffect(() => {
     let isMounted = true;
@@ -61,16 +106,36 @@ export default function Home() {
     // Fetch ALL data in parallel — eliminates waterfall loading
     const fetchAllData = async () => {
       try {
-        const [siteRes, eventsRes, committeeRes] = await Promise.allSettled([
+        const [siteRes, eventsRes, committeeRes, noticesRes, galleryRes] = await Promise.allSettled([
           supabase.from("site_content").select("*").limit(1).single(),
           supabase.from("events").select("*").order("start_date", { ascending: false }),
           supabase.from("committee").select("*").order("id", { ascending: true }),
+          supabase.from("nss_notices").select("*").order("date", { ascending: false }),
+          supabase.from("nss_gallery").select("*").order("date", { ascending: false }),
         ]);
 
         if (isMounted) {
           if (siteRes.status === 'fulfilled' && siteRes.value.data) setSiteData(siteRes.value.data);
           if (eventsRes.status === 'fulfilled' && eventsRes.value.data) setEventsData(eventsRes.value.data);
           if (committeeRes.status === 'fulfilled' && committeeRes.value.data) setCommitteeData(committeeRes.value.data);
+          
+          if (noticesRes.status === 'fulfilled' && noticesRes.value.data) {
+            setNoticesData(noticesRes.value.data);
+          } else {
+            // Fallback for notices table
+            supabase.from("notices").select("*").order("date", { ascending: false }).then(({ data }) => {
+              if (data && isMounted) setNoticesData(data);
+            }).catch(() => {});
+          }
+
+          if (galleryRes.status === 'fulfilled' && galleryRes.value.data) {
+            setGalleryData(galleryRes.value.data);
+          } else {
+            // Fallback for gallery table
+            supabase.from("gallery").select("*").order("date", { ascending: false }).then(({ data }) => {
+              if (data && isMounted) setGalleryData(data);
+            }).catch(() => {});
+          }
         }
       } catch (err) {
         console.error("Error fetching page data:", err);
@@ -124,8 +189,6 @@ export default function Home() {
   }
 
   const finalData = siteData || {
-    hero_title: "Banwarilal Bhalotia College NSS Unit",
-    hero_subtitle: "Youth Power for Service",
     about_heading: "About Us",
     about_text: "Welcome to our NSS Unit.",
     about_image_url: "",
@@ -144,13 +207,19 @@ export default function Home() {
         onOpenLogin={() => setAuthModal('login')}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        isFooterVisible={isFooterVisible}
+        searchData={{
+          events: eventsData,
+          committee: committeeData,
+          notices: noticesData,
+          gallery: galleryData,
+          site: siteData
+        }}
       />
 
-      <main className="flex-grow flex flex-col relative w-full">
+      <main id="main-content" tabIndex={-1} className="flex-grow flex flex-col relative w-full focus:outline-none">
         <div className={activeTab === 'home' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <HeroSection
-            title={finalData.hero_title === "Banwarilal Bhalotia College NSS Unit" ? t("hero.title") : finalData.hero_title}
-            subtitle={finalData.hero_subtitle === "Youth Power for Service" ? t("hero.subtitle") : finalData.hero_subtitle}
             sliderUrls={finalData.hero_slider_urls}
             onNavigate={setActiveTab}
           />
@@ -161,6 +230,12 @@ export default function Home() {
         </div>
         <div className={activeTab === 'activities' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <Activities prefetchedEvents={eventsData} />
+        </div>
+        <div className={activeTab === 'gallery' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
+          <Gallery prefetchedEvents={eventsData} prefetchedGallery={galleryData} />
+        </div>
+        <div className={activeTab === 'notices' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
+          <Notices prefetchedNotices={noticesData} />
         </div>
         <div className={activeTab === 'committee' ? 'flex-grow flex flex-col animate-fade-in-up w-full' : 'hidden'}>
           <Committee
@@ -176,6 +251,20 @@ export default function Home() {
       </main>
 
       <Footer finalData={finalData} />
+
+      {/* Floating Visitor and Live Count Widget - Only on Home Page/Tab */}
+      {activeTab === 'home' && <VisitorCounter />}
+
+      {/* Floating Scroll to Top Button */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className={`fixed bottom-[60px] right-4 sm:bottom-5 sm:right-5 z-40 w-10 h-10 rounded-full bg-[#004899] hover:bg-[#003366] text-white flex items-center justify-center shadow-lg border border-white/20 transition-all duration-300 ease-in-out hover:scale-110 active:scale-95 cursor-pointer ${
+          showScrollTop && !isFooterVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+        aria-label="Scroll to top"
+      >
+        <Icons.ChevronUp className="w-5 h-5" />
+      </button>
 
       {authModal === 'login' && (
         <Login onClose={() => setAuthModal(null)} onSwitch={(mode) => setAuthModal(mode)} />

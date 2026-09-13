@@ -8,10 +8,13 @@ import { useToast } from '@/components/Toast';
 
 import VolunteersManager from '@/components/admin/VolunteersManager';
 import EventsManager from '@/components/admin/EventsManager';
+import NoticesManager from '@/components/admin/NoticesManager';
+import GalleryManager from '@/components/admin/GalleryManager';
 import CommitteeManager from '@/components/admin/CommitteeManager';
 import SettingsManager from '@/components/admin/SettingsManager';
 import AchievementsManager from '@/components/admin/AchievementsManager';
 import { SidebarIcons } from '@/components/admin/SidebarIcons';
+import useScrollLock from '@/lib/useScrollLock';
 
 const CustomScrollbarStyles = () => (
   <style jsx global>{`
@@ -40,6 +43,8 @@ export default function AdminDashboard() {
   useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
 
   const [warningModal, setWarningModal] = useState({ show: false, title: '', message: '', onConfirm: null });
+
+  useScrollLock(isMobileMenuOpen || warningModal.show);
 
   // Populate admin user from cached session (no network call — AdminAuthLayout already verified)
   useEffect(() => {
@@ -140,10 +145,10 @@ export default function AdminDashboard() {
       {/* Sidebar */}
       <aside className={`absolute md:relative inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col transform transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-slate-800"><h2 className="text-2xl font-bold text-blue-500">NSS Admin</h2></div>
-        <nav className="flex-1 px-4 py-6 space-y-2.5 overflow-y-auto no-scrollbar sidebar-scroll">
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto no-scrollbar sidebar-scroll">
           <button 
             onClick={() => handleTabChange('volunteers')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'volunteers' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
@@ -152,16 +157,34 @@ export default function AdminDashboard() {
           
           <button 
             onClick={() => handleTabChange('events')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'events' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
             <SidebarIcons.Events /> Events
           </button>
+
+          <button 
+            onClick={() => handleTabChange('notices')} 
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
+              activeTab === 'notices' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
+            }`}
+          >
+            <SidebarIcons.Notices /> Notices
+          </button>
+
+          <button 
+            onClick={() => handleTabChange('gallery')} 
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
+              activeTab === 'gallery' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
+            }`}
+          >
+            <SidebarIcons.Gallery /> Gallery
+          </button>
           
           <button 
             onClick={() => handleTabChange('committee')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'committee' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
@@ -169,21 +192,21 @@ export default function AdminDashboard() {
           </button>
 
           <button 
-            onClick={() => handleTabChange('settings')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
-              activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
-            }`}
-          >
-            <SidebarIcons.Settings /> Site Settings
-          </button>
-
-          <button 
             onClick={() => handleTabChange('achievements')} 
-            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
               activeTab === 'achievements' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
             <SidebarIcons.Award /> Achievements
+          </button>
+
+          <button 
+            onClick={() => handleTabChange('settings')} 
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold transition-all text-sm cursor-pointer ${
+              activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md border border-blue-400/50' : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
+            }`}
+          >
+            <SidebarIcons.Settings /> Site Settings
           </button>
         </nav>
         <div className="p-4 border-t border-slate-800 space-y-3">
@@ -215,9 +238,11 @@ export default function AdminDashboard() {
           <div className="max-w-7xl mx-auto">
             {activeTab === 'volunteers' && <VolunteersManager setIsDirty={setIsDirty} />}
             {activeTab === 'events' && <EventsManager setIsDirty={setIsDirty} />}
+            {activeTab === 'notices' && <NoticesManager setIsDirty={setIsDirty} />}
+            {activeTab === 'gallery' && <GalleryManager setIsDirty={setIsDirty} />}
             {activeTab === 'committee' && <CommitteeManager setIsDirty={setIsDirty} />}
-            {activeTab === 'settings' && <SettingsManager isDirty={isDirty} setIsDirty={setIsDirty} />}
             {activeTab === 'achievements' && <AchievementsManager setIsDirty={setIsDirty} />}
+            {activeTab === 'settings' && <SettingsManager isDirty={isDirty} setIsDirty={setIsDirty} />}
           </div>
         </div>
       </main>

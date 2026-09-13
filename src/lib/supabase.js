@@ -29,33 +29,44 @@ if (typeof window !== 'undefined') {
   }
 }
 
+const globalForSupabase = globalThis;
+
 /**
  * Public Client — used by public-facing pages (read-only queries, auth flows)
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: 'implicit',
-    storageKey: 'nss-public-token',
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
+export const supabase =
+  globalForSupabase.__nss_supabase ||
+  createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: 'implicit',
+      storageKey: 'nss-public-token',
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
 /**
  * Admin UI Client — uses the SAME anon key but a separate auth storage key
  * so admin and public sessions don't collide.
  * All write operations MUST go through server-side API routes.
  */
-export const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: 'implicit',
-    storageKey: 'nss-admin-token',
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
+export const supabaseAdmin =
+  globalForSupabase.__nss_supabase_admin ||
+  createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: 'implicit',
+      storageKey: 'nss-admin-token',
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
+
+if (typeof window !== 'undefined') {
+  globalForSupabase.__nss_supabase = supabase;
+  globalForSupabase.__nss_supabase_admin = supabaseAdmin;
+}
 
 if (typeof window !== 'undefined') {
   // Clean up OAuth pending flag if present

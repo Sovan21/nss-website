@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import useScrollLock from '@/lib/useScrollLock';
 
 /**
  * Interactive Circular Image Cropper Modal
@@ -8,6 +9,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
  * Enforces strict boundary clamping so photo ALWAYS covers the crop circle completely without empty space.
  */
 export default function ImageCropperModal({ imageFile, onCropComplete, onCancel }) {
+  useScrollLock(true);
   const canvasRef = useRef(null);
   const [imageObj, setImageObj] = useState(null);
   const [zoom, setZoom] = useState(1);

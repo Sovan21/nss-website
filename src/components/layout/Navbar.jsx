@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import useScrollLock from "@/lib/useScrollLock";
@@ -12,12 +12,84 @@ export const NAV_ITEMS = [
   { key: 'home', label: 'Home', icon: Icons.Home },
   { key: 'activities', label: 'Activities', icon: Icons.Sparkles },
   { key: 'committee', label: 'Committee', icon: Icons.Team },
-  { key: 'about', label: 'About Us', icon: Icons.Info },
+  { key: 'gallery', label: 'Gallery', icon: Icons.Photo },
+  { key: 'notices', label: 'Notices', icon: Icons.Document },
   { key: 'contact', label: 'Contact', icon: Icons.Mail },
+  { key: 'about', label: 'About Us', icon: Icons.Info },
 ];
 
-const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
-  const { t } = useLanguage();
+const formatSearchDate = (dateStr) => {
+  if (!dateStr) return "";
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [_, year, month, day] = match;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const mIdx = parseInt(month, 10) - 1;
+    const mName = months[mIdx] || month;
+    return `${day} ${mName} ${year}`;
+  }
+  return dateStr;
+};
+
+const HighlightMatch = ({ text, query }) => {
+  if (!text) return null;
+  if (!query || query.trim().length < 4) return <span>{text}</span>;
+  const q = query.trim();
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts = String(text).split(regex);
+  return (
+    <span>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-amber-300 text-slate-950 font-black px-1 py-0.5 rounded shadow-xs not-italic">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  );
+};
+
+const getTypeBadge = (type) => {
+  switch (type) {
+    case 'notice':
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+          <Icons.Document className="w-2.5 h-2.5" /> Notice
+        </span>
+      );
+    case 'event':
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+          <Icons.Sparkles className="w-2.5 h-2.5" /> Event
+        </span>
+      );
+    case 'leadership':
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+          <Icons.Team className="w-2.5 h-2.5" /> Team
+        </span>
+      );
+    case 'gallery':
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
+          <Icons.Photo className="w-2.5 h-2.5" /> Photos
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+          <Icons.Home className="w-2.5 h-2.5" /> Page
+        </span>
+      );
+  }
+};
+
+const Navbar = ({ onOpenLogin, activeTab, onTabChange, searchData, isFooterVisible: propFooterVisible }) => {
+  const { t, locale, setLocale } = useLanguage();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -25,8 +97,351 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   const [showDesktopProfile, setShowDesktopProfile] = useState(false);
   const [showAdminWarning, setShowAdminWarning] = useState(false);
   const [showEmailConfirmedModal, setShowEmailConfirmedModal] = useState(false);
+  const [fontSize, setFontSize] = useState('normal'); // 'sm' | 'normal' | 'lg'
+  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+  const [isMobileLangOpen, setIsMobileLangOpen] = useState(false);
+  const [showScreenReaderModal, setShowScreenReaderModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const langDropdownRef = useRef(null);
+  const mobileLangDropdownRef = useRef(null);
+  const searchContainerRef = useRef(null);
+  const mobileSearchRef = useRef(null);
   const hamburgerRef = useRef(null);
   const [closeBtnPos, setCloseBtnPos] = useState(null);
+
+  // Listen for fullscreen photo lightbox state to hide mobile floating widgets
+  useEffect(() => {
+    const handleLightboxState = (e) => {
+      setIsLightboxOpen(Boolean(e.detail));
+    };
+    window.addEventListener('nss_lightbox_state', handleLightboxState);
+    return () => window.removeEventListener('nss_lightbox_state', handleLightboxState);
+  }, []);
+
+  // Reliably calculate mobile virtual keyboard height in real-time (only on viewport resize)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleViewport = () => {
+      const vv = window.visualViewport;
+      const kh = window.innerHeight - (vv.height + vv.offsetTop);
+      const finalHeight = kh > 60 ? Math.round(kh) : 0;
+      setKeyboardHeight(prev => (prev !== finalHeight ? finalHeight : prev));
+    };
+
+    window.visualViewport.addEventListener('resize', handleViewport);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleViewport);
+    };
+  }, []);
+
+  // Automatically sync footer visibility with requestAnimationFrame to prevent layout thrashing
+  useEffect(() => {
+    let rafId;
+    const handleFooterDock = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const footer = document.getElementById('footer');
+        if (!footer) {
+          setIsFooterVisible(false);
+          return;
+        }
+        const rect = footer.getBoundingClientRect();
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        const isVisible = rect.top <= windowHeight;
+        setIsFooterVisible(prev => (prev !== isVisible ? isVisible : prev));
+      });
+    };
+
+    window.addEventListener('scroll', handleFooterDock, { passive: true });
+    window.addEventListener('resize', handleFooterDock, { passive: true });
+    handleFooterDock();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleFooterDock);
+      window.removeEventListener('resize', handleFooterDock);
+    };
+  }, [activeTab]);
+
+  // Build universal searchable index across all site content in memory
+  const searchIndex = useMemo(() => {
+    const items = [];
+    const events = searchData?.events || [];
+    const committee = searchData?.committee || [];
+    const notices = searchData?.notices || [];
+    const gallery = searchData?.gallery || [];
+
+    // 1. Pages & Core Sections
+    NAV_ITEMS.forEach(item => {
+      items.push({
+        id: `page-${item.key}`,
+        type: 'page',
+        title: t(`nav.${item.key}`) || item.label,
+        subtitle: `Jump to ${item.label} section`,
+        tab: item.key,
+        searchStr: `${item.key} ${item.label} ${t(`nav.${item.key}`)} home activities committee gallery notices contact about আমাদের কার্যক্রম বিজ্ঞপ্তি গ্যালারি কমিটি যোগাযোগ`.toLowerCase()
+      });
+    });
+
+    // 2. Events & Activities
+    events.forEach(evt => {
+      const d = evt.start_date ? evt.start_date.split('T')[0] : '';
+      const formattedDate = d ? formatSearchDate(d) : '';
+      items.push({
+        id: `evt-${evt.id}`,
+        type: 'event',
+        title: evt.title || 'NSS Event',
+        subtitle: `${formattedDate ? formattedDate : 'Activity'}${evt.location ? ' • ' + evt.location : ''}`,
+        tab: 'activities',
+        actionId: evt.id,
+        date: d,
+        searchStr: `${evt.title || ''} ${evt.description || ''} ${evt.location || ''} ${d} ${formattedDate} event activity কার্যক্রম অনুষ্ঠান`.toLowerCase()
+      });
+    });
+
+    // 3. Notices & Circulars
+    notices.forEach(not => {
+      const d = not.date ? not.date.split('T')[0] : '';
+      const formattedDate = d ? formatSearchDate(d) : '';
+      const ref = not.ref_no || not.refNo || `BBC/NSS/2026/NOT-${not.id}`;
+      items.push({
+        id: `not-${not.id}`,
+        type: 'notice',
+        title: not.title || 'Official Notice',
+        subtitle: `${ref}${formattedDate ? ' • ' + formattedDate : ''}`,
+        tab: 'notices',
+        actionId: not.id,
+        date: d,
+        searchStr: `${not.title || ''} ${ref} ${not.summary || ''} ${not.body || ''} ${not.category || ''} ${d} ${formattedDate} notice circular বিজ্ঞপ্তি সার্কুলার`.toLowerCase()
+      });
+    });
+
+    // 4. Leadership, Teachers & Committee Members
+    committee.forEach(mem => {
+      let role = mem.designation || '';
+      let category = 'Student';
+      if (role.includes('::')) {
+        const firstColon = role.indexOf('::');
+        category = role.substring(0, firstColon);
+        const rest = role.substring(firstColon + 2);
+        if (rest.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(rest);
+            role = parsed.designation || category;
+          } catch (e) {
+            role = rest || category;
+          }
+        } else {
+          role = rest || category;
+        }
+      } else if (role.toLowerCase().includes('teacher') || role.toLowerCase().includes('officer') || role.toLowerCase().includes('principal') || role.toLowerCase().includes('programme')) {
+        category = 'Teacher';
+      }
+
+      const isTeacher = category === 'Teacher' || !mem.designation || mem.designation.startsWith('Teacher::');
+      const targetTab = isTeacher ? 'home' : 'committee';
+
+      items.push({
+        id: `com-${mem.id}`,
+        type: 'leadership',
+        title: mem.name || 'Member',
+        subtitle: `${role || 'NSS Member'}${category && category !== 'Student' && category !== 'Teacher' ? ' • ' + category + ' Committee' : ''}${mem.department ? ' • ' + mem.department : ''}${mem.unit ? ' • ' + mem.unit : ''}`,
+        tab: targetTab,
+        actionId: mem.id,
+        category: category,
+        searchStr: `${mem.name || ''} ${role} ${category} ${mem.department || ''} ${mem.unit || ''} ${mem.phone || ''} ${mem.email || ''} leadership teacher committee coordinator volunteer নেতৃত্ব শিক্ষক সদস্য environment cultural student`.toLowerCase()
+      });
+    });
+
+    // 5. Gallery Photo Dates
+    const uniqueDates = new Set();
+    gallery.forEach(g => {
+      if (g.date) uniqueDates.add(g.date.split('T')[0]);
+    });
+    events.forEach(e => {
+      if (e.start_date) uniqueDates.add(e.start_date.split('T')[0]);
+    });
+    uniqueDates.forEach(d => {
+      const formattedDate = formatSearchDate(d);
+      items.push({
+        id: `gal-${d}`,
+        type: 'gallery',
+        title: `Photos of ${formattedDate || d}`,
+        subtitle: `Photo Gallery Album • ${formattedDate || d}`,
+        tab: 'gallery',
+        date: d,
+        searchStr: `gallery photo photos album ছবি গ্যালারি ${d} ${formattedDate}`.toLowerCase()
+      });
+    });
+
+    return items;
+  }, [searchData, t]);
+
+  // STRICT REQUIREMENT: Only show suggestions when query has at least 4 characters
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 4) return [];
+
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return searchIndex.filter(item => {
+      return tokens.every(token => item.searchStr.includes(token));
+    }).slice(0, 8);
+  }, [searchQuery, searchIndex]);
+
+  const handleSelectItem = (item) => {
+    if (!item) return;
+    setIsSearchFocused(false);
+    setIsMobileSearchFocused(false);
+    setSearchQuery('');
+    setSelectedIndex(-1);
+    if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+
+    if (onTabChange) {
+      onTabChange(item.tab);
+    } else {
+      router.push(`/#${item.tab}`);
+    }
+
+    setTimeout(() => {
+      if (item.type === 'notice') {
+        window.dispatchEvent(new CustomEvent('nss_open_notice', { detail: item.actionId }));
+      } else if (item.type === 'event') {
+        window.dispatchEvent(new CustomEvent('nss_open_event', { detail: item.actionId }));
+        window.dispatchEvent(new CustomEvent('nss_search', { detail: item.title }));
+      } else if (item.type === 'gallery') {
+        window.dispatchEvent(new CustomEvent('nss_search_gallery', { detail: item.date }));
+      } else if (item.type === 'leadership') {
+        if (item.tab === 'committee') {
+          window.dispatchEvent(new CustomEvent('nss_open_committee_member', { 
+            detail: { id: item.actionId, name: item.title, category: item.category } 
+          }));
+        } else if (item.tab === 'home') {
+          window.dispatchEvent(new CustomEvent('nss_open_teacher_member', { 
+            detail: { id: item.actionId, name: item.title } 
+          }));
+        }
+      }
+    }, 150);
+  };
+
+  const handleKeyDown = (e) => {
+    if (searchQuery.trim().length < 4) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < searchResults.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : searchResults.length - 1));
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && searchResults[selectedIndex]) {
+        e.preventDefault();
+        handleSelectItem(searchResults[selectedIndex]);
+      } else if (searchResults.length > 0) {
+        e.preventDefault();
+        handleSelectItem(searchResults[0]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchFocused(false);
+      setIsMobileSearchFocused(false);
+    }
+  };
+
+  useEffect(() => {
+    // Restore font size scale
+    const savedScale = localStorage.getItem('nss_font_scale');
+    if (savedScale) {
+      setFontSize(savedScale);
+      if (savedScale === 'sm') document.documentElement.style.fontSize = '90%';
+      else if (savedScale === 'lg') document.documentElement.style.fontSize = '112%';
+      else document.documentElement.style.fontSize = '100%';
+    }
+
+    const handleClickOutside = (e) => {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target)) {
+        setIsLangDropdownOpen(false);
+      }
+      if (mobileLangDropdownRef.current && !mobileLangDropdownRef.current.contains(e.target)) {
+        setIsMobileLangOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsSearchFocused(false);
+      }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target)) {
+        setIsMobileSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  const applyFontSize = (size) => {
+    setFontSize(size);
+    localStorage.setItem('nss_font_scale', size);
+    if (size === 'sm') {
+      document.documentElement.style.fontSize = '90%';
+    } else if (size === 'lg') {
+      document.documentElement.style.fontSize = '112%';
+    } else {
+      document.documentElement.style.fontSize = '100%';
+    }
+  };
+
+  const handleSkipToContent = (e) => {
+    if (e) e.preventDefault();
+    const mainEl = document.getElementById('main-content');
+    if (mainEl) {
+      mainEl.scrollIntoView({ behavior: 'smooth' });
+      mainEl.focus();
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+
+    if (searchResults.length > 0) {
+      handleSelectItem(searchResults[0]);
+      return;
+    }
+
+    // Do NOT navigate away to other tabs! Keep user on current tab and display search popover
+    setIsSearchFocused(true);
+    setIsMobileSearchFocused(true);
+  };
+
+  const handleTestSpeech = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      alert("Text-to-speech is not supported in this browser.");
+      return;
+    }
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const textToSpeak = "National Service Scheme, Banwarilal Bhalotia College, Asansol. Motto: Not Me But You. Selfless service for a better tomorrow. Affiliated to Kazi Nazrul University, NAAC Accredited.";
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     const checkSession = () => {
@@ -102,7 +517,7 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
     return () => { window.removeEventListener('nss_user_logged_in', checkSession); subscription?.unsubscribe(); };
   }, []);
 
-  useScrollLock(showAdminWarning || showEmailConfirmedModal);
+  useScrollLock(showAdminWarning || showEmailConfirmedModal || showScreenReaderModal || isMobileMenuOpen || showMobileProfile);
 
   const toggleMenu = () => {
     if (!isMobileMenuOpen && hamburgerRef.current) {
@@ -114,10 +529,14 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
   const closeAllMenus = () => { setIsMobileMenuOpen(false); setShowMobileProfile(false); setShowDesktopProfile(false); };
 
   const handleNavClick = (key) => {
-    if (activeTab === key) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (onTabChange) {
+      if (activeTab === key) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        onTabChange(key);
+      }
     } else {
-      onTabChange(key);
+      router.push(`/#${key}`);
     }
     closeAllMenus();
   };
@@ -151,75 +570,489 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
 
   return (
     <>
-      <div id="fixed-navbar" className="fixed top-0 left-0 right-0 z-50 pt-2.5 sm:pt-3 md:pt-4 px-2 sm:px-3 md:px-4 pointer-events-none box-border">
-        <nav className="pointer-events-auto w-full max-w-6xl mx-auto bg-white/95 shadow-[0_12px_30px_rgba(0,0,0,0.06)] border border-slate-100 rounded-full transition-all duration-300 overflow-hidden">
-          <div className="px-2.5 sm:px-4 md:px-6">
-            <div className="flex justify-between items-center h-13 sm:h-14 md:h-18 gap-1.5 sm:gap-2 w-full">
-              <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink min-w-0 cursor-pointer select-none group"
-                onClick={() => handleNavClick('home')}>
-                {/* Unified Logo Badge — long-press here triggers admin access */}
-                <div className="flex items-center gap-1 shrink-0 bg-white rounded-xl sm:rounded-2xl px-1 py-0.5 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.14)] group-hover:border-slate-300 transition-[transform,box-shadow,border-color] duration-300 ease-out active:scale-[0.98]"
-                  onContextMenu={(e) => e.preventDefault()}
-                  onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd}
-                  style={{ WebkitTouchCallout: 'none' }}>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 overflow-hidden shrink-0">
-                    <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-full h-full object-contain select-none" draggable="false" />
-                  </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full overflow-hidden shrink-0">
-                    <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain select-none" draggable="false" />
-                  </div>
-                </div>
-                <div className="flex flex-col justify-center shrink min-w-0 pointer-events-none">
-                  <h1 className="text-[9px] min-[360px]:text-[9.5px] min-[400px]:text-[10.5px] sm:text-[11px] md:text-[12px] lg:text-[13px] xl:text-sm font-black text-slate-800 leading-tight whitespace-nowrap tracking-tight uppercase">{t("hero.badge")}</h1>
-                  <p className="text-[6.5px] min-[360px]:text-[7px] min-[400px]:text-[8px] sm:text-[8px] md:text-[9px] lg:text-[10px] xl:text-[11px] font-bold text-blue-600/80 whitespace-nowrap uppercase tracking-wider lg:tracking-widest">
-                    Banwarilal Bhalotia College, Asansol
-                  </p>
-                </div>
-              </div>
+      {/* ================= DESKTOP OFFICIAL PORTAL HEADER (lg and above) ================= */}
+      {/* Tier 1: Government of India & Ministry Bar (scrolls naturally out of view) */}
+      <div className="hidden lg:flex w-full bg-[#081b40] text-slate-200 text-[11px] font-medium py-1.5 px-6 xl:px-12 justify-between items-center border-b border-white/10 select-none relative z-[60]">
+        <div className="flex items-center gap-2.5">
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
+            alt="Govt of India"
+            className="w-3.5 h-4.5 object-contain shrink-0"
+            style={{ filter: 'invert(85%) sepia(42%) saturate(4032%) hue-rotate(351deg) brightness(101%) contrast(106%)' }}
+          />
+          <span className="font-bold text-white tracking-wide">Government of India</span>
+          <span className="text-white/30 font-normal">|</span>
+          <span className="text-slate-300 font-medium">Ministry of Youth Affairs & Sports</span>
+        </div>
 
-              <div className="hidden lg:flex items-center gap-1 lg:gap-1.5 xl:gap-2.5 font-bold text-slate-700 shrink-0">
-                {NAV_ITEMS.map((item) => (
-                  <button key={item.key} onClick={() => handleNavClick(item.key)}
-                    className={`relative px-3 lg:px-3.5 xl:px-4.5 py-2 lg:py-2.5 xl:py-3 rounded-full font-outfit font-bold tracking-wide text-[12px] lg:text-[13px] xl:text-[15px] transition-all duration-300 capitalize cursor-pointer ${activeTab === item.key ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-blue-50 hover:text-blue-700'}`}>
-                    {t(`nav.${item.key}`)}
-                  </button>
-                ))}
-                {currentUser ? (
-                  <div className="relative ml-1.5 pl-1.5 lg:ml-3 lg:pl-3 border-l border-slate-200">
-                    <div className="hover:scale-105 transition transform cursor-pointer"><UserAvatar user={currentUser} onClick={() => setShowDesktopProfile(!showDesktopProfile)} /></div>
-                  </div>
-                ) : (
-                  <button onClick={onOpenLogin} className="bg-slate-900 text-white px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 rounded-full font-outfit font-bold tracking-wide text-[12px] lg:text-[13px] xl:text-[15px] ml-1.5 lg:ml-2 focus:outline-none cursor-pointer">{t("nav.login")}</button>
-                )}
+        <div className="flex items-center gap-4 text-slate-300 text-[11px]">
+          <button 
+            onClick={handleSkipToContent} 
+            className="hover:text-white transition-colors cursor-pointer focus:outline-none focus:text-amber-300 underline-offset-2 hover:underline"
+          >
+            Skip to main content
+          </button>
+          <span className="text-white/20">|</span>
+          <button 
+            onClick={() => setShowScreenReaderModal(true)} 
+            className="hover:text-white cursor-pointer transition-colors focus:outline-none focus:text-amber-300"
+          >
+            Screen Reader Access
+          </button>
+          <span className="text-white/20">|</span>
+          <div className="flex items-center gap-1 font-bold" aria-label="Font Size Adjuster">
+            <button 
+              onClick={() => applyFontSize('sm')} 
+              className={`px-1.5 py-0.5 rounded text-[10px] cursor-pointer transition-all ${fontSize === 'sm' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-300 hover:bg-white/10 hover:text-amber-300'}`}
+              title="Decrease Font Size"
+              aria-label="Decrease Font Size"
+            >
+              A-
+            </button>
+            <button 
+              onClick={() => applyFontSize('normal')} 
+              className={`px-1.5 py-0.5 rounded text-[11px] cursor-pointer transition-all ${fontSize === 'normal' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-300 hover:bg-white/10 hover:text-amber-300'}`}
+              title="Normal Font Size"
+              aria-label="Normal Font Size"
+            >
+              A
+            </button>
+            <button 
+              onClick={() => applyFontSize('lg')} 
+              className={`px-1.5 py-0.5 rounded text-[12px] cursor-pointer transition-all ${fontSize === 'lg' ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'text-slate-300 hover:bg-white/10 hover:text-amber-300'}`}
+              title="Increase Font Size"
+              aria-label="Increase Font Size"
+            >
+              A+
+            </button>
+          </div>
+          <span className="text-white/20">|</span>
+          
+          {/* Language Selector */}
+          <div className="relative" ref={langDropdownRef}>
+            <button 
+              onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)} 
+              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer text-[11px] border border-white/10 shadow-xs focus:outline-none"
+              aria-expanded={isLangDropdownOpen}
+              aria-label="Change Language"
+            >
+              <span>{locale === 'bn' ? 'বাংলা' : locale === 'hi' ? 'हिंदी' : 'English'}</span>
+              <Icons.ChevronDown className={`w-3 h-3 text-white/70 transition-transform duration-200 ${isLangDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isLangDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1.5 flex flex-col bg-[#0B2559] border border-white/20 rounded-lg shadow-2xl py-1 z-[100] min-w-[120px] overflow-hidden animate-fade-in-up">
+                <button 
+                  onClick={() => { setLocale('en'); setIsLangDropdownOpen(false); }} 
+                  className={`px-3.5 py-2 text-left text-[11px] font-semibold cursor-pointer transition-colors flex items-center justify-between ${locale === 'en' ? 'bg-[#1D6FE0] text-white font-bold' : 'text-slate-200 hover:bg-white/10 hover:text-white'}`}
+                >
+                  <span>English</span>
+                  {locale === 'en' && <span className="text-amber-400 font-bold">✓</span>}
+                </button>
+                <button 
+                  onClick={() => { setLocale('bn'); setIsLangDropdownOpen(false); }} 
+                  className={`px-3.5 py-2 text-left text-[11px] font-semibold cursor-pointer transition-colors flex items-center justify-between ${locale === 'bn' ? 'bg-[#1D6FE0] text-white font-bold' : 'text-slate-200 hover:bg-white/10 hover:text-white'}`}
+                >
+                  <span>বাংলা</span>
+                  {locale === 'bn' && <span className="text-amber-400 font-bold">✓</span>}
+                </button>
+                <button 
+                  onClick={() => { setLocale('hi'); setIsLangDropdownOpen(false); }} 
+                  className={`px-3.5 py-2 text-left text-[11px] font-semibold cursor-pointer transition-colors flex items-center justify-between ${locale === 'hi' ? 'bg-[#1D6FE0] text-white font-bold' : 'text-slate-200 hover:bg-white/10 hover:text-white'}`}
+                >
+                  <span>हिंदी</span>
+                  {locale === 'hi' && <span className="text-amber-400 font-bold">✓</span>}
+                </button>
               </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-              <div className="lg:hidden flex items-center shrink-0 ml-1 sm:ml-2">
-                {currentUser ? (<UserAvatar user={currentUser} onClick={toggleMenu} />) : (
-                  <button ref={hamburgerRef} onClick={toggleMenu} className="text-slate-800 hover:bg-blue-50 focus:outline-none p-1.5 sm:p-2.5 shrink-0 bg-white/50 rounded-full border border-slate-200/60 shadow-sm cursor-pointer transition-all duration-300 backdrop-blur-sm relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center">
-                    <div className="relative w-4.5 sm:w-5 h-3 sm:h-3.5 flex flex-col justify-between origin-center transform transition-all duration-300">
-                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? 'rotate-45 translate-y-[5px] sm:translate-y-[6px]' : ''}`}></span>
-                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0 scale-0' : ''}`}></span>
-                      <span className={`h-[2px] w-full bg-slate-700 rounded-full transition-all duration-300 origin-center ${isMobileMenuOpen ? '-rotate-45 -translate-y-[5px] sm:-translate-y-[6px]' : ''}`}></span>
-                    </div>
-                  </button>
-                )}
-              </div>
+      {/* Desktop Sticky Header: Tier 2 (Logo & Institutional header) + Tier 3 (Blue Navigation ribbon) */}
+      <header className="hidden lg:flex flex-col sticky top-0 z-50 w-full bg-white shadow-md border-b border-slate-200/80">
+        {/* Tier 2: Institutional White Header (Logos/Title, Centered Motto, Right Directorate Info) */}
+        <div className="w-full bg-white py-3 px-6 xl:px-12 flex justify-between items-center border-b border-slate-100">
+          
+          {/* Left: NSS & College Logos + Institution Typography */}
+          <div 
+            className="flex items-center gap-3.5 cursor-pointer group select-none shrink-0"
+            onClick={() => handleNavClick('home')}
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={handlePressEnd}
+          >
+            {/* Unified Logo Grouping */}
+            <div className="flex items-center gap-2 p-1.5 bg-slate-50/80 rounded-xl border border-slate-200/70 shadow-xs shrink-0 group-hover:border-blue-300 transition-colors">
+              <img src="/nss-logo.png" alt="NSS Logo" className="w-10 h-10 xl:w-11 xl:h-11 object-contain select-none" />
+              <div className="w-[1px] h-6 bg-slate-200"></div>
+              <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-9 h-9 xl:w-10 xl:h-10 object-contain rounded-full select-none" />
+            </div>
+
+            {/* Institution Typography */}
+            <div className="flex flex-col">
+              <h1 
+                className="text-lg xl:text-xl font-black italic text-[#003366] tracking-[0.04em] uppercase leading-tight font-fraunces-black"
+              >
+                NATIONAL SERVICE SCHEME
+              </h1>
+              <h2 className="text-xs xl:text-sm font-black italic text-slate-800 tracking-[0.03em] uppercase leading-tight mt-0.5 font-fraunces-black">
+                BANWARILAL BHALOTIA COLLEGE, ASANSOL
+              </h2>
+              <p className="text-[10.5px] text-slate-600 font-bold italic tracking-[0.02em] leading-tight mt-0.5 font-fraunces-black flex items-center gap-1.5">
+                <span>Affiliated to Kazi Nazrul University</span>
+                <span className="text-slate-300">|</span>
+                <span className="text-blue-700">NAAC Accredited</span>
+              </p>
             </div>
           </div>
+
+          {/* Center: NSS Motto & Tagline */}
+          <div className="hidden xl:flex flex-col items-center text-center select-none px-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-[1px] bg-gradient-to-r from-transparent via-slate-400 to-transparent"></div>
+              <span className="text-lg xl:text-[20px] font-serif italic font-extrabold text-[#003366] tracking-wide">
+                &ldquo;Not Me But You&rdquo;
+              </span>
+              <div className="w-8 h-[1px] bg-gradient-to-r from-transparent via-slate-400 to-transparent"></div>
+            </div>
+            <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+              Selfless Service for a Better Tomorrow
+            </p>
+          </div>
+
+          {/* Right: Directorate of NSS & Ministry of Youth Affairs (with Ashoka Emblem) */}
+          <div className="hidden lg:flex items-center gap-3.5 text-right select-none pl-4 shrink-0">
+            <div className="flex flex-col items-end leading-tight">
+              <h3 className="text-[#003366] font-black text-xs xl:text-[12.5px] tracking-wide uppercase font-outfit">
+                NATIONAL SERVICE SCHEME
+              </h3>
+              <p className="text-slate-800 font-bold text-[10.5px] xl:text-[11.5px] mt-0.5">
+                Regional Directorate of NSS, Kolkata, West Bengal
+              </p>
+              <p className="text-slate-500 font-medium text-[9.5px] xl:text-[10px] mt-0.5">
+                Ministry of Youth Affairs & Sports, Govt. of India
+              </p>
+            </div>
+            {/* Ashoka Emblem */}
+            <div className="w-8.5 h-11 shrink-0 flex items-center justify-center p-1 bg-amber-50/50 rounded-lg border border-amber-200/50">
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
+                alt="Emblem of India"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Tier 3: Deep Royal Blue Navigation Ribbon */}
+        <nav className="w-full bg-[#004899] text-white px-6 xl:px-12 flex justify-between items-stretch shadow-inner font-poppins h-12">
+          <div className="flex items-stretch gap-1">
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeTab === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => handleNavClick(item.key)}
+                  className={`px-3.5 xl:px-4.5 font-poppins text-[13px] xl:text-[14px] font-bold transition-colors duration-150 cursor-pointer flex items-center justify-center relative whitespace-nowrap shrink-0 ${
+                    isActive 
+                      ? 'bg-[#002f66] text-white shadow-inner after:absolute after:bottom-0 after:left-0 after:w-full after:h-[3px] after:bg-amber-400' 
+                      : 'text-white/90 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <span>{t(`nav.${item.key}`)}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Side: Search & Login/Profile */}
+          <div className="flex items-center gap-3 py-1.5">
+            <div ref={searchContainerRef} className="relative flex items-center">
+              <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setIsSearchFocused(true);
+                    setSelectedIndex(-1);
+                  }}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Search activities, circulars, team..."
+                  className="bg-white/95 focus:bg-white text-slate-800 placeholder-slate-400 text-xs rounded-lg pl-3.5 pr-12 py-2 w-48 xl:w-60 outline-none border border-transparent focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all shadow-inner"
+                />
+                
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedIndex(-1);
+                    }}
+                    className="absolute right-7 text-slate-400 hover:text-slate-700 p-0.5 rounded cursor-pointer transition-colors text-xs font-bold"
+                    aria-label="Clear Search"
+                  >
+                    ✕
+                  </button>
+                )}
+
+                <button 
+                  type="submit" 
+                  className="absolute right-2.5 text-slate-400 hover:text-blue-700 cursor-pointer transition-colors" 
+                  aria-label="Search"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              </form>
+
+              {/* Suggestions Popover (Strictly shown ONLY when query length >= 4) */}
+              {isSearchFocused && searchQuery.trim().length >= 4 && (
+                <div className="absolute right-0 top-full mt-2 w-80 xl:w-96 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden z-[100] animate-fade-in-up text-slate-800">
+                  {/* Header info */}
+                  <div className="bg-gradient-to-r from-blue-900 to-indigo-900 px-3.5 py-2 flex items-center justify-between text-white border-b border-blue-950">
+                    <span className="text-[11px] font-bold tracking-wide flex items-center gap-1.5">
+                      <Icons.Sparkles className="w-3 h-3 text-amber-300" />
+                      Search Suggestions
+                    </span>
+                    <span className="text-[10px] text-blue-200 font-medium">
+                      {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
+                    </span>
+                  </div>
+
+                  {/* Results list */}
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                    {searchResults.length > 0 ? (
+                      searchResults.map((item, idx) => {
+                        const isSelected = idx === selectedIndex;
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => handleSelectItem(item)}
+                            onMouseEnter={() => setSelectedIndex(idx)}
+                            className={`px-3.5 py-2.5 flex items-start gap-2.5 cursor-pointer transition-colors ${
+                              isSelected ? 'bg-blue-50/90 text-blue-950' : 'hover:bg-slate-50 text-slate-800'
+                            }`}
+                          >
+                            <div className="mt-0.5 shrink-0">
+                              {getTypeBadge(item.type)}
+                            </div>
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className="text-xs font-bold text-slate-900 leading-snug truncate">
+                                <HighlightMatch text={item.title} query={searchQuery} />
+                              </p>
+                              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                <HighlightMatch text={item.subtitle} query={searchQuery} />
+                              </p>
+                            </div>
+                            <svg className="w-3.5 h-3.5 text-slate-400 self-center shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="px-4 py-6 text-center">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                          <Icons.Sparkles className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">No results found for &ldquo;{searchQuery}&rdquo;</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Try searching leadership name, event date, circular ref, or photo date</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dropdown Footer hints */}
+                  <div className="bg-slate-50 px-3.5 py-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                    <span>Press <kbd className="px-1 py-0.5 bg-white border border-slate-200 rounded font-mono text-[9px] text-slate-600">↵ Enter</kbd> to open</span>
+                    <span><kbd className="px-1 py-0.5 bg-white border border-slate-200 rounded font-mono text-[9px] text-slate-600">Esc</kbd> to close</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {currentUser ? (
+              <div className="relative pl-2 border-l border-white/20">
+                <UserAvatar user={currentUser} onClick={() => setShowDesktopProfile(!showDesktopProfile)} />
+              </div>
+            ) : (
+              <button
+                onClick={onOpenLogin}
+                className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-4 py-2 rounded-lg font-outfit font-black text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-lg cursor-pointer ml-1 active:scale-95 flex items-center gap-1.5"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+                <span>{t("nav.login")}</span>
+              </button>
+            )}
+          </div>
         </nav>
+      </header>
+
+      {/* ================= MOBILE HEADER (lg:hidden) ================= */}
+      {/* Tier 1: Government of India & Ministry Bar (Section A - scrolls naturally out of view) */}
+      <div className="lg:hidden w-full bg-[#0B2559] text-white text-[11px] py-1.5 px-3 flex justify-between items-center select-none relative z-[60]">
+        <div className="flex items-center gap-2 min-w-0">
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
+            alt="Govt of India"
+            className="w-4 h-5 object-contain shrink-0"
+            style={{ filter: 'invert(85%) sepia(42%) saturate(4032%) hue-rotate(351deg) brightness(101%) contrast(106%)' }}
+          />
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="font-semibold text-white text-[11px] truncate">Government of India</span>
+            <span className="text-white/80 text-[9.5px] truncate">Ministry of Youth Affairs & Sports</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 text-white text-[10px]">
+          <span className="text-white/30">|</span>
+          {/* Language Selector */}
+          <div className="relative" ref={mobileLangDropdownRef}>
+            <button 
+              onClick={() => setIsMobileLangOpen(!isMobileLangOpen)} 
+              className="flex items-center gap-0.5 bg-white/15 hover:bg-white/25 text-white px-2 py-0.5 rounded font-bold transition-colors cursor-pointer text-[10px]"
+              aria-expanded={isMobileLangOpen}
+              aria-label="Change Language"
+            >
+              <span>{locale === 'bn' ? 'বাংলা' : locale === 'hi' ? 'हिंदी' : 'English'}</span>
+              <Icons.ChevronDown className={`w-2.5 h-2.5 transition-transform ${isMobileLangOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isMobileLangOpen && (
+              <div className="absolute right-0 top-full mt-1 flex flex-col bg-[#0B2559] border border-white/20 rounded shadow-xl py-1 z-[100] min-w-[90px] animate-fade-in-up">
+                <button 
+                  onClick={() => { setLocale('en'); setIsMobileLangOpen(false); }} 
+                  className={`px-2.5 py-1 text-left text-[10px] cursor-pointer flex items-center justify-between ${locale === 'en' ? 'bg-[#1D6FE0] text-white font-bold' : 'text-white/90 hover:bg-white/10'}`}
+                >
+                  <span>English</span>
+                  {locale === 'en' && <span className="text-amber-400 font-bold">✓</span>}
+                </button>
+                <button 
+                  onClick={() => { setLocale('bn'); setIsMobileLangOpen(false); }} 
+                  className={`px-2.5 py-1 text-left text-[10px] cursor-pointer flex items-center justify-between ${locale === 'bn' ? 'bg-[#1D6FE0] text-white font-bold' : 'text-white/90 hover:bg-white/10'}`}
+                >
+                  <span>বাংলা</span>
+                  {locale === 'bn' && <span className="text-amber-400 font-bold">✓</span>}
+                </button>
+                <button 
+                  onClick={() => { setLocale('hi'); setIsMobileLangOpen(false); }} 
+                  className={`px-2.5 py-1 text-left text-[10px] cursor-pointer flex items-center justify-between ${locale === 'hi' ? 'bg-[#1D6FE0] text-white font-bold' : 'text-white/90 hover:bg-white/10'}`}
+                >
+                  <span>हिंदी</span>
+                  {locale === 'hi' && <span className="text-amber-400 font-bold">✓</span>}
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-1 font-bold text-[9px]">
+            <button 
+              onClick={() => applyFontSize('sm')} 
+              className={`px-1 py-0.2 rounded cursor-pointer transition-all ${fontSize === 'sm' ? 'bg-amber-400 text-slate-950 font-black' : 'text-white/80 hover:text-amber-300'}`}
+            >
+              A-
+            </button>
+            <button 
+              onClick={() => applyFontSize('normal')} 
+              className={`px-1 py-0.2 rounded cursor-pointer transition-all ${fontSize === 'normal' ? 'bg-amber-400 text-slate-950 font-black' : 'text-white/80 hover:text-amber-300'}`}
+            >
+              A
+            </button>
+            <button 
+              onClick={() => applyFontSize('lg')} 
+              className={`px-1 py-0.2 rounded cursor-pointer transition-all ${fontSize === 'lg' ? 'bg-amber-400 text-slate-950 font-black' : 'text-white/80 hover:text-amber-300'}`}
+            >
+              A+
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Tier 2: Institutional Sticky Navbar with Unified Dual Logo Card & Hamburger (Section B - Sticky on Mobile) */}
+      <header className="lg:hidden sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E4E7EC]">
+        <div className="w-full py-2 px-2 min-[380px]:px-2.5 flex items-center justify-between overflow-hidden">
+          <div 
+            className="flex items-center gap-1.5 min-[380px]:gap-2 cursor-pointer min-w-0 flex-1 mr-2"
+            onClick={() => handleNavClick('home')}
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={handlePressEnd}
+          >
+            {/* Unified Dual Logos Card (College + NSS Covered Together) */}
+            <div className="flex items-center gap-1 min-[380px]:gap-1.5 p-1 bg-white rounded-lg border border-slate-200/90 shadow-xs shrink-0">
+              {/* College Logo */}
+              <div className="w-6.5 h-6.5 min-[380px]:w-7.5 min-[380px]:h-7.5 flex items-center justify-center overflow-hidden">
+                <img src="/BBCollege Logo.jpeg" alt="B.B. College Logo" className="w-full h-full object-contain" />
+              </div>
+              {/* Divider */}
+              <div className="w-[1px] h-4.5 bg-slate-200"></div>
+              {/* NSS Wheel Logo */}
+              <div className="w-6.5 h-6.5 min-[380px]:w-7.5 min-[380px]:h-7.5 flex items-center justify-center overflow-hidden">
+                <img src="/nss-logo.png" alt="NSS Logo" className="w-full h-full object-contain select-none" />
+              </div>
+            </div>
+
+            {/* Fluid Dynamic Typography - Perfectly scales between Logo and Hamburger */}
+            <div className="flex flex-col min-w-0 flex-1 justify-center overflow-hidden">
+              <h1 
+                className="font-black italic text-[#004899] tracking-[0.04em] uppercase leading-none font-fraunces-black truncate"
+                style={{ fontSize: 'clamp(9px, 3.1vw, 14px)' }}
+              >
+                NATIONAL SERVICE SCHEME
+              </h1>
+              <h2 
+                className="font-black italic text-slate-800 tracking-[0.03em] uppercase leading-tight font-fraunces-black mt-0.5 truncate"
+                style={{ fontSize: 'clamp(6.5px, 2.1vw, 9.5px)' }}
+              >
+                BANWARILAL BHALOTIA COLLEGE, ASANSOL
+              </h2>
+              <p 
+                className="text-slate-600 font-bold italic tracking-[0.02em] leading-tight mt-0.5 font-fraunces-black truncate"
+                style={{ fontSize: 'clamp(5.5px, 1.8vw, 8px)' }}
+              >
+                Affiliated to Kazi Nazrul University | NAAC Accredited
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Hamburger or User Avatar */}
+          <div className="flex items-center shrink-0">
+            {currentUser ? (
+              <UserAvatar user={currentUser} onClick={toggleMenu} />
+            ) : (
+              <button
+                ref={hamburgerRef}
+                onClick={toggleMenu}
+                className="w-9 h-9 min-[380px]:w-9.5 min-[380px]:h-9.5 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2559] focus:outline-none cursor-pointer transition-all shadow-xs shrink-0 active:scale-95"
+                aria-label="Toggle Menu"
+              >
+                <div className="w-4.5 min-[380px]:w-5 h-3.5 min-[380px]:h-4 flex flex-col justify-between">
+                  <span className={`h-[2.5px] w-full bg-[#0B2559] rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-[5.5px] min-[380px]:translate-y-[6px]' : ''}`}></span>
+                  <span className={`h-[2.5px] w-full bg-[#0B2559] rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0 scale-0' : ''}`}></span>
+                  <span className={`h-[2.5px] w-full bg-[#0B2559] rounded-full transition-all duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-[5.5px] min-[380px]:-translate-y-[6px]' : ''}`}></span>
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
 
       {/* Mobile close button — rendered outside navbar stacking context, positioned at hamburger's exact location */}
       {isMobileMenuOpen && closeBtnPos && !currentUser && (
         <button
           onClick={closeAllMenus}
-          className="fixed z-[80] lg:hidden flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-full border border-white/15 cursor-pointer transition-colors duration-300 focus:outline-none shadow-sm"
+          className="fixed z-[80] lg:hidden flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg border border-white/20 cursor-pointer transition-all duration-200 focus:outline-none shadow-md backdrop-blur-xs active:scale-95"
           style={{ top: closeBtnPos.top, left: closeBtnPos.left, width: closeBtnPos.width, height: closeBtnPos.height }}
+          aria-label="Close Menu"
         >
-          <div className="relative w-4.5 sm:w-5 h-3 sm:h-3.5 flex flex-col justify-between">
-            <span className="h-[2px] w-full bg-white rounded-full origin-center rotate-45 translate-y-[5px] sm:translate-y-[6px]"></span>
-            <span className="h-[2px] w-full bg-white rounded-full opacity-0 scale-0"></span>
-            <span className="h-[2px] w-full bg-white rounded-full origin-center -rotate-45 -translate-y-[5px] sm:-translate-y-[6px]"></span>
+          <div className="relative w-4.5 min-[380px]:w-5 h-3.5 min-[380px]:h-4 flex flex-col justify-between">
+            <span className="h-[2.5px] w-full bg-white rounded-full origin-center rotate-45 translate-y-[5.5px] min-[380px]:translate-y-[6px]"></span>
+            <span className="h-[2.5px] w-full bg-white rounded-full opacity-0 scale-0"></span>
+            <span className="h-[2.5px] w-full bg-white rounded-full origin-center -rotate-45 -translate-y-[5.5px] min-[380px]:-translate-y-[6px]"></span>
           </div>
         </button>
       )}
@@ -232,27 +1065,32 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
         style={{ background: 'rgba(15, 23, 42, 0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
 
         {currentUser ? (
-          <button onClick={(e) => { e.preventDefault(); closeAllMenus(); setShowMobileProfile(true); }} className="w-full bg-white/5 hover:bg-white/10 transition-colors p-6 flex flex-col items-center text-center shrink-0 relative group focus:outline-none border-b border-white/10 cursor-pointer">
-            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-xl mb-4 shrink-0 p-1 bg-white/5">
-              <div className="w-full h-full rounded-full overflow-hidden">
-                {currentUser.photo_url ? <img src={currentUser.photo_url} alt="Profile" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-blue-600 text-white font-bold text-2xl flex items-center justify-center tracking-widest">{getInitials(currentUser.full_name)}</div>}
+          <div className="pt-14">
+            <button onClick={(e) => { e.preventDefault(); closeAllMenus(); setShowMobileProfile(true); }} className="w-full bg-white/5 hover:bg-white/10 transition-colors p-5 flex flex-col items-center text-center shrink-0 relative group focus:outline-none border-b border-white/10 cursor-pointer">
+              <div className="w-18 h-18 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-xl mb-3 shrink-0 p-1 bg-white/5">
+                <div className="w-full h-full rounded-full overflow-hidden">
+                  {currentUser.photo_url ? <img src={currentUser.photo_url} alt="Profile" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-blue-600 text-white font-bold text-2xl flex items-center justify-center tracking-widest">{getInitials(currentUser.full_name)}</div>}
+                </div>
               </div>
-            </div>
-            <p className="font-extrabold text-white text-lg leading-tight truncate w-full">{currentUser.full_name}</p>
-            <p className="text-[10px] text-blue-400 mt-2 font-black flex items-center justify-center gap-1.5 bg-blue-500/10 py-1.5 px-4 rounded-full border border-blue-500/20 uppercase tracking-widest">{t("nav.viewProfile")} <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg></p>
-          </button>
+              <p className="font-extrabold text-white text-base leading-tight truncate w-full">{currentUser.full_name}</p>
+              <p className="text-[10px] text-blue-400 mt-2 font-black flex items-center justify-center gap-1.5 bg-blue-500/10 py-1.5 px-4 rounded-full border border-blue-500/20 uppercase tracking-widest">{t("nav.viewProfile")} <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg></p>
+            </button>
+          </div>
         ) : (
-          <div className="px-5 pt-5 pb-3 flex justify-between items-center h-14 md:h-18">
-            <span className="font-bold text-white/90 text-xs uppercase tracking-[0.2em]">{t("nav.menu")}</span>
+          <div className="px-5 pt-16 pb-3.5 flex justify-between items-center border-b border-white/10">
+            <span className="font-bold text-white/80 text-[11px] uppercase tracking-[0.2em] flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+              {t("nav.menu")}
+            </span>
           </div>
         )}
 
-        <div className="overflow-y-auto py-5 px-5 space-y-2.5 shrink [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="overflow-y-auto py-4 px-4 space-y-2 shrink [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-poppins">
           {NAV_ITEMS.map((item) => {
             const IconComp = item.icon;
             return (
               <button key={item.key} onClick={() => handleNavClick(item.key)}
-                className={`flex items-center gap-3 w-full px-5 py-3.5 rounded-full font-bold text-sm transition-all duration-300 border cursor-pointer hover:translate-x-1 ${activeTab === item.key ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-500 shadow-[0_4px_15px_rgba(37,99,235,0.35)]' : 'bg-white/5 text-slate-200 border-transparent hover:bg-white/10 hover:border-white/10 active:scale-[0.98]'}`}>
+                className={`flex items-center gap-3 w-full px-4.5 py-3 rounded-full font-bold text-sm transition-all duration-300 border cursor-pointer hover:translate-x-1 ${activeTab === item.key ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-500 shadow-[0_4px_15px_rgba(37,99,235,0.35)]' : 'bg-white/5 text-slate-200 border-transparent hover:bg-white/10 hover:border-white/10 active:scale-[0.98]'}`}>
                 <IconComp className={`w-5 h-5 shrink-0 ${activeTab === item.key ? 'text-white' : ''}`} /> {t(`nav.${item.key}`)}
               </button>
             );
@@ -372,6 +1210,233 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange }) => {
           </div>
         </div>
       )}
+
+      {/* ================= SCREEN READER ACCESS MODAL ================= */}
+      {showScreenReaderModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 font-sans antialiased animate-fade-in pointer-events-auto">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowScreenReaderModal(false)}></div>
+          
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-200 text-left animate-fade-in-up flex flex-col max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#004899] flex items-center justify-center border border-blue-100">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Screen Reader & Accessibility</h3>
+                  <p className="text-xs text-slate-500 font-medium">Govt. of India Guidelines & WCAG 2.1 AA Compliance</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowScreenReaderModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="space-y-4 text-sm text-slate-600">
+              <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-100">
+                <h4 className="font-extrabold text-[#003366] text-xs uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
+                  Active Accessibility Features
+                </h4>
+                <p className="text-xs text-slate-700 leading-relaxed mt-1">
+                  This website adheres to the <strong>Guidelines for Indian Government Websites (GIGW)</strong> and <strong>World Wide Web Consortium (W3C) WCAG 2.1 (Level AA)</strong> standards for visually impaired and assistive technology users.
+                </p>
+              </div>
+
+              {/* Keyboard Shortcuts */}
+              <div>
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2.5">Key Navigation Shortcuts</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <span className="text-slate-600 font-medium">Next Element</span>
+                    <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-mono font-bold shadow-xs">Tab</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <span className="text-slate-600 font-medium">Previous Element</span>
+                    <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-mono font-bold shadow-xs">Shift + Tab</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <span className="text-slate-600 font-medium">Activate Button/Link</span>
+                    <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-mono font-bold shadow-xs">Enter / Space</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <span className="text-slate-600 font-medium">Skip to Content</span>
+                    <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-mono font-bold shadow-xs">Alt + S</kbd>
+                  </div>
+                </div>
+              </div>
+
+              {/* Supported Screen Readers */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                <span className="font-bold text-slate-900 text-xs block mb-1">Supported Screen Readers:</span>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  • <strong>NVDA</strong> (NonVisual Desktop Access) on Windows<br />
+                  • <strong>JAWS</strong> (Job Access With Speech) on Windows<br />
+                  • <strong>VoiceOver</strong> on Apple iOS & macOS<br />
+                  • <strong>TalkBack</strong> on Google Android
+                </p>
+              </div>
+
+              {/* Text to Speech Test */}
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  onClick={handleTestSpeech}
+                  className={`w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                    isSpeaking 
+                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                      : 'bg-[#004899] hover:bg-[#003366] text-white'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
+                  </svg>
+                  <span>{isSpeaking ? 'Stop Voice Announcement' : '🔊 Test Voice Speech Announcement'}</span>
+                </button>
+
+                <button
+                  onClick={(e) => { setShowScreenReaderModal(false); handleSkipToContent(e); }}
+                  className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors cursor-pointer text-center"
+                >
+                  Jump Directly to Main Content
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MOBILE MODERN FLOATING BOTTOM SEARCH BAR (lg:hidden) ================= */}
+      <div 
+        ref={mobileSearchRef} 
+        style={{
+          bottom: keyboardHeight > 0 
+            ? `${keyboardHeight + 10}px` 
+            : undefined,
+        }}
+        className={`fixed bottom-3.5 left-4 right-4 z-40 lg:hidden font-poppins transition-[bottom,opacity,transform] duration-200 ease-out ${
+          (isFooterVisible && !isMobileSearchFocused && keyboardHeight === 0) || isLightboxOpen
+            ? 'opacity-0 translate-y-8 pointer-events-none' 
+            : 'opacity-100 translate-y-0 pointer-events-auto'
+        }`}
+      >
+        {/* Floating Suggestions Sheet (Appears elevated above bottom search bar when query >= 4) */}
+        {isMobileSearchFocused && searchQuery.trim().length >= 4 && (
+          <div className="absolute bottom-full mb-2.5 left-0 right-0 max-h-[38vh] bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_-12px_40px_rgba(0,0,0,0.18)] border border-slate-200/80 overflow-hidden z-50 text-slate-800 animate-fade-in-up flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#003366] via-[#004899] to-[#1D6FE0] px-4 py-2.5 flex items-center justify-between text-white border-b border-blue-900/50 shrink-0">
+              <span className="text-[11px] font-bold tracking-wide flex items-center gap-1.5">
+                <Icons.Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                Search Suggestions
+              </span>
+              <span className="text-[10px] text-white/90 font-semibold bg-white/15 px-2 py-0.5 rounded-full border border-white/20">
+                {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
+              </span>
+            </div>
+
+            {/* Results list */}
+            <div className="overflow-y-auto divide-y divide-slate-100 flex-1 overscroll-contain">
+              {searchResults.length > 0 ? (
+                searchResults.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleSelectItem(item)}
+                    className="px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-slate-50 transition-colors active:bg-blue-50/80"
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {getTypeBadge(item.type)}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-xs font-bold text-slate-900 leading-snug truncate">
+                        <HighlightMatch text={item.title} query={searchQuery} />
+                      </p>
+                      <p className="text-[10.5px] text-slate-500 font-medium truncate mt-0.5">
+                        <HighlightMatch text={item.subtitle} query={searchQuery} />
+                      </p>
+                    </div>
+                    <svg className="w-3.5 h-3.5 text-slate-400 self-center shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-7 text-center">
+                  <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                    <Icons.Sparkles className="w-4.5 h-4.5" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-700">No results found on this site</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 max-w-[240px] mx-auto leading-tight">Try searching by leader name, event title, circular ref, or photo date</p>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Dismiss Bar */}
+            <div className="bg-slate-50/90 px-4 py-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+              <span>Tap any item to view</span>
+              <button 
+                type="button" 
+                onClick={() => setIsMobileSearchFocused(false)} 
+                className="text-[#004899] font-bold hover:underline cursor-pointer"
+              >
+                Close ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Ultra-Modern Floating Search Pill with Right-Aligned Search Icon */}
+        <form 
+          onSubmit={handleSearchSubmit} 
+          className="relative flex items-center bg-white/90 backdrop-blur-2xl rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-slate-200/90 py-2.5 pl-4.5 pr-3 transition-all duration-200 focus-within:ring-2 focus-within:ring-[#004899]/25 focus-within:border-[#004899] focus-within:bg-white"
+        >
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsMobileSearchFocused(true);
+              setSelectedIndex(-1);
+            }}
+            onFocus={() => setIsMobileSearchFocused(true)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search activities, notices, team, dates..."
+            className="w-full bg-transparent text-slate-800 placeholder-slate-400 text-[13px] font-medium outline-none pr-14 font-poppins"
+          />
+
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedIndex(-1);
+              }}
+              className="absolute right-12 text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs font-bold cursor-pointer transition-colors"
+              aria-label="Clear Search"
+            >
+              ✕
+            </button>
+          ) : null}
+
+          {/* Modern Search Icon on the Right */}
+          <button
+            type="submit"
+            className="absolute right-2 w-8 h-8 rounded-full bg-[#004899] hover:bg-[#003366] text-white flex items-center justify-center cursor-pointer transition-all shadow-sm active:scale-90"
+            aria-label="Search"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        </form>
+      </div>
     </>
   );
 };

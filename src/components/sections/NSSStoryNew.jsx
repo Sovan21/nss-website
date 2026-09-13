@@ -65,20 +65,23 @@ function useChildReveal(threshold = 0.1) {
 function SectionHeader({ label, labelIcon: LabelIcon, heading, headingAccent, subtitle, light = false }) {
   const ref = useScrollReveal();
   return (
-    <div ref={ref} className="scroll-reveal text-center max-w-3xl mx-auto mb-6 md:mb-10">
-      <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 border ${light ? "bg-white/10 border-white/20 text-blue-200" : "bg-blue-50 border-blue-100 text-blue-700"}`}>
-        {LabelIcon && <LabelIcon className="w-3.5 h-3.5" />} {label}
+    <div ref={ref} className="scroll-reveal text-center max-w-3xl mx-auto mb-6 sm:mb-8">
+      <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-black text-xs uppercase tracking-widest mb-2.5 shadow-xs border ${
+        light ? "bg-white/10 border-white/20 text-white" : "bg-blue-50 border-blue-200/80 text-[#004899]"
+      }`}>
+        {LabelIcon && <LabelIcon className={`w-4 h-4 ${light ? "text-white" : "text-[#004899]"}`} />}
+        <span>{label}</span>
       </div>
-      <h2 className={`text-3xl md:text-5xl font-black mb-4 tracking-tight leading-tight ${light ? "text-white" : "text-slate-900"}`}>
+      <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight font-poppins ${light ? "text-white" : "text-slate-900"}`}>
         {heading}{" "}
         {headingAccent && (
-          <span className={`${light ? "text-blue-300" : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700"}`}>
+          <span className={`${light ? "text-blue-200" : "text-[#004899] underline decoration-amber-400 decoration-4 underline-offset-8"}`}>
             {headingAccent}
           </span>
         )}
       </h2>
       {subtitle && (
-        <p className={`text-xs md:text-base leading-relaxed font-medium max-w-2xl mx-auto ${light ? "text-slate-300" : "text-slate-500"}`}>
+        <p className={`mt-3 text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-normal ${light ? "text-blue-100" : "text-slate-600"}`}>
           {subtitle}
         </p>
       )}
@@ -94,17 +97,17 @@ function WhatIsNSS() {
   const containerRef = useChildReveal();
 
   const facts = [
-    { icon: Icons.Calendar, label: t("nss.whoWeAre.fact1Label"), value: t("nss.whoWeAre.fact1Value"), color: "from-blue-500 to-indigo-500" },
-    { icon: Icons.Flag, label: t("nss.whoWeAre.fact2Label"), value: t("nss.whoWeAre.fact2Value"), color: "from-indigo-500 to-purple-500" },
-    { icon: Icons.BuildingLibrary, label: t("nss.whoWeAre.fact3Label"), value: t("nss.whoWeAre.fact3Value"), color: "from-purple-500 to-blue-500" },
-    { icon: Icons.Sun, label: t("nss.whoWeAre.fact4Label"), value: t("nss.whoWeAre.fact4Value"), color: "from-blue-500 to-cyan-500" },
+    { icon: Icons.Calendar, label: t("nss.whoWeAre.fact1Label"), value: t("nss.whoWeAre.fact1Value") },
+    { icon: Icons.Flag, label: t("nss.whoWeAre.fact2Label"), value: t("nss.whoWeAre.fact2Value") },
+    { icon: Icons.BuildingLibrary, label: t("nss.whoWeAre.fact3Label"), value: t("nss.whoWeAre.fact3Value") },
+    { icon: Icons.Sun, label: t("nss.whoWeAre.fact4Label"), value: t("nss.whoWeAre.fact4Value") },
   ];
 
   return (
-    <section className="relative py-10 md:py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 overflow-hidden">
+    <section className="relative py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] overflow-hidden">
       {/* Background orbs */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div ref={containerRef} className="max-w-7xl mx-auto relative z-10">
         <SectionHeader
@@ -113,22 +116,21 @@ function WhatIsNSS() {
           heading={t("nss.whoWeAre.heading")}
           headingAccent={t("nss.whoWeAre.headingAccent")}
           subtitle={t("nss.whoWeAre.subtitle")}
-          light
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
           {/* Left — Narrative Text */}
-          <div className="scroll-reveal-left">
+          <div className="scroll-reveal-left bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col justify-center">
             <p 
-              className="text-sm md:text-base text-slate-300 leading-relaxed mb-4 font-medium text-justify"
+              className="text-[15px] sm:text-base md:text-[17px] text-slate-700 leading-relaxed sm:leading-loose mb-4 font-normal text-justify"
               dangerouslySetInnerHTML={{ __html: tHtml("nss.whoWeAre.para1") }}
             />
             <p 
-              className="text-sm md:text-base text-slate-300 leading-relaxed mb-4 font-medium text-justify"
+              className="text-[15px] sm:text-base md:text-[17px] text-slate-700 leading-relaxed sm:leading-loose mb-4 font-normal text-justify"
               dangerouslySetInnerHTML={{ __html: tHtml("nss.whoWeAre.para2") }}
             />
             <p 
-              className="text-sm md:text-base text-slate-400 leading-relaxed font-medium italic text-justify"
+              className="text-[14px] sm:text-[15px] md:text-base text-slate-600 leading-relaxed font-medium italic text-justify"
               dangerouslySetInnerHTML={{ __html: tHtml("nss.whoWeAre.para3") }}
             />
           </div>
@@ -138,27 +140,29 @@ function WhatIsNSS() {
             {facts.map((fact, idx) => (
               <div
                 key={idx}
-                className={`scroll-reveal reveal-delay-${idx + 1} group relative bg-slate-900/80 border border-white/10 rounded-2xl p-5 md:p-6 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1`}
+                className={`scroll-reveal reveal-delay-${idx + 1} group bg-white border border-slate-200/80 rounded-2xl p-5 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between`}
               >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${fact.color} flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <fact.icon className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:border-slate-900 transition-all duration-300">
+                  <fact.icon className="w-5 h-5 text-slate-900" />
                 </div>
-                <p className="text-[10px] md:text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">{fact.label}</p>
-                <p className="text-sm md:text-base text-white font-bold leading-snug">{fact.value}</p>
+                <div>
+                  <p className="text-xs sm:text-[13px] text-slate-500 uppercase tracking-widest font-black mb-1">{fact.label}</p>
+                  <p className="text-base sm:text-lg text-slate-900 font-black leading-snug">{fact.value}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Additional Core NSS Blocks */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12 md:mt-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 md:mt-10">
           {/* Card 1: Objectives */}
-          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0">
-                <Icons.Target className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:border-slate-900 transition-all duration-300 shrink-0">
+                <Icons.Target className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
-              <h3 className="text-lg md:text-xl font-black text-white tracking-tight">{t("nss.objectives.title")}</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-poppins">{t("nss.objectives.title")}</h3>
             </div>
             <ul className="space-y-3.5 flex-1">
               {[
@@ -167,8 +171,8 @@ function WhatIsNSS() {
                 t("nss.objectives.item3"),
                 t("nss.objectives.item4")
               ].map((item, itemIdx) => (
-                <li key={itemIdx} className="flex items-start gap-3 text-slate-300 text-sm md:text-base leading-relaxed font-semibold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400/40 border border-amber-400/60 mt-1.5 shrink-0 animate-pulse"></span>
+                <li key={itemIdx} className="flex items-start gap-3 text-slate-700 text-sm sm:text-base leading-relaxed font-medium">
+                  <span className="w-2 h-2 rounded-full bg-slate-900 mt-2 shrink-0"></span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -176,12 +180,12 @@ function WhatIsNSS() {
           </div>
 
           {/* Card 2: Major Activities */}
-          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0">
-                <Icons.Sparkles className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:border-slate-900 transition-all duration-300 shrink-0">
+                <Icons.Sparkles className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
-              <h3 className="text-lg md:text-xl font-black text-white tracking-tight">{t("nss.activities.title")}</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-poppins">{t("nss.activities.title")}</h3>
             </div>
             <ul className="space-y-3.5 flex-1">
               {[
@@ -193,8 +197,8 @@ function WhatIsNSS() {
                 t("nss.activities.item6"),
                 t("nss.activities.item7")
               ].map((item, itemIdx) => (
-                <li key={itemIdx} className="flex items-start gap-3 text-slate-300 text-sm md:text-base leading-relaxed font-semibold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/40 border border-emerald-400/60 mt-1.5 shrink-0 animate-pulse"></span>
+                <li key={itemIdx} className="flex items-start gap-3 text-slate-700 text-sm sm:text-base leading-relaxed font-medium">
+                  <span className="w-2 h-2 rounded-full bg-slate-900 mt-2 shrink-0"></span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -202,42 +206,42 @@ function WhatIsNSS() {
           </div>
 
           {/* Card 3: Eligibility */}
-          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0">
-                <Icons.AcademicCap className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:border-slate-900 transition-all duration-300 shrink-0">
+                <Icons.AcademicCap className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
-              <h3 className="text-lg md:text-xl font-black text-white tracking-tight">{t("nss.eligibility.title")}</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-poppins">{t("nss.eligibility.title")}</h3>
             </div>
             <div className="flex flex-col justify-between flex-1">
               <div>
-                <p className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-wider mb-2.5">{t("nss.eligibility.subtitle")}</p>
-                <ul className="space-y-3 mb-5">
+                <p className="text-xs sm:text-sm text-slate-500 font-black uppercase tracking-wider mb-3">{t("nss.eligibility.subtitle")}</p>
+                <ul className="space-y-3.5 mb-5">
                   {[
                     t("nss.eligibility.item1"),
                     t("nss.eligibility.item2"),
                     t("nss.eligibility.item3")
                   ].map((item, itemIdx) => (
-                    <li key={itemIdx} className="flex items-start gap-3 text-slate-300 text-sm md:text-base leading-relaxed font-semibold">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-400/40 border border-blue-400/60 mt-1.5 shrink-0 animate-pulse"></span>
+                    <li key={itemIdx} className="flex items-start gap-3 text-slate-700 text-sm sm:text-base leading-relaxed font-medium">
+                      <span className="w-2 h-2 rounded-full bg-slate-900 mt-2 shrink-0"></span>
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="pt-4 border-t border-white/10 text-xs md:text-sm text-slate-400 font-bold leading-relaxed italic">
+              <div className="pt-4 border-t border-slate-100 text-sm sm:text-[15px] text-slate-600 font-medium leading-relaxed italic">
                 {t("nss.eligibility.note")}
               </div>
             </div>
           </div>
 
           {/* Card 4: Benefits of Joining NSS */}
-          <div className="scroll-reveal group relative bg-slate-900/80 border border-white/10 rounded-3xl p-6 md:p-8 hover:bg-slate-800/90 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 flex flex-col">
+          <div className="scroll-reveal group bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
             <div className="flex items-center gap-3.5 mb-5 shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500 shrink-0">
-                <Icons.Trophy className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:border-slate-900 transition-all duration-500 shrink-0">
+                <Icons.Trophy className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
-              <h3 className="text-lg md:text-xl font-black text-white tracking-tight">{t("nss.benefits.title")}</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-poppins">{t("nss.benefits.title")}</h3>
             </div>
             <ul className="space-y-3.5 flex-1">
               {[
@@ -247,8 +251,8 @@ function WhatIsNSS() {
                 t("nss.benefits.item4"),
                 t("nss.benefits.item5")
               ].map((item, itemIdx) => (
-                <li key={itemIdx} className="flex items-start gap-3 text-slate-300 text-sm md:text-base leading-relaxed font-semibold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-400/40 border border-purple-400/60 mt-1.5 shrink-0 animate-pulse"></span>
+                <li key={itemIdx} className="flex items-start gap-3 text-slate-700 text-sm sm:text-base leading-relaxed font-medium">
+                  <span className="w-2 h-2 rounded-full bg-slate-900 mt-2 shrink-0"></span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -272,45 +276,39 @@ function WhatWeDo() {
       icon: Icons.Heart,
       title: t("nss.whatWeDo.card1Title"),
       desc: t("nss.whatWeDo.card1Desc"),
-      color: "text-rose-600 bg-rose-50 border-rose-100",
     },
     {
       icon: Icons.Leaf,
       title: t("nss.whatWeDo.card2Title"),
       desc: t("nss.whatWeDo.card2Desc"),
-      color: "text-emerald-600 bg-emerald-50 border-emerald-100",
     },
     {
       icon: Icons.BookOpen,
       title: t("nss.whatWeDo.card3Title"),
       desc: t("nss.whatWeDo.card3Desc"),
-      color: "text-blue-600 bg-blue-50 border-blue-100",
     },
     {
       icon: Icons.Shield,
       title: t("nss.whatWeDo.card4Title"),
       desc: t("nss.whatWeDo.card4Desc"),
-      color: "text-amber-600 bg-amber-50 border-amber-100",
     },
     {
       icon: Icons.Drop,
       title: t("nss.whatWeDo.card5Title"),
       desc: t("nss.whatWeDo.card5Desc"),
-      color: "text-cyan-600 bg-cyan-50 border-cyan-100",
     },
     {
       icon: Icons.Handshake,
       title: t("nss.whatWeDo.card6Title"),
       desc: t("nss.whatWeDo.card6Desc"),
-      color: "text-indigo-600 bg-indigo-50 border-indigo-100",
     },
   ];
 
   return (
-    <section className="relative py-10 md:py-16 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] overflow-hidden">
+    <section className="relative py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] overflow-hidden">
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 bg-dot-pattern opacity-30 pointer-events-none"></div>
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-slate-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div ref={containerRef} className="max-w-7xl mx-auto relative z-10">
         <SectionHeader
@@ -325,13 +323,13 @@ function WhatWeDo() {
           {activities.map((item, idx) => (
             <div
               key={idx}
-              className={`scroll-reveal reveal-delay-${idx + 1} group bg-white border border-slate-200/60 rounded-2xl p-4 md:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] hover:shadow-[0_16px_40px_rgb(37,99,235,0.06)] hover:border-blue-200/50 hover:-translate-y-1 transition-all duration-500`}
+              className={`scroll-reveal reveal-delay-${idx + 1} group bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] hover:shadow-md hover:border-slate-400 hover:-translate-y-1 transition-all duration-300`}
             >
-              <div className={`w-11 h-11 md:w-12 md:h-12 rounded-xl ${item.color} border flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-500`}>
-                <item.icon className="w-5 h-5 md:w-6 md:h-6" />
+              <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:border-slate-900 transition-all duration-300">
+                <item.icon className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
-              <h3 className="text-base md:text-lg font-black text-slate-900 mb-2 tracking-tight">{item.title}</h3>
-              <p className="text-xs md:text-sm text-slate-500 leading-relaxed font-medium">{item.desc}</p>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2 tracking-tight">{item.title}</h3>
+              <p className="text-sm sm:text-[15px] text-slate-600 leading-relaxed font-medium">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -363,7 +361,7 @@ function GiveAndGet() {
   ];
 
   return (
-    <section className="relative py-10 md:py-16 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
+    <section className="relative py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
       <div className="absolute top-0 right-0 -mr-32 -mt-32 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 -ml-32 -mb-32 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -379,23 +377,23 @@ function GiveAndGet() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* GIVE Column */}
           <div className="scroll-reveal-left">
-            <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 border border-slate-200/60 rounded-2xl md:rounded-3xl p-5 md:p-6 h-full">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100/60 border border-slate-200/80 rounded-2xl md:rounded-3xl p-5 md:p-6 h-full">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center shadow-lg">
-                  <Icons.Heart className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center shadow-xs">
+                  <Icons.Heart className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
                 </div>
                 <div>
-                  <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">{t("nss.giveGet.giveTitle")}</h3>
-                  <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">{t("nss.giveGet.giveSubtitle")}</p>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{t("nss.giveGet.giveTitle")}</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 font-bold uppercase tracking-widest">{t("nss.giveGet.giveSubtitle")}</p>
                 </div>
               </div>
-              <div className="space-y-2 md:space-y-3">
+              <div className="space-y-2.5 md:space-y-3.5">
                 {give.map((item, idx) => (
                   <div key={idx} className="flex gap-3 md:gap-4 items-start group">
-                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 text-rose-500 group-hover:bg-rose-50 group-hover:border-rose-200 transition-colors duration-300 shadow-sm">
-                      <item.icon className="w-4 h-4" />
+                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-transparent border border-slate-200 flex items-center justify-center shrink-0 text-slate-900 group-hover:border-slate-800 transition-colors duration-300">
+                      <item.icon className="w-4 h-4 text-slate-900" />
                     </div>
-                    <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed pt-1">{item.text}</p>
+                    <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed pt-0.5">{item.text}</p>
                   </div>
                 ))}
               </div>
@@ -404,23 +402,23 @@ function GiveAndGet() {
 
           {/* GET Column */}
           <div className="scroll-reveal-right">
-            <div className="bg-gradient-to-br from-slate-50 to-indigo-50/50 border border-slate-200/60 rounded-2xl md:rounded-3xl p-5 md:p-6 h-full">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100/60 border border-slate-200/80 rounded-2xl md:rounded-3xl p-5 md:p-6 h-full">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                  <Icons.AcademicCap className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center shadow-xs">
+                  <Icons.AcademicCap className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
                 </div>
                 <div>
-                  <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">{t("nss.giveGet.getTitle")}</h3>
-                  <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">{t("nss.giveGet.getSubtitle")}</p>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{t("nss.giveGet.getTitle")}</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 font-bold uppercase tracking-widest">{t("nss.giveGet.getSubtitle")}</p>
                 </div>
               </div>
-              <div className="space-y-2 md:space-y-3">
+              <div className="space-y-2.5 md:space-y-3.5">
                 {get.map((item, idx) => (
                   <div key={idx} className="flex gap-3 md:gap-4 items-start group">
-                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 text-blue-600 group-hover:bg-blue-50 group-hover:border-blue-200 transition-colors duration-300 shadow-sm">
-                      <item.icon className="w-4 h-4" />
+                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-transparent border border-slate-200 flex items-center justify-center shrink-0 text-slate-900 group-hover:border-slate-800 transition-colors duration-300">
+                      <item.icon className="w-4 h-4 text-slate-900" />
                     </div>
-                    <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed pt-1">{item.text}</p>
+                    <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed pt-0.5">{item.text}</p>
                   </div>
                 ))}
               </div>
@@ -444,44 +442,38 @@ function LifeAtBBCollege() {
       icon: Icons.Tent,
       title: t("nss.bbCollege.card1Title"),
       desc: t("nss.bbCollege.card1Desc"),
-      color: "text-violet-600 bg-violet-50 border-violet-100",
     },
     {
       icon: Icons.Star,
       title: t("nss.bbCollege.card2Title"),
       desc: t("nss.bbCollege.card2Desc"),
-      color: "text-amber-600 bg-amber-50 border-amber-100",
     },
     {
       icon: Icons.Drop,
       title: t("nss.bbCollege.card3Title"),
       desc: t("nss.bbCollege.card3Desc"),
-      color: "text-rose-600 bg-rose-50 border-rose-100",
     },
     {
       icon: Icons.Leaf,
       title: t("nss.bbCollege.card4Title"),
       desc: t("nss.bbCollege.card4Desc"),
-      color: "text-emerald-600 bg-emerald-50 border-emerald-100",
     },
     {
       icon: Icons.Megaphone,
       title: t("nss.bbCollege.card5Title"),
       desc: t("nss.bbCollege.card5Desc"),
-      color: "text-blue-600 bg-blue-50 border-blue-100",
     },
     {
       icon: Icons.Users,
       title: t("nss.bbCollege.card6Title"),
       desc: t("nss.bbCollege.card6Desc"),
-      color: "text-indigo-600 bg-indigo-50 border-indigo-100",
     },
   ];
 
   return (
-    <section className="relative py-10 md:py-16 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] overflow-hidden">
+    <section className="relative py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] overflow-hidden">
       <div className="absolute inset-0 bg-dot-pattern opacity-20 pointer-events-none"></div>
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-slate-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div ref={containerRef} className="max-w-7xl mx-auto relative z-10">
         <SectionHeader
@@ -496,23 +488,16 @@ function LifeAtBBCollege() {
           {highlights.map((item, idx) => (
             <div
               key={idx}
-              className={`scroll-reveal reveal-delay-${idx + 1} group bg-white border border-slate-200/60 rounded-2xl p-4 md:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] hover:shadow-[0_16px_40px_rgb(99,102,241,0.06)] hover:border-indigo-200/50 hover:-translate-y-1 transition-all duration-500 relative overflow-hidden`}
+              className={`scroll-reveal reveal-delay-${idx + 1} group bg-white border border-slate-200/80 rounded-2xl p-4 md:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] hover:shadow-md hover:border-slate-400 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden`}
             >
               {/* Subtle accent top bar */}
-              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
-                idx === 0 ? "from-violet-500 to-purple-500" :
-                idx === 1 ? "from-amber-400 to-orange-500" :
-                idx === 2 ? "from-rose-400 to-red-500" :
-                idx === 3 ? "from-emerald-400 to-green-500" :
-                idx === 4 ? "from-blue-400 to-indigo-500" :
-                "from-indigo-400 to-purple-500"
-              } opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-slate-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-              <div className={`w-11 h-11 md:w-12 md:h-12 rounded-xl ${item.color} border flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500`}>
-                <item.icon className="w-5 h-5 md:w-6 md:h-6" />
+              <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-transparent border border-slate-300 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-slate-900 transition-all duration-300">
+                <item.icon className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
-              <h3 className="text-base md:text-lg font-black text-slate-900 mb-2 tracking-tight">{item.title}</h3>
-              <p className="text-xs md:text-sm text-slate-500 leading-relaxed font-medium">{item.desc}</p>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2 tracking-tight">{item.title}</h3>
+              <p className="text-sm sm:text-[15px] text-slate-600 leading-relaxed font-medium">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -534,34 +519,30 @@ function WhyNSSFounded() {
       title: t("nss.history.title1"),
       desc: t("nss.history.desc1"),
       icon: Icons.Flag,
-      color: "from-blue-500 to-indigo-500",
     },
     {
       year: t("nss.history.year2"),
       title: t("nss.history.title2"),
       desc: t("nss.history.desc2"),
       icon: Icons.LightBulb,
-      color: "from-indigo-500 to-purple-500",
     },
     {
       year: t("nss.history.year3"),
       title: t("nss.history.title3"),
       desc: t("nss.history.desc3"),
       icon: Icons.GlobeAlt,
-      color: "from-purple-500 to-blue-500",
     },
     {
       year: t("nss.history.year4"),
       title: t("nss.history.title4"),
       desc: t("nss.history.desc4"),
       icon: Icons.Sparkles,
-      color: "from-blue-500 to-cyan-500",
     },
   ];
 
   return (
-    <section className="relative py-10 md:py-16 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+    <section className="relative py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-slate-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div ref={containerRef} className="max-w-6xl mx-auto relative z-10">
         <SectionHeader
@@ -575,7 +556,7 @@ function WhyNSSFounded() {
         {/* Timeline */}
         <div className="relative mt-8">
           {/* Horizontal connector — hidden on mobile, shown on md+ */}
-          <div className="hidden md:block absolute left-[12.5%] right-[12.5%] top-7 h-0.5 bg-gradient-to-r from-blue-300 via-indigo-300 to-cyan-300"></div>
+          <div className="hidden md:block absolute left-[12.5%] right-[12.5%] top-7 h-0.5 bg-slate-300"></div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
             {milestones.map((item, idx) => (
@@ -585,16 +566,16 @@ function WhyNSSFounded() {
               >
                 {/* Timeline Node/Dot */}
                 <div className="relative mb-4 md:mb-6 z-10">
-                  <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center shadow-xl border-4 border-white hover:scale-110 transition-transform duration-300`}>
-                    <item.icon className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border-2 border-slate-300 hover:scale-110 hover:border-slate-900 transition-all duration-300">
+                    <item.icon className="w-5 h-5 text-slate-900" />
                   </div>
                 </div>
 
                 {/* Milestone Card */}
-                <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 hover:shadow-lg hover:border-indigo-200/50 transition-all duration-500 w-full flex-grow flex flex-col">
-                  <span className="text-xs font-black text-indigo-600 uppercase tracking-widest block mb-1">{item.year}</span>
-                  <h3 className="text-base md:text-lg font-black text-slate-900 tracking-tight mb-2">{item.title}</h3>
-                  <p className="text-xs md:text-sm text-slate-500 leading-relaxed font-medium">{item.desc}</p>
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 hover:shadow-lg hover:border-slate-400 transition-all duration-300 w-full flex-grow flex flex-col">
+                  <span className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest block mb-1">{item.year}</span>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight mb-2">{item.title}</h3>
+                  <p className="text-sm sm:text-[15px] text-slate-600 leading-relaxed font-medium">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -602,16 +583,16 @@ function WhyNSSFounded() {
         </div>
 
         {/* First Volunteer Spotlight Card */}
-        <div className="mt-16 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-6 md:p-10 shadow-2xl border border-slate-800/80 scroll-reveal relative overflow-hidden group">
+        <div className="mt-12 md:mt-16 bg-gradient-to-br from-slate-50 via-white to-slate-100 rounded-3xl p-6 md:p-10 shadow-sm border border-slate-200/80 scroll-reveal relative overflow-hidden group">
           {/* Subtle glow background */}
-          <div className="absolute -right-16 -top-16 w-48 h-48 bg-blue-500/10 rounded-full blur-[60px] pointer-events-none"></div>
-          <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+          <div className="absolute -right-16 -top-16 w-48 h-48 bg-slate-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+          <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-slate-500/5 rounded-full blur-[60px] pointer-events-none"></div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center relative z-10">
             {/* Avatar Column */}
             <div className="md:col-span-4 flex flex-col items-center text-center">
-              <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 shadow-xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
-                <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center overflow-hidden relative">
+              <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-slate-900 via-slate-700 to-slate-900 shadow-lg group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden relative">
                   <img 
                     src="/images/kk_gupta.png" 
                     alt="Krishan Kumar Gupta" 
@@ -619,21 +600,21 @@ function WhyNSSFounded() {
                   />
                 </div>
               </div>
-              <span className="mt-4 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] md:text-xs font-black text-blue-400 uppercase tracking-widest">
+              <span className="mt-4 px-4 py-1.5 bg-slate-900 border border-slate-800 text-white rounded-full text-xs sm:text-sm font-black uppercase tracking-widest shadow-xs">
                 {t("nss.spotlight.badge")}
               </span>
             </div>
 
             {/* Profile Info Column */}
             <div className="md:col-span-8 flex flex-col">
-              <h3 className="text-xl md:text-3xl font-black text-white tracking-tight mb-1">
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-1.5 font-poppins">
                 {t("nss.spotlight.title")}
               </h3>
-              <p className="text-xs md:text-sm font-extrabold text-indigo-400 uppercase tracking-widest mb-4">
+              <p className="text-sm sm:text-base font-extrabold text-[#004899] uppercase tracking-widest mb-4">
                 {t("nss.spotlight.subtitle")}
               </p>
               
-              <p className="text-xs md:text-base text-slate-300 leading-relaxed font-semibold mb-6">
+              <p className="text-sm sm:text-base md:text-lg text-slate-700 leading-relaxed font-normal mb-6 text-justify">
                 {t("nss.spotlight.desc")}
               </p>
 
@@ -642,7 +623,7 @@ function WhyNSSFounded() {
                   href="https://www.facebook.com/nss.krishangupta"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full text-xs md:text-sm font-black shadow-lg shadow-blue-600/20 hover:scale-105 transition-all duration-300"
+                  className="inline-flex items-center gap-2 bg-[#004899] hover:bg-[#003366] text-white px-6 py-3 rounded-full text-sm sm:text-base font-bold shadow-sm hover:shadow transition-all duration-300"
                 >
                   <Icons.Facebook className="w-4 h-4" /> {t("nss.spotlight.connect")}
                 </a>
@@ -773,11 +754,18 @@ function NSSCalendar() {
     return "2026-2027";
   }, [MONTHS]);
 
+  const [selectedDay, setSelectedDay] = useState(null);
+
   useEffect(() => {
     if (monthEvents.length > 0) {
-      setSelectedEvent(monthEvents[0]);
+      // Prioritize NSS flagship events (like Sept 24 NSS Day) or single-day events
+      const nssEvent = monthEvents.find(e => e.type === "nss") || monthEvents.find(e => !e.endDate) || monthEvents[0];
+      setSelectedEvent(nssEvent);
+      const dayNum = parseInt(nssEvent.date.split("-")[2], 10);
+      setSelectedDay(dayNum);
     } else {
       setSelectedEvent(null);
+      setSelectedDay(null);
     }
   }, [monthEvents]);
 
@@ -789,15 +777,24 @@ function NSSCalendar() {
     setCurrentMonthIdx(prev => (prev < MONTHS.length - 1 ? prev + 1 : prev));
   };
 
-  const getEventForDay = (day) => {
+  const getEventsForDay = (day) => {
     const monthStr = String(activeMonth.month + 1).padStart(2, '0');
     const dayStr = String(day).padStart(2, '0');
     const dateStr = `${activeMonth.year}-${monthStr}-${dayStr}`;
-    return projectedEvents.find(evt => {
+    const evts = projectedEvents.filter(evt => {
       if (evt.endDate) {
         return dateStr >= evt.date && dateStr <= evt.endDate;
       }
       return evt.date === dateStr;
+    });
+
+    // Prioritize specific single-day events (e.g. Sept 24 NSS Day) over broader fortnights
+    return evts.sort((a, b) => {
+      if (a.date === dateStr && b.date !== dateStr) return -1;
+      if (b.date === dateStr && a.date !== dateStr) return 1;
+      if (a.type === "nss" && b.type !== "nss") return -1;
+      if (b.type === "nss" && a.type !== "nss") return 1;
+      return 0;
     });
   };
 
@@ -808,7 +805,7 @@ function NSSCalendar() {
       case "social": return { bg: "bg-blue-500", border: "border-blue-500", text: "text-blue-500", lightBg: "bg-blue-500/10 border-blue-500/20 text-blue-300", label: t("nss.calendar.type.social") };
       case "nat": return { bg: "bg-amber-500", border: "border-amber-500", text: "text-amber-500", lightBg: "bg-amber-500/10 border-amber-500/20 text-amber-300", label: t("nss.calendar.type.nat") };
       case "hist": return { bg: "bg-indigo-500", border: "border-indigo-500", text: "text-indigo-500", lightBg: "bg-indigo-500/10 border-indigo-500/20 text-indigo-300", label: t("nss.calendar.type.hist") };
-      case "nss": return { bg: "bg-violet-500", border: "border-violet-500", text: "text-violet-500", lightBg: "bg-violet-500/10 border-violet-500/20 text-violet-300", label: t("nss.calendar.type.nss") };
+      case "nss": return { bg: "bg-violet-600", border: "border-violet-600", text: "text-violet-600", lightBg: "bg-violet-500/15 border-violet-500/30 text-violet-700", label: t("nss.calendar.type.nss") };
       case "admin": return { bg: "bg-slate-500", border: "border-slate-500", text: "text-slate-500", lightBg: "bg-slate-500/10 border-slate-500/20 text-slate-300", label: t("nss.calendar.type.admin") };
       default: return { bg: "bg-blue-500", border: "border-blue-500", text: "text-blue-500", lightBg: "bg-blue-500/10 border-blue-500/20 text-blue-300", label: t("nss.calendar.type.general") };
     }
@@ -825,12 +822,16 @@ function NSSCalendar() {
 
   const blanks = Array(firstDayIndex).fill(null);
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-  const totalSlots = [...blanks, ...days];
+  // Standard 6-row calendar grid (42 slots) keeps container height 100% stable across all months
+  const trailingBlanks = Array(Math.max(0, 42 - (blanks.length + days.length))).fill(null);
+  const totalSlots = [...blanks, ...days, ...trailingBlanks];
+
+  const currentDayEvents = selectedDay ? getEventsForDay(selectedDay) : (selectedEvent ? [selectedEvent] : []);
 
   return (
-    <section className="relative py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-slate-950 overflow-hidden border-t border-white/5">
-      <div className="absolute top-1/3 left-10 w-72 h-72 bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-600/5 rounded-full blur-[140px] pointer-events-none"></div>
+    <section className="relative py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8 bg-[#faf9f6] overflow-hidden border-t border-slate-200/80">
+      <div className="absolute top-1/3 left-10 w-72 h-72 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none"></div>
 
       <div ref={containerRef} className="max-w-6xl mx-auto relative z-10">
         <SectionHeader
@@ -839,20 +840,21 @@ function NSSCalendar() {
           heading={t("nss.calendar.title")}
           headingAccent={academicYearSession}
           subtitle={t("nss.calendar.subtitle")}
-          light
         />
 
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-          <div className="bg-white/5 border border-white/10 p-1 rounded-2xl flex gap-1 shadow-inner w-full sm:w-auto shrink-0">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8">
+          <div className="bg-slate-100 border border-slate-200/80 p-1 rounded-2xl flex gap-1 shadow-xs w-full sm:w-auto shrink-0">
             <button
+              type="button"
               onClick={() => setViewMode("calendar")}
-              className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 ${viewMode === "calendar" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"}`}
+              className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer ${viewMode === "calendar" ? "bg-[#004899] text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
             >
               {t("nss.calendar.viewCalendar")}
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("agenda")}
-              className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 ${viewMode === "agenda" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"}`}
+              className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer ${viewMode === "agenda" ? "bg-[#004899] text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
             >
               {t("nss.calendar.viewAgenda")}
             </button>
@@ -868,36 +870,44 @@ function NSSCalendar() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder={t("nss.calendar.search")}
-                className="w-full bg-white/5 border border-white/10 pl-10 pr-4 py-2.5 rounded-xl text-white text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all placeholder:text-slate-500"
+                className="w-full bg-white border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-slate-800 text-sm outline-none focus:border-[#004899] focus:ring-1 focus:ring-blue-500/20 transition-all placeholder:text-slate-400 shadow-xs"
               />
             </div>
           ) : (
             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
               <button
+                type="button"
                 onClick={handlePrevMonth}
                 disabled={currentMonthIdx === 0}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                aria-label="Previous Month"
+                className="w-10 h-10 rounded-xl bg-white hover:bg-slate-100 active:scale-95 border-2 border-slate-300 hover:border-slate-400 text-slate-900 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-xs"
               >
-                &larr;
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
               </button>
-              <span className="text-sm sm:text-base font-black text-white uppercase tracking-wider text-center min-w-[140px] truncate">
+              <span className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-wider text-center min-w-[140px] truncate">
                 {t(`nss.calendar.months.${activeMonth.localeKey}`)} {activeMonth.year}
               </span>
               <button
+                type="button"
                 onClick={handleNextMonth}
                 disabled={currentMonthIdx === MONTHS.length - 1}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                aria-label="Next Month"
+                className="w-10 h-10 rounded-xl bg-white hover:bg-slate-100 active:scale-95 border-2 border-slate-300 hover:border-slate-400 text-slate-900 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-xs"
               >
-                &rarr;
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
               </button>
             </div>
           )}
         </div>
 
         {viewMode === "calendar" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Grid Sheet */}
-            <div className="lg:col-span-7 bg-white/5 border border-white/10 rounded-3xl p-5 md:p-6 backdrop-blur-md shadow-2xl">
+            <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-5 md:p-6 shadow-sm min-h-[380px] sm:min-h-[440px] md:min-h-[470px]">
               <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
                 <span>{t("nss.calendar.days.sun")}</span>
                 <span>{t("nss.calendar.days.mon")}</span>
@@ -911,12 +921,15 @@ function NSSCalendar() {
               <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
                 {totalSlots.map((slot, index) => {
                   if (slot === null) {
-                    return <div key={`blank-${index}`} className="aspect-square"></div>;
+                    return <div key={`blank-${index}`} className="aspect-square pointer-events-none"></div>;
                   }
 
-                  const hasEvent = getEventForDay(slot);
-                  const isSelected = selectedEvent && hasEvent && (selectedEvent.date === hasEvent.date || (hasEvent.endDate && selectedEvent.date >= hasEvent.date && selectedEvent.date <= hasEvent.endDate));
-                  const style = hasEvent ? getTypeStyle(hasEvent.type) : null;
+                  const dayEvents = getEventsForDay(slot);
+                  const hasEvents = dayEvents.length > 0;
+                  const primaryEvent = hasEvents ? dayEvents[0] : null;
+                  const isNssEvent = dayEvents.some(e => e.type === "nss");
+                  const isSelected = selectedDay === slot || (selectedEvent && dayEvents.some(e => e.title === selectedEvent.title));
+                  const primaryStyle = primaryEvent ? getTypeStyle(primaryEvent.type) : null;
                   
                   const today = new Date();
                   const isCurrentDay = today.getDate() === slot && today.getMonth() === activeMonth.month && today.getFullYear() === activeMonth.year;
@@ -924,26 +937,46 @@ function NSSCalendar() {
                   return (
                     <button
                       key={`day-${slot}`}
-                      onClick={() => hasEvent && setSelectedEvent(hasEvent)}
-                      disabled={!hasEvent}
-                      className={`aspect-square rounded-xl sm:rounded-2xl border flex flex-col items-center justify-center transition-all duration-300 relative group cursor-pointer ${
-                        hasEvent 
-                          ? `${style.bg}/10 border-${style.border}/30 text-white hover:scale-105 active:scale-95 hover:bg-${style.bg}/20 hover:border-${style.border}` 
-                          : "border-white/5 bg-white/[0.01] text-slate-600 cursor-default"
+                      type="button"
+                      onClick={() => {
+                        if (hasEvents) {
+                          setSelectedDay(slot);
+                          setSelectedEvent(dayEvents[0]);
+                        }
+                      }}
+                      disabled={!hasEvents}
+                      className={`aspect-square rounded-xl sm:rounded-2xl border flex flex-col items-center justify-center transition-all duration-200 relative group ${
+                        hasEvents 
+                          ? isNssEvent 
+                            ? "bg-violet-50/80 border-violet-300 text-slate-900 hover:scale-105 active:scale-95 cursor-pointer shadow-xs"
+                            : `${primaryStyle.bg}/10 border-${primaryStyle.border}/30 text-slate-900 hover:scale-105 active:scale-95 hover:bg-blue-100/60 cursor-pointer` 
+                          : "border-slate-100 bg-slate-50/50 text-slate-400 cursor-default"
                       } ${
-                        isSelected ? `ring-2 ring-blue-500 border-blue-500` : ""
+                        isSelected ? `ring-2 ring-[#004899] border-[#004899] bg-blue-50/90 shadow-md` : ""
                       } ${
-                        isCurrentDay ? "border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/30" : ""
+                        isCurrentDay ? "border-amber-400 bg-amber-50 ring-1 ring-amber-300" : ""
                       }`}
                     >
                       {isCurrentDay && (
-                        <span className="absolute top-1 text-[7px] font-black uppercase tracking-wider text-amber-500">
+                        <span className="absolute top-1 text-[7px] font-black uppercase tracking-wider text-amber-600">
                           Today
                         </span>
                       )}
-                      <span className={`text-xs sm:text-sm md:text-base font-black ${hasEvent ? "text-white" : ""} ${isCurrentDay ? "text-amber-400 font-extrabold" : ""}`}>{slot}</span>
-                      {hasEvent && (
-                        <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${style.bg} mt-1 animate-pulse`}></span>
+                      <span className={`text-xs sm:text-sm md:text-base font-black ${hasEvents ? "text-slate-900" : "text-slate-400"} ${isCurrentDay ? "text-amber-700 font-extrabold" : ""} ${isNssEvent ? "text-violet-950" : ""}`}>
+                        {slot}
+                      </span>
+                      
+                      {/* Event indicator dots */}
+                      {hasEvents && (
+                        <div className="flex items-center gap-1 mt-1 justify-center">
+                          {dayEvents.slice(0, 3).map((e, dotIdx) => (
+                            <span 
+                              key={dotIdx} 
+                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${getTypeStyle(e.type).bg} shadow-xs`}
+                              title={t(e.titleKey || e.title)}
+                            />
+                          ))}
+                        </div>
                       )}
                     </button>
                   );
@@ -954,78 +987,105 @@ function NSSCalendar() {
             {/* Sidebar details */}
             <div className="lg:col-span-5 flex flex-col">
               {selectedEvent ? (
-                <div className="flex-1 bg-gradient-to-b from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-md shadow-2xl flex flex-col justify-between h-full group">
-                  <div>
-                    <div className="flex justify-between items-center gap-3 mb-6">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20 tracking-wide shrink-0">
+                <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-6 md:p-8 shadow-sm flex flex-col justify-between min-h-[360px] sm:min-h-[440px] md:min-h-[470px]">
+                  <div className="flex flex-col">
+                    {/* Multiple Events Switcher Bar */}
+                    {currentDayEvents.length > 1 && (
+                      <div className="mb-4 p-2 bg-blue-50/70 rounded-2xl border border-blue-100 flex flex-col gap-1.5">
+                        <span className="text-[10.5px] font-black text-[#004899] uppercase tracking-wider px-1 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                          Multiple Events on this Date ({currentDayEvents.length})
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          {currentDayEvents.map((evt, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setSelectedEvent(evt)}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
+                                selectedEvent?.title === evt.title
+                                  ? "bg-[#004899] text-white shadow-xs"
+                                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+                              }`}
+                            >
+                              <span className="truncate">{t(evt.titleKey || evt.title)}</span>
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${getTypeStyle(evt.type).bg}`} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center gap-3 mb-4">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#004899] bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 tracking-wide shrink-0">
                         <Icons.Calendar className="w-3.5 h-3.5" />
                         {selectedEvent.endDate 
                           ? `${formatDate(selectedEvent.date)} - ${formatDate(selectedEvent.endDate)}` 
                           : formatDate(selectedEvent.date)
                         }
                       </span>
-                      <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border shadow-sm ${getTypeStyle(selectedEvent.type).lightBg}`}>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border shadow-xs ${getTypeStyle(selectedEvent.type).lightBg}`}>
                         {getTypeStyle(selectedEvent.type).label}
                       </span>
                     </div>
 
-                    <h3 className="text-lg md:text-xl font-black text-white leading-snug tracking-tight mb-4 group-hover:text-blue-400 transition-colors duration-300">
+                    <h3 className="text-lg md:text-xl font-black text-slate-900 leading-snug tracking-tight mb-3 font-poppins">
                       {t(selectedEvent.titleKey || selectedEvent.title)}
                     </h3>
 
-                    <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-semibold">
+                    <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-normal whitespace-pre-line">
                       {t(selectedEvent.descKey || selectedEvent.desc)}
                     </p>
                   </div>
 
-                  <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 flex items-start gap-3 mt-6">
-                    <Icons.Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">
+                  <div className="bg-slate-50 rounded-2xl border border-slate-200/80 p-4 flex items-start gap-3 mt-6">
+                    <Icons.Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
                       {t("nss.calendar.note")}
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 bg-white/[0.01] border border-dashed border-white/10 rounded-3xl p-8 backdrop-blur-md shadow-2xl flex flex-col items-center justify-center text-center text-slate-500 h-full">
-                  <Icons.Calendar className="w-10 h-10 text-slate-600 mb-3" />
-                  <p className="font-extrabold text-slate-400 tracking-tight text-sm">{t("nss.calendar.noEventsTitle")}</p>
-                  <p className="text-xs text-slate-500 font-semibold mt-1 max-w-[240px] leading-relaxed">{t("nss.calendar.noEventsDesc")}</p>
+                <div className="bg-white border border-dashed border-slate-200 rounded-2xl sm:rounded-3xl p-8 shadow-sm flex flex-col items-center justify-center text-center text-slate-400 min-h-[360px] sm:min-h-[440px] md:min-h-[470px]">
+                  <Icons.Calendar className="w-10 h-10 text-slate-300 mb-3" />
+                  <p className="font-bold text-slate-600 tracking-tight text-sm">{t("nss.calendar.noEventsTitle")}</p>
+                  <p className="text-xs text-slate-400 font-medium mt-1 max-w-[240px] leading-relaxed">{t("nss.calendar.noEventsDesc")}</p>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-5 md:p-8 backdrop-blur-md shadow-2xl max-h-[500px] overflow-y-auto custom-scrollbar">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-5 md:p-8 shadow-sm max-h-[500px] overflow-y-auto custom-scrollbar">
             {filteredAgendaEvents.length === 0 ? (
-              <div className="text-center py-16 text-slate-500 flex flex-col items-center">
-                <Icons.Info className="w-10 h-10 text-slate-600 mb-3" />
-                <p className="font-extrabold text-slate-400 text-sm">{t("nss.calendar.noSearchTitle")}</p>
+              <div className="text-center py-16 text-slate-400 flex flex-col items-center">
+                <Icons.Info className="w-10 h-10 text-slate-300 mb-3" />
+                <p className="font-bold text-slate-600 text-sm">{t("nss.calendar.noSearchTitle")}</p>
               </div>
             ) : (
-              <div className="space-y-4 pr-2">
+              <div className="space-y-3.5 pr-2">
                 {filteredAgendaEvents.map((evt, index) => {
                   const style = getTypeStyle(evt.type);
                   return (
                     <div
                       key={index}
-                      className="group bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all duration-300 hover:bg-white/[0.04]"
+                      className="group bg-slate-50/70 border border-slate-200/80 hover:border-blue-200 hover:bg-white rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all duration-200 shadow-2xs hover:shadow-xs"
                     >
                       <div className="flex-1">
                         <div className="flex flex-wrap gap-2 items-center mb-2">
                           <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${style.lightBg} border`}>
                             {style.label}
                           </span>
-                          <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
-                            <Icons.Calendar className="w-3.5 h-3.5" />
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1">
+                            <Icons.Calendar className="w-3.5 h-3.5 text-blue-600" />
                             {evt.endDate ? `${formatDate(evt.date)} ${t("activities.dateTo")} ${formatDate(evt.endDate)}` : formatDate(evt.date)}
                           </span>
                         </div>
 
-                        <h4 className="text-sm md:text-base font-black text-white group-hover:text-blue-400 transition-colors mb-1 leading-snug">
+                        <h4 className="text-sm md:text-base font-black text-slate-900 group-hover:text-blue-700 transition-colors mb-1 leading-snug">
                           {t(evt.titleKey || evt.title)}
                         </h4>
                         
-                        <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
                           {t(evt.descKey || evt.desc)}
                         </p>
                       </div>
@@ -1061,7 +1121,7 @@ function CTABanner({ onNavigate }) {
   }, []);
 
   return (
-    <section className="relative py-10 md:py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 overflow-hidden">
+    <section className="relative py-8 sm:py-10 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 overflow-hidden">
       {/* Background decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-[80px] -translate-y-1/2"></div>

@@ -352,3 +352,36 @@ export const uploadConfirmedUserPhoto = async (user, email, fullName, photoFile 
     return '';
   }
 };
+
+/**
+ * Converts Cloudinary, Google Drive, Dropbox, and other external image links into direct embeddable image URLs
+ * @param {string} url - Original URL
+ * @returns {string} Directly embeddable image URL
+ */
+export const getDirectImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+
+  // Cloudinary auto-optimization flag if not already present
+  if (trimmed.includes('cloudinary.com') && trimmed.includes('/upload/')) {
+    if (!trimmed.includes('/f_auto') && !trimmed.includes('/q_auto')) {
+      return trimmed.replace('/upload/', '/upload/f_auto,q_auto/');
+    }
+    return trimmed;
+  }
+
+  // Google Drive link handling
+  const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)|docs\.google\.com\/file\/d\/)([a-zA-Z0-9_-]+)/i;
+  const match = trimmed.match(driveRegex);
+  if (match && match[1]) {
+    return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  }
+
+  // Dropbox link handling
+  if (trimmed.includes('dropbox.com')) {
+    return trimmed.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace(/[?&]dl=0/, '');
+  }
+
+  return trimmed;
+};
+

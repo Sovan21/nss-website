@@ -1,7 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Poppins:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --font-fraunces: 'Fraunces', serif;
+  --font-poppins: 'Poppins', sans-serif;
+  --font-cinzel: 'Cinzel', serif;
+  --font-outfit: 'Outfit', sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
+
+.font-fraunces { font-family: 'Fraunces', serif; }
+.font-fraunces-black {
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-variation-settings: 'wght' 900, 'opsz' 72;
+  -webkit-text-stroke: 0.35px currentColor;
+}
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.font-cinzel { font-family: 'Cinzel', serif; }
+.font-outfit { font-family: 'Outfit', sans-serif; }
+.font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+.font-inter { font-family: 'Inter', sans-serif; }
+
 html {
+  font-family: 'Poppins', sans-serif;
+  overflow-y: scroll;
   scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 button, [role="button"] {

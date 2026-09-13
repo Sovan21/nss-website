@@ -180,6 +180,7 @@ const TeacherCard = ({ member, index, onCardClick, isLastAndOdd }) => {
 
   return (
     <div 
+      id={`teacher-card-${member.id}`}
       onClick={() => onCardClick(member)}
       className={`bg-white rounded-3xl border border-slate-100/90 shadow-[0_8px_24px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group p-4 sm:p-5 cursor-pointer ${
         isLastAndOdd ? 'sm:col-span-2 sm:max-w-md sm:mx-auto w-full' : ''
@@ -345,10 +346,29 @@ export default function TeachersSection({ members = [] }) {
   useScrollLock(!!selectedMember);
   useEffect(() => { if (!selectedMember) setShowFullPhoto(false); }, [selectedMember]);
 
+  useEffect(() => {
+    const handleOpenTeacher = (e) => {
+      if (e?.detail) {
+        const { id, name } = typeof e.detail === 'object' ? e.detail : { name: e.detail };
+        const found = sortedMembers.find(m => String(m.id) === String(id) || (m.name && m.name.toLowerCase().includes(String(name).toLowerCase())));
+        if (found) {
+          setSelectedMember(found);
+        } else {
+          setTimeout(() => {
+            const el = document.getElementById(`teacher-card-${id}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }
+      }
+    };
+    window.addEventListener('nss_open_teacher_member', handleOpenTeacher);
+    return () => window.removeEventListener('nss_open_teacher_member', handleOpenTeacher);
+  }, [sortedMembers]);
+
   if (!sortedMembers || sortedMembers.length === 0) return null;
 
   return (
-    <section className="pt-10 pb-12 md:pt-16 md:pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-[#faf9f6]">
+    <section className="py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-[#faf9f6]">
       {/* Background Ambient Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
 

@@ -133,7 +133,7 @@ const CommitteeCard = ({ member, registrations }) => {
   const theme = CATEGORY_THEMES[decoded.category] || CATEGORY_THEMES.Student;
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100/90 shadow-[0_8px_24px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative h-full group p-4 sm:p-5">
+    <div id={`committee-card-${member.id}`} className="bg-white rounded-3xl border border-slate-100/90 shadow-[0_8px_24px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative h-full group p-4 sm:p-5">
       
       {/* Top Background Curve & 4x5 Dot Matrix */}
       <div className="absolute top-0 left-0 w-full h-32 overflow-hidden pointer-events-none rounded-t-3xl">
@@ -292,7 +292,54 @@ export default function CommitteePage({ prefetchedMembers }) {
   const [loading, setLoading] = useState(!prefetchedMembers || prefetchedMembers.length === 0);
   const [activeCategory, setActiveCategory] = useState("Student");
 
+  // Global event listener to automatically switch category and focus searched committee member
   useEffect(() => {
+    const handleOpenMember = (e) => {
+      if (e?.detail) {
+        const { id, name, category } = typeof e.detail === 'object' ? e.detail : { name: e.detail };
+        
+        // 1. Automatically switch category tab (Environment, Cultural, Student)
+        if (category && (category === 'Student' || category === 'Cultural' || category === 'Environment')) {
+          setActiveCategory(category);
+        } else if (name || id) {
+          const target = members.find(m => String(m.id) === String(id) || (m.name && m.name.toLowerCase().includes(String(name).toLowerCase())));
+          if (target) {
+            const dec = decodeDesignation(target.designation);
+            if (dec.category && (dec.category === 'Student' || dec.category === 'Cultural' || dec.category === 'Environment')) {
+              setActiveCategory(dec.category);
+            }
+          }
+        }
+
+        // 2. Smoothly scroll into view and pulse-highlight card
+        setTimeout(() => {
+          const cardEl = document.getElementById(`committee-card-${id}`);
+          if (cardEl) {
+            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            cardEl.classList.add('ring-4', 'ring-amber-400', 'scale-[1.03]');
+            setTimeout(() => {
+              cardEl.classList.remove('ring-4', 'ring-amber-400', 'scale-[1.03]');
+            }, 3000);
+          }
+        }, 300);
+      }
+    };
+
+    window.addEventListener("nss_open_committee_member", handleOpenMember);
+    return () => window.removeEventListener("nss_open_committee_member", handleOpenMember);
+  }, [members]);
+
+  useEffect(() => {
+    if (prefetchedMembers && prefetchedMembers.length > 0) {
+      const studentMembers = prefetchedMembers.filter(m => {
+        const decoded = decodeDesignation(m.designation);
+        return decoded.category !== 'Teacher';
+      });
+      setMembers(studentMembers);
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const res = await fetch('/api/committee', { cache: 'no-store' });
@@ -332,7 +379,7 @@ export default function CommitteePage({ prefetchedMembers }) {
       }
     };
     fetchData();
-  }, []);
+  }, [prefetchedMembers]);
 
   if (loading) return <LoadingScreen />;
 
@@ -367,29 +414,36 @@ export default function CommitteePage({ prefetchedMembers }) {
   };
 
   return (
-    <section className="pt-24 pb-10 md:pt-32 md:pb-16 px-4 sm:px-6 lg:px-8 flex-grow relative overflow-hidden bg-[#faf9f6]">
+    <section className="w-full bg-[#faf9f6] py-8 sm:py-10 px-4 sm:px-6 lg:px-8 flex-grow relative overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center max-w-2xl mx-auto mb-8 md:mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-3 border border-blue-100">
-            <Icons.Team className="w-3.5 h-3.5" /> {t("committee.badge")}
+      <div className="max-w-7xl mx-auto relative z-10 flex flex-col">
+        <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-[#004899] text-xs font-black uppercase tracking-widest shadow-xs mb-2.5">
+            <Icons.Team className="w-4 h-4 text-blue-600" />
+            <span>{t("committee.badge")}</span>
           </div>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-none">
-            {t("committee.heading")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700">{t("committee.headingAccent")}</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight font-poppins">
+            {t("committee.heading")} <span className="text-[#004899] underline decoration-amber-400 decoration-4 underline-offset-8">{t("committee.headingAccent")}</span>
           </h2>
-          <p className="text-slate-500 font-medium text-xs md:text-base leading-relaxed">{t("committee.subtitle")}</p>
+          <p className="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
+            {t("committee.subtitle")}
+          </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex justify-center mb-6 md:mb-8">
+        <div className="flex justify-center mb-6">
           {/* Desktop Navigation (Horizontal Pills) */}
-          <div className="hidden sm:inline-flex bg-white/70 backdrop-blur-md p-1.5 rounded-full shadow-sm border border-slate-200/60 overflow-x-auto max-w-full no-scrollbar">
+          <div className="hidden sm:inline-flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200/80 overflow-x-auto max-w-full gap-1.5">
             {['Cultural', 'Student', 'Environment'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-6 md:px-10 py-3 md:py-3.5 rounded-full font-bold text-xs md:text-sm transition-all duration-300 whitespace-nowrap ${activeCategory === cat ? 'bg-slate-900 text-white shadow-md scale-[1.02]' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-100/60'}`}
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all duration-200 whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                  activeCategory === cat 
+                    ? 'bg-[#004899] text-white shadow-md shadow-blue-900/20' 
+                    : 'bg-slate-100/80 text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+                }`}
               >
                 {t(`committee.tab.${cat}`)}{t("committee.tabSuffix")}
               </button>

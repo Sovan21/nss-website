@@ -101,24 +101,14 @@ export default function Login({ onClose, onSwitch }) {
   }, []);
 
   useEffect(() => {
-    // Check active session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        // We have a user!
-      }
-    });
-
-    // Listen for auth state changes
+    // Listen for OAuth sign-in and password recovery events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         // User clicked a password recovery link! Show the 'New Password' view.
         setView('forgot_password');
         toast.info("Please set your new password below.");
-      } else if (event === 'USER_UPDATED') {
-        // Ignore password update events in the general listener (handled in handleSetNewPassword)
-        return;
-      } else if (session?.user) {
-        // Signed in! Now fetch or create profile
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        // OAuth / Social sign in completed
         const user = session.user;
 
         // 1. Check if the user profile already exists
@@ -137,7 +127,6 @@ export default function Login({ onClose, onSwitch }) {
             if (uploadedUrl) {
               finalProfile.photo_url = uploadedUrl;
             } else if (user.user_metadata?.photo_url) {
-              // Instead of client-side update, let sync-photo API handle it by calling it without a file
               await uploadConfirmedUserPhoto(user, user.email, finalProfile.full_name);
               finalProfile.photo_url = user.user_metadata.photo_url;
             }
@@ -161,10 +150,8 @@ export default function Login({ onClose, onSwitch }) {
           localStorage.setItem('nss_user', JSON.stringify(finalProfile));
           window.dispatchEvent(new Event('nss_user_logged_in'));
 
-          // Only close automatically if we are not in the middle of a password reset flow
-          // because we need the modal to stay open for them to set a new password.
           if (document.getElementById('password-reset-active') === null) {
-            setTimeout(() => { if (onClose) onClose(); }, 500);
+            setTimeout(() => { if (onClose) onClose(); }, 300);
           }
         }
       }

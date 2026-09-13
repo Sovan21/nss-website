@@ -8,12 +8,10 @@ import { compressImage, deleteSupabaseImage, uploadAdminImage } from '@/lib/util
 const SettingsManager = ({ isDirty, setIsDirty }) => {
   const { toast } = useToast();
   const [siteData, setSiteData] = useState({ 
-    hero_title: '', 
-    hero_subtitle: '', 
+    hero_slider_urls: [],
     about_heading: '', 
     about_text: '', 
     about_image_url: '', 
-    hero_slider_urls: [], 
     contact_email: '', 
     contact_phone: '', 
     contact_phone_2: '', 
@@ -25,11 +23,11 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  const [aboutSlots, setAboutSlots] = useState([]);
   const [sliderSlots, setSliderSlots] = useState([]);
+  const [aboutSlots, setAboutSlots] = useState([]);
 
   const Icons = {
-    Hero: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>,
+    Slider: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
     About: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     Contact: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>,
     Plus: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>,
@@ -46,6 +44,20 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
 
   const handleChange = (e) => { setIsDirty(true); setSiteData({ ...siteData, [e.target.name]: e.target.value }); };
 
+  const handleSliderSlotChange = (index, file) => {
+    if (!file) return; setIsDirty(true);
+    const newSlotData = { isNew: true, file: file, preview: URL.createObjectURL(file) };
+    const updatedSlots = [...sliderSlots]; updatedSlots[index] = newSlotData; setSliderSlots(updatedSlots.filter(Boolean));
+  };
+
+  const handleSliderSlotRemove = (index) => {
+    setIsDirty(true);
+    const slotToRemove = sliderSlots[index];
+    if (slotToRemove && slotToRemove.isNew) URL.revokeObjectURL(slotToRemove.preview);
+    const updatedSlots = sliderSlots.filter((_, i) => i !== index);
+    setSliderSlots(updatedSlots);
+  };
+
   const handleAboutSlotChange = (index, file) => {
     if (!file) return; setIsDirty(true);
     const newSlotData = { isNew: true, file: file, preview: URL.createObjectURL(file) };
@@ -58,21 +70,6 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
     if (slotToRemove && slotToRemove.isNew) URL.revokeObjectURL(slotToRemove.preview);
     const updatedSlots = aboutSlots.filter((_, i) => i !== index);
     setAboutSlots(updatedSlots);
-  };
-
-  const handleSlotChange = (index, file) => {
-    if (!file) return;
-    setIsDirty(true);
-    const newSlotData = { isNew: true, file: file, preview: URL.createObjectURL(file) };
-    const updatedSlots = [...sliderSlots]; updatedSlots[index] = newSlotData; setSliderSlots(updatedSlots.filter(Boolean));
-  };
-
-  const handleSlotRemove = (index) => {
-    setIsDirty(true);
-    const slotToRemove = sliderSlots[index];
-    if (slotToRemove.isNew) URL.revokeObjectURL(slotToRemove.preview);
-    const updatedSlots = sliderSlots.filter((_, i) => i !== index);
-    setSliderSlots(updatedSlots);
   };
 
   useEffect(() => {
@@ -106,6 +103,24 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
   const handleUpdate = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
+      // Process Hero Slider Images
+      const originalSliderUrls = siteData.hero_slider_urls || [];
+      const keptSliderUrls = sliderSlots.filter(s => !s.isNew).map(s => s.preview);
+      const sliderUrlsToDelete = originalSliderUrls.filter(url => !keptSliderUrls.includes(url));
+      for (let url of sliderUrlsToDelete) await deleteSupabaseImage(url);
+
+      let finalSliderUrls = [];
+      for (let slot of sliderSlots) {
+        if (slot.isNew && slot.file) {
+          const compressedSlotFile = await compressImage(slot.file, 6, 1920);
+          const fileName = `slider-${Date.now()}-${Math.floor(Math.random()*1000)}.${compressedSlotFile.name.split('.').pop()}`;
+          const sUrl = await uploadAdminImage(compressedSlotFile, fileName);
+          if (sUrl) finalSliderUrls.push(sUrl);
+          else throw new Error("Failed to upload slider image");
+        } else { finalSliderUrls.push(slot.preview); }
+      }
+
+      // Process About Images
       const originalAboutUrls = siteData.about_image_url ? siteData.about_image_url.split(',').filter(Boolean) : [];
       const keptAboutUrls = aboutSlots.filter(s => !s.isNew).map(s => s.preview);
       const aboutUrlsToDelete = originalAboutUrls.filter(url => !keptAboutUrls.includes(url));
@@ -123,25 +138,13 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
       }
       const updatedAboutImageUrl = finalAboutUrls.join(',');
 
-      const originalUrls = siteData.hero_slider_urls || [];
-      const keptUrls = sliderSlots.filter(s => !s.isNew).map(s => s.preview);
-      const urlsToDelete = originalUrls.filter(url => !keptUrls.includes(url));
-      
-      for (let url of urlsToDelete) await deleteSupabaseImage(url);
-
-      let finalSliderUrls = [];
-      for (let slot of sliderSlots) {
-        if (slot.isNew && slot.file) {
-          const compressedSlotFile = await compressImage(slot.file, 6, 1920);
-          const fileName = `slider-${Date.now()}-${Math.floor(Math.random()*1000)}.${compressedSlotFile.name.split('.').pop()}`;
-          const sUrl = await uploadAdminImage(compressedSlotFile, fileName);
-          if (sUrl) finalSliderUrls.push(sUrl);
-          else throw new Error("Failed to upload slider image");
-        } else { finalSliderUrls.push(slot.preview); }
-      }
-
       const finalPhone = siteData.contact_phone_2 ? `${siteData.contact_phone},${siteData.contact_phone_2}` : siteData.contact_phone;
-      const finalData = { ...siteData, contact_phone: finalPhone, about_image_url: updatedAboutImageUrl, hero_slider_urls: finalSliderUrls };
+      const finalData = { 
+        ...siteData, 
+        contact_phone: finalPhone, 
+        about_image_url: updatedAboutImageUrl,
+        hero_slider_urls: finalSliderUrls
+      };
       delete finalData.contact_phone_2;
       
       const token = await getAuthToken();
@@ -191,20 +194,30 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
     <form onSubmit={handleUpdate}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-8">
-          {/* Hero Section Card */}
+          
+          {/* Hero Slideshow Images Card */}
           <div className="bg-purple-50/60 p-6 rounded-2xl shadow-sm border border-purple-100">
-            <h4 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Icons.Hero /> Hero Section</h4>
-            <div className="space-y-4">
-              <textarea name="hero_title" value={siteData.hero_title || ''} onChange={handleChange} rows="2" className="w-full p-2.5 border border-purple-200 rounded-lg outline-none bg-white text-sm" placeholder="Hero Title (supports line breaks)"></textarea>
-              <input name="hero_subtitle" value={siteData.hero_subtitle || ''} onChange={handleChange} className="w-full p-2.5 border border-purple-200 rounded-lg outline-none bg-white text-sm" placeholder="Hero Subtitle" />
-              <div>
-                <label className="block text-sm font-semibold text-purple-800 mb-2">Slideshow Images (Max 5)</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                  {[...Array(5)].map((_, index) => (
-                    <ImageSlot key={index} slot={sliderSlots[index]} onRemove={() => handleSlotRemove(index)} onChange={(file) => handleSlotChange(index, file)} emptyText="Add Slide" />
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-bold text-lg text-purple-900 flex items-center gap-2">
+                <Icons.Slider /> Hero Slideshow Images
+              </h4>
+              <span className="text-xs font-semibold text-purple-700 bg-purple-100 px-2.5 py-1 rounded-full">
+                Max 5 Slides
+              </span>
+            </div>
+            <p className="text-xs text-purple-800/80 mb-4">
+              Upload high-quality banner images for the homepage hero carousel. Images will auto-cycle smoothly.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {[...Array(5)].map((_, index) => (
+                <ImageSlot 
+                  key={index} 
+                  slot={sliderSlots[index]} 
+                  onRemove={() => handleSliderSlotRemove(index)} 
+                  onChange={(file) => handleSliderSlotChange(index, file)} 
+                  emptyText={`Slide ${index + 1}`} 
+                />
+              ))}
             </div>
           </div>
 
@@ -212,8 +225,14 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
           <div className="bg-blue-50/60 p-6 rounded-2xl shadow-sm border border-blue-100">
             <h4 className="font-bold text-lg text-blue-900 mb-4 flex items-center gap-2"><Icons.About /> About Section</h4>
             <div className="space-y-4">
-              <input name="about_heading" value={siteData.about_heading || ''} onChange={handleChange} className="w-full p-2.5 border border-blue-200 rounded-lg outline-none bg-white text-sm" placeholder="About Heading" />
-              <textarea name="about_text" value={siteData.about_text || ''} onChange={handleChange} rows="4" className="w-full p-2.5 border border-blue-200 rounded-lg outline-none bg-white text-sm" placeholder="About Text"></textarea>
+              <div>
+                <label className="block text-xs font-bold text-blue-900 mb-1.5 ml-1">About Heading</label>
+                <input name="about_heading" value={siteData.about_heading || ''} onChange={handleChange} className="w-full p-2.5 border border-blue-200 rounded-lg outline-none bg-white text-sm focus:ring-2 focus:ring-blue-500" placeholder="About Heading" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-blue-900 mb-1.5 ml-1">About Text</label>
+                <textarea name="about_text" value={siteData.about_text || ''} onChange={handleChange} rows="4" className="w-full p-2.5 border border-blue-200 rounded-lg outline-none bg-white text-sm focus:ring-2 focus:ring-blue-500" placeholder="About Text"></textarea>
+              </div>
               <div>
                 <label className="block text-sm font-semibold text-blue-800 mb-2">About Images (Max 3)</label>
                 <div className="grid grid-cols-3 gap-3">
