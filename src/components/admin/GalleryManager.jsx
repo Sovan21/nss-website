@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { formatDate, getDirectImageUrl } from '@/lib/utils';
+import { formatDate, getDirectImageUrl, compressImage } from '@/lib/utils';
 import useScrollLock from '@/lib/useScrollLock';
 
 const GalleryManager = ({ setIsDirty }) => {
@@ -128,9 +128,18 @@ const GalleryManager = ({ setIsDirty }) => {
       let successfulCount = 0;
       const totalFiles = selectedFiles.length;
 
-      // Upload files individually so Netlify 6MB request body limit is NEVER exceeded
+      // Upload files individually with automatic client-side compression to prevent 413 Payload Too Large
       for (let i = 0; i < totalFiles; i++) {
-        const file = selectedFiles[i];
+        let file = selectedFiles[i];
+
+        // Automatically compress only if file exceeds 4.8MB, keeping target at 4.0 - 4.8MB in Ultra HD (4K 3840px)
+        if (file && file.type && file.type.startsWith('image/') && file.size > 4.8 * 1024 * 1024) {
+          try {
+            file = await compressImage(file, 3800, 4800, 3840);
+          } catch (compErr) {
+            console.warn("Auto-compression skipped:", compErr);
+          }
+        }
 
         const data = new FormData();
         data.append('date', formDate);
