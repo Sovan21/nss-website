@@ -195,3 +195,43 @@ export function extractCloudinaryPublicId(url) {
     return null;
   }
 }
+
+/**
+ * Generates an auto-optimized, WebP/AVIF Cloudinary URL with specified width and quality.
+ * If the URL is not a Cloudinary URL, returns the original URL.
+ * 
+ * @param {string} url 
+ * @param {{ width?: number, height?: number, crop?: string, quality?: string|number }} options 
+ * @returns {string}
+ */
+export function getOptimizedImageUrl(url, { width = 600, height, crop = 'fill', quality = 'auto' } = {}) {
+  if (!url || typeof url !== 'string') return url;
+  if (!url.includes('cloudinary.com') || !url.includes('/upload/')) {
+    return url;
+  }
+
+  const uploadIndex = url.indexOf('/upload/');
+  if (uploadIndex === -1) return url;
+
+  // Build transformation string
+  const transforms = ['f_auto', `q_${quality}`];
+  if (width) transforms.push(`w_${width}`);
+  if (height) transforms.push(`h_${height}`);
+  if (crop && (width || height)) transforms.push(`c_${crop}`);
+
+  const transformString = transforms.join(',');
+
+  const prefix = url.substring(0, uploadIndex + 8);
+  const suffix = url.substring(uploadIndex + 8);
+
+  // If URL already has transformation segment, replace it
+  if (/^[a-z]{1,2}_[a-zA-Z0-9_,]+(\/|$)/.test(suffix)) {
+    const nextSlash = suffix.indexOf('/');
+    if (nextSlash !== -1) {
+      return `${prefix}${transformString}/${suffix.substring(nextSlash + 1)}`;
+    }
+  }
+
+  return `${prefix}${transformString}/${suffix}`;
+}
+

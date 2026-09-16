@@ -8,7 +8,7 @@ import { Icons } from "@/components/Icons";
 // Layout components
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import VisitorCounter from "@/components/layout/LanguageSwitcher";
+import VisitorCounter from "@/components/layout/VisitorCounter";
 import Login from "@/components/auth/Login";
 import Register from "@/components/auth/Register";
 
@@ -42,7 +42,19 @@ export default function Home() {
   const [authModal, setAuthModal] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const isFirstRender = useRef(true);
+
+  // Listen for lightbox state to hide floating controls
+  useEffect(() => {
+    const handleLightboxState = (e) => setIsLightboxOpen(Boolean(e.detail));
+
+    window.addEventListener('nss_lightbox_state', handleLightboxState);
+
+    return () => {
+      window.removeEventListener('nss_lightbox_state', handleLightboxState);
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -258,8 +270,8 @@ export default function Home() {
       {/* Floating Scroll to Top Button */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className={`fixed bottom-[60px] right-4 sm:bottom-5 sm:right-5 z-40 w-10 h-10 rounded-full bg-[#004899] hover:bg-[#003366] text-white flex items-center justify-center shadow-lg border border-white/20 transition-all duration-300 ease-in-out hover:scale-110 active:scale-95 cursor-pointer ${
-          showScrollTop && !isFooterVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
+        className={`fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-40 w-11 h-11 rounded-full bg-gradient-to-tr from-[#003366] via-[#004899] to-[#1D6FE0] hover:from-[#002244] hover:to-[#004899] text-white flex items-center justify-center shadow-[0_8px_25px_rgba(0,51,102,0.4)] border border-white/25 transition-all duration-300 ease-in-out hover:scale-110 active:scale-90 cursor-pointer ${
+          showScrollTop && !isFooterVisible && !isLightboxOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
         aria-label="Scroll to top"
       >

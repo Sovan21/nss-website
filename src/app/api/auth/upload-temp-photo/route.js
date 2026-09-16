@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,6 +13,19 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
  */
 export async function POST(request) {
   try {
+    // Rate Limiting: Max 10 temp uploads per minute per IP
+    const rateLimit = checkRateLimit(request, { limit: 10, windowMs: 60 * 1000, prefix: 'upload_temp' });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a minute and try again.' },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.resetSeconds)
+          }
+        }
+      );
+    }
     if (!supabaseServiceKey) {
       return NextResponse.json({ error: 'Server config error' }, { status: 500 });
     }

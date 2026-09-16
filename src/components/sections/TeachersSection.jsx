@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Icons } from "@/components/Icons";
 import { useLanguage } from "@/context/LanguageContext";
 import useScrollLock from '@/lib/useScrollLock';
+import { getOptimizedImageUrl } from "@/lib/cloudinary";
 
 const decodeDesignation = (raw) => {
   if (!raw) return { category: 'Teacher', designation: '', display_order: 999 };
@@ -219,9 +220,10 @@ const TeacherCard = ({ member, index, onCardClick, isLastAndOdd }) => {
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-[4px] border-white shadow-lg bg-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
               {member.image_url ? (
                 <img
-                  src={member.image_url}
+                  src={getOptimizedImageUrl(member.image_url, { width: 300, height: 300, crop: 'fill', quality: 'auto' })}
                   alt={member.name}
                   loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               ) : (

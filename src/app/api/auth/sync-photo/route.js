@@ -15,34 +15,19 @@ export async function POST(request) {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Auth: prefer Bearer token, fall back to userId verification via service_role
-    let user = null;
+    // Auth: Require valid Bearer token from the authenticated user
     const authHeader = request.headers.get('authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      const { data, error: tokenError } = await supabaseAdmin.auth.getUser(token);
-      if (!tokenError && data?.user) {
-        user = data.user;
-      }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Bearer token required' }, { status: 401 });
     }
 
-    // If no valid token session, parse formData early and verify userId via admin API
-    // This handles the polling scenario where user has no auth session yet
-    if (!user) {
-      const clonedRequest = request.clone();
-      const earlyFormData = await clonedRequest.formData();
-      const fallbackUserId = earlyFormData.get('userId');
-      if (fallbackUserId && typeof fallbackUserId === 'string') {
-        const { data, error } = await supabaseAdmin.auth.admin.getUserById(fallbackUserId);
-        if (!error && data?.user && data.user.email_confirmed_at) {
-          user = data.user;
-        }
-      }
+    const token = authHeader.split(' ')[1];
+    const { data, error: tokenError } = await supabaseAdmin.auth.getUser(token);
+    if (tokenError || !data?.user) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const user = data.user;
 
     const formData = await request.formData();
     // Ignore formData.get('userId') and use the verified user.id instead

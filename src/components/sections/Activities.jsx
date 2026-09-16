@@ -6,6 +6,7 @@ import { Icons } from "@/components/Icons";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import { useLanguage } from "@/context/LanguageContext";
 import useScrollLock from '@/lib/useScrollLock';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -167,18 +168,21 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                     {/* Ambient blurred backdrop to seamlessly fill any aspect differences */}
                     <div className="absolute inset-0 blur-xl opacity-35 scale-110 pointer-events-none">
                       <img
-                        src={evt.banner_url}
+                        src={getOptimizedImageUrl(evt.banner_url, { width: 400, quality: 'auto' })}
                         alt="Background Blur"
                         aria-hidden="true"
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </div>
 
                     {/* 100% Complete & Uncropped Banner */}
                     <img
-                      src={evt.banner_url}
+                      src={getOptimizedImageUrl(evt.banner_url, { width: 720, quality: 'auto' })}
                       alt={evt.title}
                       loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:scale-105"
                     />
                     
@@ -308,7 +312,13 @@ export default function ActivitiesPage({ prefetchedEvents }) {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {selectedEvent.gallery_urls.map((url, i) => (
                         <a href={url} target="_blank" rel="noreferrer" key={i} className="block overflow-hidden rounded-lg shadow-sm border border-slate-200">
-                          <img src={url} alt="Gallery" loading="lazy" className="w-full h-20 object-cover hover:scale-110 transition duration-500" />
+                          <img 
+                            src={getOptimizedImageUrl(url, { width: 300, quality: 'auto' })} 
+                            alt="Gallery" 
+                            loading="lazy" 
+                            decoding="async"
+                            className="w-full h-20 object-cover hover:scale-110 transition duration-500" 
+                          />
                         </a>
                       ))}
                     </div>

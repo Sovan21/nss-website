@@ -1,12 +1,21 @@
 export const dynamic = 'force-dynamic';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(request) {
   try {
+    // Rate Limiting: Max 80 confirmation polls per minute per IP (plenty for normal client polling)
+    const rateLimit = checkRateLimit(request, { limit: 80, windowMs: 60 * 1000, prefix: 'check_conf' });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { confirmed: false, error: 'Rate limit exceeded' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.resetSeconds) } }
+      );
+    }
     const { userId } = await request.json().catch(() => ({}));
 
     if (!userId || typeof userId !== 'string') {

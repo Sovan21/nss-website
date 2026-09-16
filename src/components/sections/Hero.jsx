@@ -8,10 +8,31 @@ import { getUpcomingCalendarEvents, getDynamicNotices, formatEventDateParts } fr
 export default function HeroSection({ sliderUrls, onNavigate }) {
   const { t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const touchStartX = useRef(null);
 
   const upcomingEvents = getUpcomingCalendarEvents(3);
   const [dynamicNotices, setDynamicNotices] = useState(() => getDynamicNotices(3));
+
+  // Real-time Auth State sync
+  useEffect(() => {
+    const checkAuth = () => setIsLoggedIn(!!localStorage.getItem('nss_user'));
+    checkAuth();
+    window.addEventListener('nss_user_logged_in', checkAuth);
+    window.addEventListener('nss_user_logged_out', checkAuth);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(!!localStorage.getItem('nss_user'));
+      }
+    });
+    return () => {
+      window.removeEventListener('nss_user_logged_in', checkAuth);
+      window.removeEventListener('nss_user_logged_out', checkAuth);
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -164,12 +185,14 @@ export default function HeroSection({ sliderUrls, onNavigate }) {
                   <Icons.ArrowRight className="w-4 h-4" />
                 </button>
 
-                <button
-                  onClick={handleJoinClick}
-                  className="inline-flex items-center gap-1.5 bg-white hover:bg-blue-50 text-[#004899] border-2 border-[#004899] px-5 md:px-6 py-2.5 md:py-3 rounded-lg font-outfit font-bold text-xs md:text-sm tracking-wide transition-all shadow-sm hover:shadow cursor-pointer active:scale-95"
-                >
-                  <span>Join NSS</span>
-                </button>
+                {!isLoggedIn && (
+                  <button
+                    onClick={handleJoinClick}
+                    className="inline-flex items-center gap-1.5 bg-white hover:bg-blue-50 text-[#004899] border-2 border-[#004899] px-5 md:px-6 py-2.5 md:py-3 rounded-lg font-outfit font-bold text-xs md:text-sm tracking-wide transition-all shadow-sm hover:shadow cursor-pointer active:scale-95"
+                  >
+                    <span>Join NSS</span>
+                  </button>
+                )}
               </div>
 
             </div>
@@ -507,12 +530,14 @@ export default function HeroSection({ sliderUrls, onNavigate }) {
                 <Icons.ArrowRight className="w-2.5 h-2.5" />
               </button>
 
-              <button
-                onClick={handleJoinClick}
-                className="inline-flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-outfit font-black text-[9px] min-[390px]:text-[10px] px-2.5 py-1 min-[390px]:px-3 min-[390px]:py-1.5 rounded-full shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                <span>Join NSS</span>
-              </button>
+              {!isLoggedIn && (
+                <button
+                  onClick={handleJoinClick}
+                  className="inline-flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-outfit font-black text-[9px] min-[390px]:text-[10px] px-2.5 py-1 min-[390px]:px-3 min-[390px]:py-1.5 rounded-full shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <span>Join NSS</span>
+                </button>
+              )}
             </div>
 
             {/* Carousel Dots */}

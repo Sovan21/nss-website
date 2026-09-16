@@ -24,6 +24,27 @@ const localIps = Object.values(interfaces)
 const nextConfig = {
   poweredByHeader: false,
   turbopack: {},
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+    ],
+    formats: ['image/avif', 'image/webp'],
+  },
   /* config options here */
   allowedDevOrigins: [...localIps, '127.0.0.1', 'localhost', '*.trycloudflare.com'],
   async headers() {
