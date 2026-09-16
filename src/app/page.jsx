@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import { useLanguage } from "@/context/LanguageContext";
 import { Icons } from "@/components/Icons";
+import { clearAllScrollLocks } from "@/lib/useScrollLock";
 
 // Layout components
 import Navbar from "@/components/layout/Navbar";
@@ -182,6 +183,7 @@ export default function Home() {
       isFirstRender.current = false;
       return;
     }
+    clearAllScrollLocks();
     window.scrollTo(0, 0);
     const newHash = activeTab === 'home' ? '' : `#${activeTab}`;
     window.history.replaceState(null, '', newHash || window.location.pathname + window.location.search);

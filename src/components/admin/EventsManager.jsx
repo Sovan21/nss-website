@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage, formatDate, deleteSupabaseImage, uploadAdminImage } from '@/lib/utils';
+import { compressImage, formatDate, deleteSupabaseImage, uploadAdminImage, getAdminAuthToken } from '@/lib/utils';
 
 // ============================================================================
 // NAME TAG INPUT — Smart tag-based name entry with live count
@@ -179,8 +179,7 @@ const EventsManager = ({ setIsDirty }) => {
   };
 
   const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
+    return await getAdminAuthToken();
   };
 
 

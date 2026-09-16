@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage, getInitials, deleteSupabaseImage, uploadAdminImage } from '@/lib/utils';
+import { compressImage, getInitials, deleteSupabaseImage, uploadAdminImage, getAdminAuthToken } from '@/lib/utils';
 
 export const decodeDesignation = (raw) => {
   const defaults = {
@@ -300,8 +300,7 @@ const CommitteeManager = ({ setIsDirty }) => {
   };
 
   const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
+    return await getAdminAuthToken();
   };
 
   const saveMemberToSupabase = async (action, data, memberId = null) => {

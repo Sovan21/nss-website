@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage, uploadAdminImage } from '@/lib/utils';
+import { compressImage, uploadAdminImage, getAdminAuthToken } from '@/lib/utils';
 
 const AchievementsManager = ({ setIsDirty }) => {
   const { toast, confirm } = useToast();
@@ -43,8 +43,7 @@ const AchievementsManager = ({ setIsDirty }) => {
   }, [showCampForm, showAlumniForm, editingCamp, editingAlumni, setIsDirty]);
 
   const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
+    return await getAdminAuthToken();
   };
 
   const fetchCamps = async () => {

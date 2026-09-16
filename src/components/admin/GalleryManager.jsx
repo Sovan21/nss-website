@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { formatDate, getDirectImageUrl, compressImage } from '@/lib/utils';
+import { formatDate, getDirectImageUrl, compressImage, getAdminAuthToken } from '@/lib/utils';
 import useScrollLock from '@/lib/useScrollLock';
 
 const GalleryManager = ({ setIsDirty }) => {
@@ -35,8 +35,7 @@ const GalleryManager = ({ setIsDirty }) => {
   }, [showAddModal, editingItem, setIsDirty]);
 
   const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
+    return await getAdminAuthToken();
   };
 
   const fetchGallery = async () => {

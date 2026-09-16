@@ -1,45 +1,70 @@
 import { useEffect, useId } from 'react';
 
-// Global ref-counted scroll lock: body & html scroll is disabled only when at least one lock is active.
-// Multiple components can independently request a lock without conflicting with each other.
-const activeLocks = new Set();
-let previousBodyOverflow = '';
-let previousHtmlOverflow = '';
+/**
+ * Industry-Standard Reference-Counted Scroll Lock
+ * 
+ * Prevents scroll freezing caused by state race conditions or nested modals.
+ * Only modifies body overflow when transitioning from 0 -> 1 locks,
+ * and cleanly strips all lock styles when all locks reach 0.
+ */
 
-function syncBodyOverflow() {
+const activeLocks = new Set();
+let isCurrentlyLocked = false;
+
+function applyScrollLock() {
   if (typeof document === 'undefined') return;
 
-  const isLocked = activeLocks.size > 0;
-  
-  if (isLocked) {
-    if (activeLocks.size === 1) {
-      // First lock: record original styles
-      previousBodyOverflow = document.body.style.overflow;
-      previousHtmlOverflow = document.documentElement.style.overflow;
+  const shouldLock = activeLocks.size > 0;
 
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    }
-  } else {
-    // All locks released: restore styles cleanly
-    document.body.style.overflow = previousBodyOverflow;
-    document.documentElement.style.overflow = previousHtmlOverflow;
+  if (shouldLock && !isCurrentlyLocked) {
+    // Transition from 0 -> 1: Engage lock
+    isCurrentlyLocked = true;
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+  } else if (!shouldLock && isCurrentlyLocked) {
+    // Transition from 1 -> 0: Disengage lock and cleanly restore normal scrolling
+    isCurrentlyLocked = false;
+    document.body.style.overflow = '';
+    document.body.style.overscrollBehavior = '';
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('overscroll-behavior');
+    document.documentElement.style.removeProperty('overflow');
   }
 }
 
+/**
+ * Emergency reset to safely guarantee page scrollability on tab/route changes
+ */
+export function clearAllScrollLocks() {
+  if (typeof document === 'undefined') return;
+  activeLocks.clear();
+  isCurrentlyLocked = false;
+  document.body.style.overflow = '';
+  document.body.style.overscrollBehavior = '';
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('overscroll-behavior');
+  document.documentElement.style.removeProperty('overflow');
+}
+
+/**
+ * Hook to lock/unlock body scrolling for modals, lightboxes, and drawers.
+ * 
+ * @param {boolean} isLocked - Whether this component currently needs the scroll locked.
+ */
 export default function useScrollLock(isLocked) {
   const id = useId();
+
   useEffect(() => {
     if (isLocked) {
       activeLocks.add(id);
     } else {
       activeLocks.delete(id);
     }
-    syncBodyOverflow();
+    applyScrollLock();
 
     return () => {
       activeLocks.delete(id);
-      syncBodyOverflow();
+      applyScrollLock();
     };
   }, [isLocked, id]);
 }

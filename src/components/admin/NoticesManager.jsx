@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getAdminAuthToken } from '@/lib/utils';
 import useScrollLock from '@/lib/useScrollLock';
 
 const NOTICE_CATEGORIES = [
@@ -61,8 +61,7 @@ const NoticesManager = ({ setIsDirty }) => {
   }, [showAddForm, editingNotice, setIsDirty]);
 
   const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
+    return await getAdminAuthToken();
   };
 
   const fetchNotices = async () => {

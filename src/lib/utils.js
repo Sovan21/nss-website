@@ -162,19 +162,60 @@ export const useDebounce = (value, delay) => {
 };
 
 /**
+ * Reliable Admin Auth Token Resolver.
+ * Checks both admin & public Supabase client instances as well as localStorage fallbacks.
+ * 
+ * @returns {Promise<string|null>}
+ */
+export const getAdminAuthToken = async () => {
+  try {
+    // 1. Primary: Check admin client session (nss-admin-token)
+    if (supabaseAdmin?.auth) {
+      const { data: adminData } = await supabaseAdmin.auth.getSession();
+      if (adminData?.session?.access_token) {
+        return adminData.session.access_token;
+      }
+    }
+
+    // 2. Secondary: Check public client session (nss-public-token)
+    if (supabase?.auth) {
+      const { data: publicData } = await supabase.auth.getSession();
+      if (publicData?.session?.access_token) {
+        return publicData.session.access_token;
+      }
+    }
+
+    // 3. Fallback: Parse localStorage directly
+    if (typeof window !== 'undefined') {
+      const adminTokenStr = localStorage.getItem('nss-admin-token');
+      if (adminTokenStr) {
+        try {
+          const parsed = JSON.parse(adminTokenStr);
+          if (parsed?.access_token) return parsed.access_token;
+        } catch (e) {}
+      }
+      const publicTokenStr = localStorage.getItem('nss-public-token');
+      if (publicTokenStr) {
+        try {
+          const parsed = JSON.parse(publicTokenStr);
+          if (parsed?.access_token) return parsed.access_token;
+        } catch (e) {}
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error("Error resolving admin auth token:", err);
+    return null;
+  }
+};
+
+/**
  * Secure Supabase Image Deleter
  */
 export const deleteSupabaseImage = async (url) => {
   if (!url || typeof url !== 'string' || url.includes('placeholder.com')) return;
   try {
-    let { data: { session } } = await supabaseAdmin.auth.getSession();
-    let token = session?.access_token;
-    
-    // Fallback if admin client doesn't have it (e.g. legacy session)
-    if (!token) {
-      const pubSession = await supabase.auth.getSession();
-      token = pubSession?.data?.session?.access_token;
-    }
+    const token = await getAdminAuthToken();
     
     if (!token) {
       console.warn("No token available for deleteSupabaseImage");
@@ -202,15 +243,7 @@ export const deleteSupabaseImage = async (url) => {
 export const uploadAdminImage = async (file, fileName) => {
   if (!file || !fileName) return null;
   try {
-    let { data: { session } } = await supabaseAdmin.auth.getSession();
-    let token = session?.access_token;
-    
-    // Fallback if admin client doesn't have it (e.g. legacy session)
-    if (!token) {
-      const pubSession = await supabase.auth.getSession();
-      token = pubSession?.data?.session?.access_token;
-    }
-
+    const token = await getAdminAuthToken();
     if (!token) throw new Error("No auth token available");
 
     const formData = new FormData();

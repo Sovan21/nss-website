@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
-import { compressImage, deleteSupabaseImage, uploadAdminImage } from '@/lib/utils';
+import { compressImage, deleteSupabaseImage, uploadAdminImage, getAdminAuthToken } from '@/lib/utils';
 
 const SettingsManager = ({ isDirty, setIsDirty }) => {
   const { toast } = useToast();
@@ -96,8 +96,7 @@ const SettingsManager = ({ isDirty, setIsDirty }) => {
   }, []);
 
   const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
+    return await getAdminAuthToken();
   };
 
   const handleUpdate = async (e) => {

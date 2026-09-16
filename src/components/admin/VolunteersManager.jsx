@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabaseAdmin as supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 import { DEPARTMENTS, YEARS } from '@/lib/constants';
-import { compressImage, formatDate, useDebounce, deleteSupabaseImage, getInitials, uploadAdminImage } from '@/lib/utils';
+import { compressImage, formatDate, useDebounce, deleteSupabaseImage, getInitials, uploadAdminImage, getAdminAuthToken } from '@/lib/utils';
 import ImageCropperModal from '@/components/ImageCropperModal';
 
 // Custom Date Picker component that forces DD/MM/YYYY display on ALL devices while showing native calendar
@@ -287,8 +287,7 @@ const VolunteersManager = ({ setIsDirty }) => {
   }
   const finalData = { id: selectedVol.id, ...editFormData, photo_url: updatedPhotoUrl };
   
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  const token = await getAdminAuthToken();
   if (!token) throw new Error("Not authenticated");
 
   const res = await fetch('/api/admin/volunteers', {
@@ -308,8 +307,7 @@ const VolunteersManager = ({ setIsDirty }) => {
   const handleDeleteVolunteer = async () => {
     setDeleting(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token || '';
+      const token = await getAdminAuthToken();
       if (!token) throw new Error("Not authenticated");
 
       const res = await fetch('/api/admin/volunteers', {
