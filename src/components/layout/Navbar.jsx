@@ -563,10 +563,62 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange, searchData, isFooterVisib
     }
   };
 
-  let adminPressTimer;
-  const handlePressStart = () => { adminPressTimer = setTimeout(() => { setShowAdminWarning(true); }, 6000); };
-  const handlePressEnd = () => { clearTimeout(adminPressTimer); };
-  const confirmAdminAccess = () => { setShowAdminWarning(false); sessionStorage.removeItem('allow_public'); if (localStorage.getItem('nss_admin_mode')) { router.push('/admin'); } else { router.push('/admin-login'); } };
+  const adminPressTimerRef = useRef(null);
+  const isLongPressTriggeredRef = useRef(false);
+  const [isAdminRedirecting, setIsAdminRedirecting] = useState(false);
+
+  // Prefetch admin routes so Next.js bundles are ready in memory
+  useEffect(() => {
+    try {
+      router.prefetch('/admin');
+      router.prefetch('/admin-login');
+    } catch (e) {}
+  }, [router]);
+
+  const handlePressStart = () => {
+    isLongPressTriggeredRef.current = false;
+    try {
+      router.prefetch('/admin');
+      router.prefetch('/admin-login');
+    } catch (e) {}
+    if (adminPressTimerRef.current) {
+      clearTimeout(adminPressTimerRef.current);
+    }
+    adminPressTimerRef.current = setTimeout(() => {
+      isLongPressTriggeredRef.current = true;
+      setIsAdminRedirecting(false);
+      setShowAdminWarning(true);
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(80);
+      }
+    }, 6000);
+  };
+
+  const handlePressEnd = () => {
+    if (adminPressTimerRef.current) {
+      clearTimeout(adminPressTimerRef.current);
+      adminPressTimerRef.current = null;
+    }
+  };
+
+  const handleLogoClick = (e) => {
+    if (isLongPressTriggeredRef.current) {
+      isLongPressTriggeredRef.current = false;
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return;
+    }
+    handleNavClick('home');
+  };
+
+  const confirmAdminAccess = () => {
+    setIsAdminRedirecting(true);
+    sessionStorage.removeItem('allow_public');
+    const target = localStorage.getItem('nss_admin_mode') ? '/admin' : '/admin-login';
+    router.push(target);
+  };
 
   return (
     <>
@@ -676,10 +728,15 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange, searchData, isFooterVisib
           {/* Left: NSS & College Logos + Institution Typography */}
           <div 
             className="flex items-center gap-3.5 cursor-pointer group select-none shrink-0"
-            onClick={() => handleNavClick('home')}
+            onClick={handleLogoClick}
             onMouseDown={handlePressStart}
             onMouseUp={handlePressEnd}
             onMouseLeave={handlePressEnd}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
+            onTouchCancel={handlePressEnd}
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
           >
             {/* Unified Logo Grouping */}
             <div className="flex items-center gap-2 p-1.5 bg-slate-50/80 rounded-xl border border-slate-200/70 shadow-xs shrink-0 group-hover:border-blue-300 transition-colors">
@@ -976,11 +1033,16 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange, searchData, isFooterVisib
       <header className="lg:hidden sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E4E7EC]">
         <div className="w-full py-2 px-2 min-[380px]:px-2.5 flex items-center justify-between overflow-hidden">
           <div 
-            className="flex items-center gap-1.5 min-[380px]:gap-2 cursor-pointer min-w-0 flex-1 mr-2"
-            onClick={() => handleNavClick('home')}
+            className="flex items-center gap-1.5 min-[380px]:gap-2 cursor-pointer min-w-0 flex-1 mr-2 select-none"
+            onClick={handleLogoClick}
             onMouseDown={handlePressStart}
             onMouseUp={handlePressEnd}
             onMouseLeave={handlePressEnd}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
+            onTouchCancel={handlePressEnd}
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
           >
             {/* Unified Dual Logos Card (College + NSS Covered Together) */}
             <div className="flex items-center gap-1 min-[380px]:gap-1.5 p-1 bg-white rounded-lg border border-slate-200/90 shadow-xs shrink-0">
@@ -1096,9 +1158,18 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange, searchData, isFooterVisib
             );
           })}
           {!currentUser && (
-            <div className="pt-3 mt-2 border-t border-white/10">
-              <button onClick={() => { closeAllMenus(); onOpenLogin(); }} className="flex items-center justify-center gap-2 bg-white text-slate-900 py-3 rounded-full font-bold text-sm w-full transition-colors duration-200 cursor-pointer active:scale-[0.97] hover:bg-blue-50">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg> {t("nav.loginJoin")}
+            <div className="pt-3 mt-2 border-t border-white/10 space-y-2">
+              <button 
+                onClick={() => { closeAllMenus(); window.dispatchEvent(new Event('open_nss_register')); }} 
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 py-2.5 rounded-full font-bold text-sm w-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97]"
+              >
+                <span>Join NSS</span>
+              </button>
+              <button 
+                onClick={() => { closeAllMenus(); onOpenLogin(); }} 
+                className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-full font-bold text-sm w-full transition-colors duration-200 cursor-pointer active:scale-[0.97] border border-white/15"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg> {t("nav.login")}
               </button>
             </div>
           )}
@@ -1147,8 +1218,27 @@ const Navbar = ({ onOpenLogin, activeTab, onTabChange, searchData, isFooterVisib
             <h3 className="font-extrabold text-xl text-slate-900 mb-2">{t("nav.adminConfirmTitle")}</h3>
             <p className="text-sm text-slate-500 mb-6 leading-relaxed">{t("nav.adminConfirmText")}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowAdminWarning(false)} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition text-sm shadow-sm cursor-pointer">{t("nav.cancel")}</button>
-              <button onClick={confirmAdminAccess} className="flex-1 py-3 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition text-sm shadow-md cursor-pointer">{t("nav.proceed")}</button>
+              <button 
+                onClick={() => { setShowAdminWarning(false); setIsAdminRedirecting(false); }} 
+                disabled={isAdminRedirecting}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition text-sm shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {t("nav.cancel")}
+              </button>
+              <button 
+                onClick={confirmAdminAccess} 
+                disabled={isAdminRedirecting}
+                className="flex-1 py-3 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl transition text-sm shadow-md cursor-pointer flex items-center justify-center gap-2 active:scale-95 disabled:opacity-80"
+              >
+                {isAdminRedirecting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <span>{t("nav.proceed")}</span>
+                )}
+              </button>
             </div>
           </div>
         </div>

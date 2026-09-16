@@ -227,11 +227,11 @@ export const uploadAdminImage = async (file, fileName) => {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || 'Failed to upload image');
+      throw new Error(errData.error || `Upload failed with status ${res.status}`);
     }
     
-    const data = await res.json();
-    return data.publicUrl;
+    const data = await res.json().catch(() => ({}));
+    return data.publicUrl || null;
   } catch (error) {
     console.error("Error uploading admin image:", error);
     return null;

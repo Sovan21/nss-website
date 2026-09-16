@@ -120,37 +120,51 @@ const GalleryManager = ({ setIsDirty }) => {
     }
 
     setUploading(true);
-    setUploadProgress(15);
+    setUploadProgress(5);
     try {
       const token = await getAuthToken();
       if (!token) throw new Error('Not authenticated');
 
-      const data = new FormData();
-      data.append('date', formDate);
-      data.append('title', 'NSS Photo');
+      let successfulCount = 0;
+      const totalFiles = selectedFiles.length;
 
-      selectedFiles.forEach((file) => {
+      // Upload files individually so Netlify 6MB request body limit is NEVER exceeded
+      for (let i = 0; i < totalFiles; i++) {
+        const file = selectedFiles[i];
+
+        const data = new FormData();
+        data.append('date', formDate);
+        data.append('title', 'NSS Photo');
         data.append('files', file);
-      });
 
-      setUploadProgress(45);
+        const res = await fetch('/api/admin/gallery', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: data
+        });
 
-      const res = await fetch('/api/admin/gallery', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: data
-      });
+        if (!res.ok) {
+          let errDetail = '';
+          try {
+            const errJson = await res.json();
+            errDetail = errJson.error;
+          } catch (e) {
+            if (res.status === 413) {
+              errDetail = `Photo "${file.name}" is too large (> 5MB). Please compress it.`;
+            } else {
+              errDetail = `Server returned HTTP ${res.status}: Upload failed`;
+            }
+          }
+          throw new Error(errDetail || `Failed to upload photo ${i + 1}`);
+        }
 
-      setUploadProgress(90);
-
-      const result = await res.json();
-      if (!res.ok || result.error) {
-        throw new Error(result.error || 'Failed to upload photos to Cloudinary');
+        successfulCount++;
+        setUploadProgress(Math.round(((i + 1) / totalFiles) * 100));
       }
 
-      toast.success(`Successfully uploaded ${result.count || selectedFiles.length} photo(s)!`);
+      toast.success(`Successfully uploaded ${successfulCount} photo(s)!`);
       closeModal();
       fetchGallery();
     } catch (err) {

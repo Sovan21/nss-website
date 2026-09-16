@@ -470,7 +470,7 @@ export default function HeroSection({ sliderUrls, onNavigate }) {
           </div>
 
           {/* Left Content Block - Bottom-Left Aligned */}
-          <div className="relative z-20 flex flex-col items-start w-[56%] min-[390px]:w-[52%] max-w-[210px] mt-auto">
+          <div className="relative z-20 flex flex-col items-start w-[65%] min-[390px]:w-[60%] max-w-[260px] mt-auto">
             {/* Small label "NATIONAL SERVICE SCHEME" with line */}
             <div className="flex items-center gap-1.5 mb-1">
               <span className="text-[8px] min-[390px]:text-[8.5px] font-black text-white/90 tracking-[0.16em] uppercase drop-shadow-sm">
@@ -497,14 +497,23 @@ export default function HeroSection({ sliderUrls, onNavigate }) {
               NSS empowers youth to build a better society through selfless service and strong values.
             </p>
 
-            {/* CTA button: white pill, navy text */}
-            <button
-              onClick={() => handleNav("activities")}
-              className="inline-flex items-center gap-1 bg-white hover:bg-slate-100 text-[#0B2559] font-outfit font-extrabold text-[9px] min-[390px]:text-[10px] px-3 py-1 min-[390px]:px-3.5 min-[390px]:py-1.5 rounded-full shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              <span>Explore Activities</span>
-              <Icons.ArrowRight className="w-2.5 h-2.5" />
-            </button>
+            {/* CTA buttons */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={() => handleNav("activities")}
+                className="inline-flex items-center gap-1 bg-white hover:bg-slate-100 text-[#0B2559] font-outfit font-extrabold text-[9px] min-[390px]:text-[10px] px-2.5 py-1 min-[390px]:px-3 min-[390px]:py-1.5 rounded-full shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <span>Explore Activities</span>
+                <Icons.ArrowRight className="w-2.5 h-2.5" />
+              </button>
+
+              <button
+                onClick={handleJoinClick}
+                className="inline-flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-outfit font-black text-[9px] min-[390px]:text-[10px] px-2.5 py-1 min-[390px]:px-3 min-[390px]:py-1.5 rounded-full shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <span>Join NSS</span>
+              </button>
+            </div>
 
             {/* Carousel Dots */}
             <div className="flex items-center gap-1 mt-2 ml-0.5">
