@@ -257,4 +257,13 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   }
 }
 
+/* ─── Global Print Styles ─── */
+@media print {
+  .no-print,
+  .print-hidden,
+  [data-no-print="true"] {
+    display: none !important;
+  }
+}
+
 
